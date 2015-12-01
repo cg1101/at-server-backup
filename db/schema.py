@@ -5,67 +5,68 @@ from sqlalchemy import event
 
 from mytypes import JsonString, MutableDict
 
-metadata = MetaData(naming_convention={
-        "ix": 'ix_%(column_0_label)s',
-        "uq": "uq_%(table_name)s_%(column_0_name)s",
-        "ck": "ck_%(table_name)s_%(constraint_name)s",
-        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-        "pk": "pk_%(table_name)s",
-})
+metadata = MetaData()
+#metadata = MetaData(naming_convention={
+#        "ix": 'ix_%(column_0_label)s',
+#        "uq": "uq_%(table_name)s_%(column_0_name)s",
+#        "ck": "ck_%(table_name)s_%(constraint_name)s",
+#        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+#        "pk": "pk_%(table_name)s",
+#})
 
 event.listen(metadata, 'before_create', DDL('CREATE SCHEMA IF NOT EXISTS q'))
 
 # Level 000
 
 t_pdb_projects = Table('pdb_projects', metadata,
-	Column('project_id', Integer, primary_key=True, autoincrement=False, key='projectId'),
-	Column('name', Text, nullable=False, unique=True, key='name'),
+	Column('project_id', Integer, primary_key=True, autoincrement=False, key=u'projectId'),
+	Column('name', Text, nullable=False, unique=True, key=u'name'),
 )
 
 t_pdb_tasks = Table('pdb_tasks', metadata,
-	Column('task_id', Integer, primary_key=True, autoincrement=False, key='taskId'),
-	Column('project_id', Integer, ForeignKey('pdb_projects.projectId'), nullable=False, key='projectId'),
-	Column('work_area', Text, key='workArea'),
-	Column('name', Text, key='name'),
+	Column('task_id', Integer, primary_key=True, autoincrement=False, key=u'taskId'),
+	Column('project_id', Integer, ForeignKey('pdb_projects.projectId'), nullable=False, key=u'projectId'),
+	Column('work_area', Text, key=u'workArea'),
+	Column('name', Text, key=u'name'),
 )
 
 t_ao_payment_classes = Table('ao_payment_classes', metadata,
-	Column('paymentclassid', Integer, primary_key=True, autoincrement=False, key='paymentClassId'),
-	Column('name', Text, nullable=False, unique=True, key='name'),
-	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key='created')
+	Column('paymentclassid', Integer, primary_key=True, autoincrement=False, key=u'paymentClassId'),
+	Column('name', Text, nullable=False, unique=True, key=u'name'),
+	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created')
 )
 
 t_ao_payment_types = Table('ao_payment_types', metadata,
-	Column('paymenttypeid', Integer, primary_key=True, autoincrement=False, key='paymentTypeId'),
-	Column('name', Text, nullable=False, unique=True, key='name'),
-	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key='created')
+	Column('paymenttypeid', Integer, primary_key=True, autoincrement=False, key=u'paymentTypeId'),
+	Column('name', Text, nullable=False, unique=True, key=u'name'),
+	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created')
 )
 
 t_ao_payrolls = Table('ao_payrolls', metadata,
-	Column('payrollid', Integer, primary_key=True, autoincrement=False, key='payrollId'),
-	Column('startdate', Date, nullable=False, key='startDate'),
-	Column('enddate', Date, nullable=False, key='endDate'),
+	Column('payrollid', Integer, primary_key=True, autoincrement=False, key=u'payrollId'),
+	Column('startdate', Date, nullable=False, key=u'startDate'),
+	Column('enddate', Date, nullable=False, key=u'endDate'),
 )
 
 t_ao_users = Table('ao_users', metadata,
-	Column('userid', Integer, primary_key=True, autoincrement=False, key='userId'),
-	Column('emailaddress', Text, nullable=False, key='emailAddress'),
-	Column('active', Text, nullable=False, server_default=text('TRUE'), key='isActive'),
-	Column('familyname', Text, key='familyName'),
-	Column('givenname', Text, key='givenName'),
+	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId'),
+	Column('emailaddress', Text, nullable=False, key=u'emailAddress'),
+	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive'),
+	Column('familyname', Text, key=u'familyName'),
+	Column('givenname', Text, key=u'givenName'),
 )
 
 # t_ao_countries = Table('ao_countries', metadata,
-# 	Column('country_id', Integer, primary_key=True, autoincrement=False, key='countryId'),
-# 	Column('name', Text, nullable=False, unique=True, key='name'),
-# 	Column('iso2', VARCHAR(2), nullable=False, unique=True, key='iso2'),
-# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key='iso3'),
+# 	Column('country_id', Integer, primary_key=True, autoincrement=False, key=u'countryId'),
+# 	Column('name', Text, nullable=False, unique=True, key=u'name'),
+# 	Column('iso2', VARCHAR(2), nullable=False, unique=True, key=u'iso2'),
+# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3'),
 # )
 
 # t_ao_languages = Table('ao_languages', metadata,
-# 	Column('language_id', Integer, primary_key=True, autoincrement=False, key='languageId'),
-# 	Column('name', Text, nullable=False, unique=True, key='name'),
-# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key='iso3'),
+# 	Column('language_id', Integer, primary_key=True, autoincrement=False, key=u'languageId'),
+# 	Column('name', Text, nullable=False, unique=True, key=u'name'),
+# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3'),
 # 	Column('ltr', Boolean, nullable=False, server_default=text('TRUE')),
 # )
 
@@ -75,26 +76,23 @@ t_ao_users = Table('ao_users', metadata,
 
 t_batchingmodes =  Table('batchingmodes', metadata,
 	Column(u'modeid', INTEGER, primary_key=True, nullable=False, key=u'modeId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'requirescontext', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'requiresContext', doc=''),
 )
-Index(u'batchingmodes_name_key', t_batchingmodes.c.name, unique=True)
 
 
 t_errorclasses =  Table('errorclasses', metadata,
 	Column(u'errorclassid', INTEGER, primary_key=True, nullable=False, key=u'errorClassId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 )
-Index(None, t_errorclasses.c.name, unique=True)
 
 
 t_filehandlers =  Table('filehandlers', metadata,
 	Column(u'handlerid', INTEGER, primary_key=True, nullable=False, key=u'handlerId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 )
-Index(None, t_filehandlers.c.name, unique=True)
 
 
 t_jobs =  Table('jobs', metadata,
@@ -107,24 +105,22 @@ t_jobs =  Table('jobs', metadata,
 	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'pid', INTEGER, key=u'pid', doc=''),
 )
-#Index('jobs_pkey', t_jobs.c.jobid, unique=True)
 
 
 t_labelsets =  Table('labelsets', metadata,
 	Column(u'labelsetid', INTEGER, primary_key=True, nullable=False, key=u'labelSetId', doc=''),
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 )
-#Index('labelsets_pkey', t_labelsets.c.labelsetid, unique=True)
 
 
 t_rates =  Table('rates', metadata,
 	Column(u'rateid', INTEGER, primary_key=True, nullable=False, key=u'rateId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'centsperutt', DOUBLE_PRECISION, nullable=False, key=u'standardValue', doc=''),
 	Column(u'maxcentsperutt', DOUBLE_PRECISION, nullable=False, key=u'maxValue', doc=''),
 	Column(u'targetaccuracy', DOUBLE_PRECISION, nullable=False, key=u'targetAccuracy', doc=''),
+	CheckConstraint('targetaccuracy>=0 AND targetaccuracy<=1'),
 )
-Index(None, t_rates.c.name, unique=True)
 
 
 t_tagimagepreviews =  Table('tagimagepreviews', metadata,
@@ -132,7 +128,6 @@ t_tagimagepreviews =  Table('tagimagepreviews', metadata,
 	Column(u'image', LargeBinary, nullable=False, key=u'image', doc=''),
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 )
-#Index('tagimagepreviews_pkey', t_tagimagepreviews.c.previewid, unique=True)
 
 
 t_tagsets =  Table('tagsets', metadata,
@@ -140,7 +135,6 @@ t_tagsets =  Table('tagsets', metadata,
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'lastupdated', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'lastUpdated', doc=''),
 )
-#Index('tagsets_pkey', t_tagsets.c.tagsetid, unique=True)
 
 
 t_tasktypes =  Table('tasktypes', metadata,
@@ -148,38 +142,35 @@ t_tasktypes =  Table('tasktypes', metadata,
 	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 )
-#Index('tasktypes_pkey', t_tasktypes.c.taskTypeId, unique=True)
 
 
 t_taskreporttypes =  Table('taskreporttypes', metadata,
 	Column(u'reporttypeid', INTEGER, primary_key=True, nullable=False, key=u'reportTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'isstandard', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isStandard', doc=''),
 	Column(u'restrictusersallowed', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'restrictUsersAllowed', doc=''),
 )
-Index(u'taskreporttypes_name_key', t_taskreporttypes.c.name, unique=True)
 
 
 t_worktypes =  Table('worktypes', metadata,
 	Column(u'worktypeid', INTEGER, primary_key=True, nullable=False, key=u'workTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'modifiestranscription', BOOLEAN, nullable=False, key=u'modifiesTranscription', doc=''),
 )
-Index(None, t_worktypes.c.name, unique=True)
 
 
 # Level 020
 
 t_errortypes =  Table('errortypes', metadata,
 	Column(u'errortypeid', INTEGER, primary_key=True, nullable=False, key=u'errorTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'errorclassid', INTEGER, nullable=False, key=u'errorClassId', doc=''),
 	Column(u'defaultseverity', DOUBLE_PRECISION, nullable=False, key=u'defaultSeverity', doc=''),
 	Column(u'isstandard', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'isStandard', doc=''),
-	ForeignKeyConstraint([u'errorClassId'], [u'errorclasses.errorClassId'], name=u'errortypes_errorclassid_fkey'),
+	ForeignKeyConstraint([u'errorClassId'], [u'errorclasses.errorClassId']),
+	CheckConstraint('defaultseverity >= 0 AND defaultseverity <= 1'),
 )
-Index(None, t_errortypes.c.name, unique=True)
 
 
 t_filehandleroptions =  Table('filehandleroptions', metadata,
@@ -190,9 +181,9 @@ t_filehandleroptions =  Table('filehandleroptions', metadata,
 	Column(u'datatype', TEXT, nullable=False, key=u'dataType', doc=''),
 	Column(u'widgettype', TEXT, key=u'widgetType', doc=''),
  	Column(u'params', MutableDict.as_mutable(JsonString), key=u'params', doc=''),
-	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId'], name=None),
+ 	UniqueConstraint(u'name', u'handlerId'),
+	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId']),
 )
-Index(None, t_filehandleroptions.c.name, t_filehandleroptions.c.handlerId, unique=True)
 
 
 t_labelgroups =  Table('labelgroups', metadata,
@@ -201,19 +192,20 @@ t_labelgroups =  Table('labelgroups', metadata,
 	Column(u'ismandatory', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isMandatory', doc=''),
 	Column(u'labelsetid', INTEGER, nullable=False, key=u'labelSetId', doc=''),
 	Column(u'dropdowndisplay', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'dropDownDisplay', doc=''),
-	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId'], name=u'labelgroups_labelsetid_fkey'),
+	UniqueConstraint(u'labelSetId', u'name'),
+	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 )
-Index(u'labelgroups_labelsetid_key', t_labelgroups.c.labelSetId, t_labelgroups.c.name, unique=True)
 
 
 t_ratedetails =  Table('ratedetails', metadata,
 	Column(u'rateid', INTEGER, nullable=False, key=u'rateId', doc=''),
 	Column(u'centsperutt', DOUBLE_PRECISION, nullable=False, key=u'value', doc=''),
 	Column(u'accuracy', DOUBLE_PRECISION, nullable=False, key=u'accuracy', doc=''),
+	UniqueConstraint(u'rateId', u'accuracy'),
 	PrimaryKeyConstraint(u'rateId', u'accuracy'),
-	ForeignKeyConstraint([u'rateId'], [u'rates.rateId'], name=u'ratedetails_rateid_fkey'),
+	ForeignKeyConstraint([u'rateId'], [u'rates.rateId']),
+	CheckConstraint('accuracy>=0 AND accuracy<=1'),
 )
-Index(None, t_ratedetails.c.rateId, t_ratedetails.c.accuracy, unique=True)
 
 
 t_tags =  Table('tags', metadata,
@@ -234,10 +226,11 @@ t_tags =  Table('tags', metadata,
 	Column(u'tooltip', TEXT, key=u'tooltip', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'isdynamic', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isDynamic', doc=''),
-	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId'], name=u'tags_tagsetid_fkey')
+	UniqueConstraint(u'tagSetId', u'name'),
+	UniqueConstraint(u'color', u'isForeground', u'tagSetId'),
+	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
+	CheckConstraint("shortcutkey IS NULL OR shortcutkey <> ' '"),
 )
-Index(None, t_tags.c.color, t_tags.c.isForeground, t_tags.c.tagSetId, unique=True)
-Index(None, t_tags.c.tagSetId, t_tags.c.name, unique=True)
 
 
 # Level 030
@@ -251,13 +244,14 @@ t_labels =  Table('labels', metadata,
 	Column(u'extract', TEXT, nullable=False, key=u'extract', doc=''),
 	Column(u'labelgroupid', INTEGER, key=u'labelGroupId', doc=''),
 	Column(u'labelsetid', INTEGER, nullable=False, key=u'labelSetId', doc=''),
-	ForeignKeyConstraint([u'labelGroupId'], [u'labelgroups.labelGroupId'], name=u'labels_labelgroupid_fkey'),
-	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId'], name=u'labels_labelsetid_fkey'),
+	UniqueConstraint(u'labelSetId', u'extract'),
+	UniqueConstraint(u'labelSetId', u'name'),
+	UniqueConstraint(u'labelSetId', u'shortcutKey'),
+	ForeignKeyConstraint([u'labelGroupId'], [u'labelgroups.labelGroupId']),
+	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
+	CheckConstraint("hotkey<>' '"),
 )
-Index('ix_labels_labelsetid_key', t_labels.c.labelSetId, t_labels.c.extract, unique=True)
-Index('ix_labels_labelsetid_key1', t_labels.c.labelSetId, t_labels.c.name, unique=True)
-Index('ix_labels_labelsetid_key2', t_labels.c.labelSetId, t_labels.c.shortcutKey, unique=True)
-Index(None, t_labels.c.labelGroupId, unique=False)
+Index('labelsbylabelgroupid', t_labels.c.labelGroupId, unique=False)
 
 
 # Level 100
@@ -266,7 +260,6 @@ t_payrolls =  Table('payrolls', metadata,
 	Column(u'payrollid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'payrollId', doc=''),
 	Column(u'updatedpayments', TIMESTAMP(timezone=False), key=u'updatedPayments', doc=''),
 )
-#Index('payrolls_pkey', t_payrolls.c.payrollid, unique=True)
 
 
 t_paymentclasses =  Table('paymentclasses', metadata,
@@ -277,7 +270,6 @@ t_paymentclasses =  Table('paymentclasses', metadata,
 t_paymenttypes =  Table('paymenttypes', metadata,
 	Column(u'paymenttypeid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'paymentTypeId', doc=''),
 )
-#Index('paymenttypes_pkey', t_paymenttypes.c.paymenttypeid, unique=True)
 
 
 t_projects =  Table('projects', metadata,
@@ -286,15 +278,13 @@ t_projects =  Table('projects', metadata,
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'migratedby', INTEGER, nullable=False, key=u'migratedBy', doc=''),
-	ForeignKeyConstraint([u'migratedBy'], [u'users.userId'], name=u'projects_migratedby_fkey'),
+	ForeignKeyConstraint([u'migratedBy'], [u'users.userId']),
 )
-#Index('projects_pkey', t_projects.c.projectid, unique=True)
 
 
 t_users =  Table('users', metadata,
 	Column(u'userid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'userId', doc=''),
 )
-#Index('users_pkey', t_users.c.userid, unique=True)
 
 
 # Level 110
@@ -306,9 +296,9 @@ t_calculateduserpayrates =  Table('calculateduserpayrates', metadata,
 	Column(u'hourlyrate', DOUBLE_PRECISION, nullable=False, key=u'hourlyRate', doc=''),
 	Column(u't', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u't', doc=''),
 	Column(u'changerid', INTEGER, nullable=False, key=u'changerId', doc=''),
-	ForeignKeyConstraint([u'changerId'], [u'users.userId'], name=u'calculateduserpayrates_changerid_fkey'),
-	ForeignKeyConstraint([u'rateId'], [u'rates.rateId'], name=u'calculateduserpayrates_rateid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'calculateduserpayrates_userid_fkey'),
+	ForeignKeyConstraint([u'changerId'], [u'users.userId']),
+	ForeignKeyConstraint([u'rateId'], [u'rates.rateId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
 
 
@@ -325,15 +315,16 @@ t_tasks =  Table('tasks', metadata,
 	Column(u'migrated', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'migrated', doc=''),
 	Column(u'migratedby', INTEGER, key=u'migratedBy', doc=''),
 	Column(u'handlerid', INTEGER, key=u'handlerId', doc=''),
-	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId'], name=u'tasks_labelsetid_fkey'),
-	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId'], name=u'tasks_tasktypeid_fkey'),
-	ForeignKeyConstraint([u'projectId'], [u'projects.projectId'], name=u'tasks_projectid_fkey'),
-	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId'], name=u'tasks_tagsetid_fkey'),
-	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId'], name=u'tasks_handlerid_fkey'),
-	ForeignKeyConstraint([u'migratedBy'], [u'users.userId'], name=u'tasks_migratedby_fkey'),
+	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
+	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
+	ForeignKeyConstraint([u'projectId'], [u'projects.projectId']),
+	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
+	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId']),
+	ForeignKeyConstraint([u'migratedBy'], [u'users.userId']),
+	CheckConstraint("src_dir=ANY(ARRAY['ltr','rtl'])"),
+	CheckConstraint("status=ANY(ARRAY['active','disabled','finished','closed','archived'])"),
 )
-#Index('tasks_pkey', t_tasks.c.taskid, unique=True)
-Index(None, t_tasks.c.migratedBy)
+Index('projectsmigratedby', t_tasks.c.migratedBy, unique=False)
 
 
 t_tracking_events =  Table('tracking_events', metadata,
@@ -356,10 +347,10 @@ t_costperutterance =  Table('costperutterance', metadata,
 	Column(u'unitsdone', INTEGER, nullable=False, key=u'unitsDone', doc=''),
 	Column(u'payrollid', INTEGER, primary_key=True, nullable=False, key=u'payrollId', doc=''),
 	Column(u'amount', DOUBLE_PRECISION, nullable=False, key=u'amount', doc=''),
-	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId'], name=u'costperutterance_payrollid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'costperutterance_taskid_fkey'),
+	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-Index(u'costperutterancebytaskid', t_costperutterance.c.taskId, unique=False)
+Index('costperutterancebytaskid', t_costperutterance.c.taskId, unique=False)
 
 
 t_loads =  Table('loads', metadata,
@@ -367,30 +358,28 @@ t_loads =  Table('loads', metadata,
 	Column(u'createdby', INTEGER, nullable=False, key=u'createdBy', doc=''),
 	Column(u'createdat', TIMESTAMP(timezone=True), nullable=False, server_default=text(u'now()'), key=u'createdAt', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
-	ForeignKeyConstraint([u'createdBy'], [u'users.userId'], name=None),#u'tasksupervisors_userid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=None),#u'tasksupervisors_taskid_fkey'),
+	UniqueConstraint(u'loadId', u'taskId'),
+	ForeignKeyConstraint([u'createdBy'], [u'users.userId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-#Index('loads_pkey', t_loads.c.loadId, unique=True)
-Index('ix_loads_taskid_loadid', t_loads.c.loadId, t_loads.c.taskId, unique=True)
 
 
 t_otherpayments =  Table('otherpayments', metadata,
 	Column(u'otherpaymentid', INTEGER, primary_key=True, nullable=False, key=u'otherPaymentId', doc=''),
 	Column(u'payrollid', INTEGER, nullable=False, key=u'payrollId', doc=''),
-	Column(u'identifier', TEXT, nullable=False, key=u'identifier', doc=''),
+	Column(u'identifier', TEXT, nullable=False, unique=True, key=u'identifier', doc=''),
 	Column(u'paymenttypeid', INTEGER, nullable=False, key=u'paymentTypeId', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
 	Column(u'amount', INTEGER, nullable=False, key=u'amount', doc=''),
 	Column(u'added', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'added', doc=''),
-	ForeignKeyConstraint([u'paymentTypeId'], [u'paymenttypes.paymentTypeId'], name=u'otherpayments_paymenttypeid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'otherpayments_taskid_fkey'),
-	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId'], name=u'otherpayments_payrollid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'otherpayments_userid_fkey'),
+	ForeignKeyConstraint([u'paymentTypeId'], [u'paymenttypes.paymentTypeId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
-Index(u'otherpayments_identifier_key', t_otherpayments.c.identifier, unique=True)
-Index(u'otherpaymentsbypayrollid', t_otherpayments.c.payrollId, unique=False)
-Index(u'otherpaymentsbytaskid', t_otherpayments.c.taskId, unique=False)
+Index('otherpaymentsbypayrollid', t_otherpayments.c.payrollId, unique=False)
+Index('otherpaymentsbytaskid', t_otherpayments.c.taskId, unique=False)
 
 
 t_overallqaprogresscache =  Table('overallqaprogresscache', metadata,
@@ -398,9 +387,8 @@ t_overallqaprogresscache =  Table('overallqaprogresscache', metadata,
 	Column(u'endtime', TIMESTAMP(timezone=False), key=u'endTime', doc=''),
 	Column(u'remaining', INTEGER, nullable=False, key=u'remaining', doc=''),
 	Column(u'lastupdated', TIMESTAMP(timezone=False), nullable=False, key=u'lastUpdated', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'overallqaprogresscache_taskid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-#Index('overallqaprogresscache_pkey', t_overallqaprogresscache.c.taskid, unique=True)
 
 
 t_overalltrprogresscache =  Table('overalltrprogresscache', metadata,
@@ -412,7 +400,7 @@ t_overalltrprogresscache =  Table('overalltrprogresscache', metadata,
 	Column(u'finishedlastweek', INTEGER, nullable=False, key=u'finishedLastWeek', doc=''),
 	Column(u'lastupdated', TIMESTAMP(timezone=False), nullable=False, key=u'lastUpdated', doc=''),
 	Column(u'overallaccuracy', DOUBLE_PRECISION, key=u'overallAccuracy', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'overalltrprogresscache_taskid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
 
 
@@ -423,9 +411,8 @@ t_overallworkprogresscache =  Table('overallworkprogresscache', metadata,
 	Column(u'transcribed', INTEGER, nullable=False, key=u'transcribed', doc=''),
 	Column(u'transcribedlastweek', INTEGER, nullable=False, key=u'transcribedLastWeek', doc=''),
 	Column(u'lastupdated', TIMESTAMP(timezone=False), nullable=False, key=u'lastUpdated', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'overallworkprogresscache_taskid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-#Index('overallworkprogresscache_pkey', t_overallworkprogresscache.c.taskid, unique=True)
 
 
 t_streams =  Table('streams', metadata,
@@ -434,9 +421,9 @@ t_streams =  Table('streams', metadata,
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'open', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'open', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'streams_taskid_fkey'),
+	UniqueConstraint(u'taskId', u'name'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-Index(u'streams_taskid_key', t_streams.c.taskId, t_streams.c.name, unique=True)
 
 
 t_subtasks =  Table('subtasks', metadata,
@@ -468,13 +455,15 @@ t_subtasks =  Table('subtasks', metadata,
 	Column(u'medianworkrate', DOUBLE_PRECISION, key=u'medianWorkRate', doc=''),
 	Column(u'hidelabels', BOOLEAN, server_default=text(u'false'), key=u'hideLabels', doc=''),
 	Column(u'validators', TEXT, key=u'validators', doc=''),
-	ForeignKeyConstraint([u'workTypeId'], [u'worktypes.workTypeId'], name=u'subtasks_worktypeid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'subtasks_taskid_fkey'),
-	ForeignKeyConstraint([u'modeId'], [u'batchingmodes.modeId'], name=u'subtasks_modeid_fkey'),
+	UniqueConstraint(u'taskId', u'workTypeId', u'name'),
+	UniqueConstraint(u'taskId', u'subTaskId'),
+	ForeignKeyConstraint([u'workTypeId'], [u'worktypes.workTypeId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'modeId'], [u'batchingmodes.modeId']),
+	CheckConstraint("dst_dir=ANY(ARRAY['ltr','rtl'])"),
+	CheckConstraint("getpolicy=ANY(ARRAY['nolimit','oneonly'])"),
 )
-Index(None, t_subtasks.c.taskId, t_subtasks.c.workTypeId, t_subtasks.c.name, unique=True)
-Index('ix_subtasks_taskid_subtaskid', t_subtasks.c.taskId, t_subtasks.c.subTaskId, unique=True)
-Index('ix_subtasks_subtaskid', t_subtasks.c.taskId, unique=False)
+Index('subtasksbytaskid', t_subtasks.c.taskId, unique=False)
 
 
 t_taskerrortypes =  Table('taskerrortypes', metadata,
@@ -482,10 +471,10 @@ t_taskerrortypes =  Table('taskerrortypes', metadata,
 	Column(u'errortypeid', INTEGER, primary_key=True, nullable=False, key=u'errorTypeId', doc=''),
 	Column(u'severity', DOUBLE_PRECISION, nullable=False, server_default=text(u'1'), key=u'severity', doc=''),
 	Column(u'disabled', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'disabled', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'taskerrortypes_taskid_fkey'),
-	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId'], name=u'taskerrortypes_errortypeid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId']),
+	CheckConstraint('severity>=0 AND severity<=1'),
 )
-#Index('taskerrortypes_pkey', t_taskerrortypes.c.taskid, t_taskerrortypes.c.errorTypeId, unique=True)
 
 
 t_taskreports =  Table('taskreports', metadata,
@@ -495,10 +484,10 @@ t_taskreports =  Table('taskreports', metadata,
 	Column(u'filename', TEXT, key=u'filename', doc=''),
 	Column(u'title', TEXT, key=u'title', doc=''),
 	Column(u'usergroupid', INTEGER, key=u'userGroupId', doc=''),
-	ForeignKeyConstraint([u'reportTypeId'], [u'taskreporttypes.reportTypeId'], name=u'taskreports_reporttypeid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'taskreports_taskid_fkey'),
+	ForeignKeyConstraint([u'reportTypeId'], [u'taskreporttypes.reportTypeId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-Index(u'taskreportsbytaskid', t_taskreports.c.taskId, unique=False)
+Index('taskreportsbytaskid', t_taskreports.c.taskId, unique=False)
 
 
 t_tasksupervisors =  Table('tasksupervisors', metadata,
@@ -506,10 +495,9 @@ t_tasksupervisors =  Table('tasksupervisors', metadata,
 	Column(u'userid', INTEGER, primary_key=True, nullable=False, key=u'userId', doc=''),
 	Column(u'receivesfeedback', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'receivesFeedback', doc=''),
 	Column(u'informloads', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'informLoads', doc=''),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'tasksupervisors_userid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'tasksupervisors_taskid_fkey'),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-#Index('tasksupervisors_pkey', t_tasksupervisors.c.taskid, t_tasksupervisors.c.userid, unique=True)
 
 
 # Level 130
@@ -521,13 +509,13 @@ t_dailysubtasktotals =  Table('dailysubtasktotals', metadata,
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
 	Column(u'amount', INTEGER, nullable=False, key=u'amount', doc=''),
 	Column(u'words', INTEGER, key=u'words', doc=''),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'dailysubtasktotals_subtaskid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'dailysubtasktotals_userid_fkey'),
+	UniqueConstraint(u'totalDate', u'subTaskId', u'userId'),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
-Index(u'dailysubtasktotals_totaldate_key', t_dailysubtasktotals.c.totalDate, t_dailysubtasktotals.c.subTaskId, t_dailysubtasktotals.c.userId, unique=True)
-Index(u'dailysubtasktotalsbysubtaskid', t_dailysubtasktotals.c.subTaskId, unique=False)
-Index(u'dailysubtasktotalsbyuserid', t_dailysubtasktotals.c.userId, unique=False)
-Index(u'dailysubtasktotalsbytotaldate', t_dailysubtasktotals.c.totalDate, unique=False)
+Index('dailysubtasktotalsbysubtaskid', t_dailysubtasktotals.c.subTaskId, unique=False)
+Index('dailysubtasktotalsbyuserid', t_dailysubtasktotals.c.userId, unique=False)
+Index('dailysubtasktotalsbytotaldate', t_dailysubtasktotals.c.totalDate, unique=False)
 
 
 t_defaultqaconfiguration =  Table('defaultqaconfiguration', metadata,
@@ -540,10 +528,13 @@ t_defaultqaconfiguration =  Table('defaultqaconfiguration', metadata,
 	Column(u'accuracythreshold', DOUBLE_PRECISION, key=u'accuracyThreshold', doc=''),
 	Column(u'populaterework', BOOLEAN, server_default=text(u'false'), key=u'populateRework', doc=''),
 	Column(u'updatedby', INTEGER, nullable=False, key=u'updatedBy', doc=''),
-	ForeignKeyConstraint([u'workSubTaskId'], [u'subtasks.subTaskId'], name=u'defaultqaconfiguration_worksubtaskid_fkey'),
-	ForeignKeyConstraint([u'qaSubTaskId'], [u'subtasks.subTaskId'], name=u'defaultqaconfiguration_qasubtaskid_fkey'),
+	ForeignKeyConstraint([u'workSubTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'qaSubTaskId'], [u'subtasks.subTaskId']),
+	CheckConstraint('accuracythreshold <= defaultexpectedaccuracy AND accuracythreshold > 0 AND accuracythreshold < 1'),
+	CheckConstraint('confidenceinterval >= 0.9 AND confidenceinterval < 1'),
+	CheckConstraint('defaultexpectedaccuracy > 0 AND defaultexpectedaccuracy < 1'),
+	CheckConstraint('samplingerror > 0 AND samplingerror <= 0.1'),
 )
-#Index('defaultqaconfiguration_pkey', t_defaultqaconfiguration.c.worksubtaskid, unique=True)
 
 
 t_qaconfigurationentries =  Table('qaconfigurationentries', metadata,
@@ -554,10 +545,14 @@ t_qaconfigurationentries =  Table('qaconfigurationentries', metadata,
 	Column(u'samplingerror', DOUBLE_PRECISION, nullable=False, key=u'samplingError', doc=''),
 	Column(u'defaultexpectedaccuracy', DOUBLE_PRECISION, nullable=False, key=u'defaultExpectedAccuracy', doc=''),
 	Column(u'confidenceinterval', DOUBLE_PRECISION, nullable=False, key=u'confidenceInterval', doc=''),
-	ForeignKeyConstraint([u'qaSubTaskId'], [u'subtasks.subTaskId'], name=u'qaconfigurationentries_qasubtaskid_fkey'),
-	ForeignKeyConstraint([u'workSubTaskId'], [u'subtasks.subTaskId'], name=u'qaconfigurationentries_worksubtaskid_fkey'),
+	UniqueConstraint('workSubTaskId', u'orderIndex'),
+	ForeignKeyConstraint([u'qaSubTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'workSubTaskId'], [u'subtasks.subTaskId']),
+	CheckConstraint('confidenceinterval >= 0.9 AND confidenceinterval < 1'),
+	CheckConstraint('defaultexpectedaccuracy > 0 AND defaultexpectedaccuracy < 1'),
+	CheckConstraint('orderindex>=0'),
+	CheckConstraint('samplingerror > 0 AND samplingerror <= 0.1'),
 )
-Index(u'qaconfigurationentries_worksubtaskid_key', t_qaconfigurationentries.c.workSubTaskId, t_qaconfigurationentries.c.orderIndex, unique=True)
 
 
 t_subtaskrates =  Table('subtaskrates', metadata,
@@ -569,11 +564,10 @@ t_subtaskrates =  Table('subtaskrates', metadata,
 	Column(u'multiplier', DOUBLE_PRECISION, nullable=False, server_default=text(u'1'), key=u'multiplier', doc=''),
 	Column(u'updatedby', INTEGER, nullable=False, key=u'updatedBy', doc=''),
 	Column(u'updatedat', TIMESTAMP(timezone=False), server_default=text(u'now()'), key=u'updatedAt', doc=''),
-	ForeignKeyConstraint([u'rateId'], [u'rates.rateId'], name=u'subtaskrates_rateid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'subtaskrates_taskid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'subtaskrates_subtaskid_fkey'),
+	ForeignKeyConstraint([u'rateId'], [u'rates.rateId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 )
-#Index('subtaskrates_pkey', t_subtaskrates.c.subtaskrateid, unique=True)
 
 
 t_taskusers =  Table('taskusers', metadata,
@@ -584,11 +578,10 @@ t_taskusers =  Table('taskusers', metadata,
 	Column(u'removed', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'removed', doc=''),
 	Column(u'paymentfactor', DOUBLE_PRECISION, nullable=False, server_default=text(u'1'), key=u'paymentFactor', doc=''),
 	Column(u'hasreadinstructions', BOOLEAN, nullable=False, server_default=text(u'FALSE'), key=u'hasReadInstructions', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'taskusers_taskid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'taskusers_userid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'taskusers_subtaskid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 )
-#Index('taskusers_pkey', t_taskusers.c.userid, t_taskusers.c.taskid, t_taskusers.c.subtaskid, unique=True)
 
 
 t_utteranceselections =  Table('utteranceselections', metadata,
@@ -602,11 +595,10 @@ t_utteranceselections =  Table('utteranceselections', metadata,
 	Column(u'name', TEXT, key=u'name', doc=''),
 	Column(u'processed', TIMESTAMP(timezone=False), key=u'processed', doc=''),
 	Column(u'random', BOOLEAN, server_default=text(u'false'), key=u'random', doc=''),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'utteranceselections_userid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'utteranceselections_taskid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'utteranceselections_subtaskid_fkey'),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 )
-#Index('utteranceselections_pkey', t_utteranceselections.c.selectionid, unique=True)
 
 
 t_workintervals =  Table('workintervals', metadata,
@@ -616,11 +608,11 @@ t_workintervals =  Table('workintervals', metadata,
 	Column(u'starttime', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'startTime', doc=''),
 	Column(u'endtime', TIMESTAMP(timezone=False), key=u'endTime', doc=''),
 	Column(u'intervalstatus', TEXT, nullable=False, server_default=text(u"'current'::text"), key=u'status', doc=''),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'workintervals_subtaskid_fkey'),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 	ForeignKeyConstraint([u'taskId', u'subTaskId'], [u'subtasks.taskId', u'subtasks.subTaskId'], name=u'workintervals_taskid_fkey1'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'workintervals_taskid_fkey'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	CheckConstraint("intervalstatus=ANY(ARRAY['current','addingfinalchecks','checking','finished'])"),
 )
-#Index('workintervals_pkey', t_workintervals.c.workintervalid, unique=True)
 
 
 # Level 140
@@ -637,13 +629,14 @@ t_batches =  Table('batches', metadata,
 	Column(u'notuserid', INTEGER, key=u'notUserId', doc=''),
 	Column(u'workintervalid', INTEGER, key=u'workIntervalId', doc=''),
 	Column(u'checkedout', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'checkedOut', doc=''),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'batches_subtaskid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'batches_taskid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'batches_userid_fkey'),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'notUserId'], [u'users.userId']),
 )
-Index(u'batchesbysubtaskid', t_batches.c.subTaskId, unique=False)
-Index(u'batchesbytaskid', t_batches.c.taskId, unique=False)
-Index(u'batchesbyuserid', t_batches.c.userId, unique=False)
+Index('batchesbysubtaskid', t_batches.c.subTaskId, unique=False)
+Index('batchesbytaskid', t_batches.c.taskId, unique=False)
+Index('batchesbyuserid', t_batches.c.userId, unique=False)
 
 
 t_calculatedpayments =  Table('calculatedpayments', metadata,
@@ -662,13 +655,12 @@ t_calculatedpayments =  Table('calculatedpayments', metadata,
 	Column(u'updated', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'updated', doc=''),
 	Column(u'items', INTEGER, nullable=False, key=u'items', doc=''),
 	Column(u'itemsqaed', INTEGER, nullable=False, key=u'qaedItems', doc=''),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'calculatedpayments_userid_fkey'),
-	ForeignKeyConstraint([u'workIntervalId'], [u'workintervals.workIntervalId'], name=u'calculatedpayments_workintervalid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'calculatedpayments_subtaskid_fkey'),
-	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId'], name=u'calculatedpayments_payrollid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'calculatedpayments_taskid_fkey'),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'workIntervalId'], [u'workintervals.workIntervalId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-#Index('calculatedpayments_pkey', t_calculatedpayments.c.calculatedpaymentid, unique=True)
 
 
 t_customutterancegroups =  Table('customutterancegroups', metadata,
@@ -678,10 +670,10 @@ t_customutterancegroups =  Table('customutterancegroups', metadata,
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'utterances', INTEGER, nullable=False, key=u'utterances', doc=''),
 	Column(u'selectionid', INTEGER, nullable=False, key=u'selectionId', doc=''),
-	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId'], name=u'customutterancegroups_selectionid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'customutterancegroups_taskid_fkey'),
+	UniqueConstraint(u'taskId', u'name'),
+	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-Index(u'customutterancegroups_taskid_key', t_customutterancegroups.c.taskId, t_customutterancegroups.c.name, unique=True)
 
 
 t_postprocessingutterancegroups =  Table('postprocessingutterancegroups', metadata,
@@ -692,10 +684,10 @@ t_postprocessingutterancegroups =  Table('postprocessingutterancegroups', metada
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'utterances', INTEGER, nullable=False, key=u'utterances', doc=''),
 	Column(u'selectionid', INTEGER, nullable=False, key=u'selectionId', doc=''),
-	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId'], name=u'postprocessingutterancegroups_selectionid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'postprocessingutterancegroups_taskid_fkey'),
+	UniqueConstraint(u'taskId', u'name'),
+	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
-Index(u'postprocessingutterancegroups_taskid_key', t_postprocessingutterancegroups.c.taskId, t_postprocessingutterancegroups.c.name, unique=True)
 
 
 t_reworkcontenthistory =  Table('reworkcontenthistory', metadata,
@@ -705,9 +697,11 @@ t_reworkcontenthistory =  Table('reworkcontenthistory', metadata,
 	Column(u'populating', BOOLEAN, server_default=text(u'true'), key=u'populating', doc=''),
 	Column(u't_processed_at', TIMESTAMP(timezone=True), key=u'tProcessedAt', doc=''),
 	Column(u'operator', INTEGER, key=u'operator', doc=''),
-	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId'], name=u'reworkcontenthistory_selectionid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'reworkcontenthistory_subtaskid_fkey'),
+	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
 )
+Index('reworkcontenthistorybysubtaskid', t_reworkcontenthistory.c.subTaskId, unique=False)
 
 
 t_subtaskmetrics =  Table('subtaskmetrics', metadata,
@@ -720,13 +714,14 @@ t_subtaskmetrics =  Table('subtaskmetrics', metadata,
 	Column(u'workrate', DOUBLE_PRECISION, key=u'workRate', doc=''),
 	Column(u'accuracy', DOUBLE_PRECISION, key=u'accuracy', doc=''),
 	Column(u'lastupdated', TIMESTAMP(timezone=False), key=u'lastUpdated', doc=''),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'subtaskmetrics_subtaskid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'subtaskmetrics_userid_fkey'),
-	ForeignKeyConstraint([u'workIntervalId'], [u'workintervals.workIntervalId'], name=u'subtaskmetrics_workintervalid_fkey'),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	ForeignKeyConstraint([u'workIntervalId'], [u'workintervals.workIntervalId']),
+	CheckConstraint('workintervalid IS NOT NULL AND subtaskid IS NULL OR workintervalid IS NULL AND subtaskid IS NOT NULL'),
 )
-Index(u'subtaskmetricsbysubtaskid', t_subtaskmetrics.c.subTaskId, unique=False)
-Index(u'subtaskmetricsbyuserid', t_subtaskmetrics.c.userId, unique=False)
-Index(u'subtaskmetricsbyworkintervalid', t_subtaskmetrics.c.workIntervalId, unique=False)
+Index('subtaskmetricsbysubtaskid', t_subtaskmetrics.c.subTaskId, unique=False)
+Index('subtaskmetricsbyuserid', t_subtaskmetrics.c.userId, unique=False)
+Index('subtaskmetricsbyworkintervalid', t_subtaskmetrics.c.workIntervalId, unique=False)
 
 
 t_userworkstats =  Table('userworkstats', metadata,
@@ -739,8 +734,8 @@ t_userworkstats =  Table('userworkstats', metadata,
 	Column(u'units', INTEGER, nullable=False, key=u'units', doc=''),
 	Column(u'unitsqaed', INTEGER, nullable=False, key=u'unitsqaed', doc=''),
 	Column(u'accuracy', DOUBLE_PRECISION, nullable=False, key=u'accuracy', doc=''),
-	ForeignKeyConstraint([u'userid'], [u'users.userId'], name=u'userworkstats_userid_fkey'),
-	ForeignKeyConstraint([u'workintervalid'], [u'workintervals.workIntervalId'], name=u'userworkstats_workintervalid_fkey'),
+	ForeignKeyConstraint([u'userid'], [u'users.userId']),
+	ForeignKeyConstraint([u'workintervalid'], [u'workintervals.workIntervalId']),
 )
 
 
@@ -751,9 +746,8 @@ t_utteranceselectionfilters =  Table('utteranceselectionfilters', metadata,
 	Column(u'description', TEXT, nullable=False, key=u'description', doc=''),
 	Column(u'filtertype', TEXT, nullable=False, key=u'filterType', doc=''),
 	Column(u'mandatory', BOOLEAN, nullable=False, key=u'isMandatory', doc=''),
-	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId'], name=u'utteranceselectionfilters_selectionid_fkey'),
+	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 )
-#Index('utteranceselectionfilters_pkey', t_utteranceselectionfilters.c.filterid, unique=True)
 
 
 # Level 150
@@ -764,11 +758,13 @@ t_abnormalusage =  Table('abnormalusage', metadata,
 	Column(u'tagid', INTEGER, key=u'tagId', doc=''),
 	Column(u'labelid', INTEGER, key=u'labelId', doc=''),
 	Column(u'degree', INTEGER, nullable=False, key=u'degree', doc=''),
-	ForeignKeyConstraint([u'labelId'], [u'labels.labelId'], name=u'abnormalusage_labelid_fkey'),
-	ForeignKeyConstraint([u'metricId'], [u'subtaskmetrics.metricId'], name=u'abnormalusage_metricid_fkey'),
-	ForeignKeyConstraint([u'tagId'], [u'tags.tagId'], name=u'abnormalusage_tagid_fkey'),
+	ForeignKeyConstraint([u'labelId'], [u'labels.labelId']),
+	ForeignKeyConstraint([u'metricId'], [u'subtaskmetrics.metricId']),
+	ForeignKeyConstraint([u'tagId'], [u'tags.tagId']),
+	CheckConstraint('tagid IS NOT NULL AND labelid IS NULL OR tagid IS NULL AND labelid IS NOT NULL'),
+	CheckConstraint('degree <> 0'),
 )
-Index(u'abnormalusagebymetricid', t_abnormalusage.c.metricId, unique=False)
+Index('abnormalusagebymetricid', t_abnormalusage.c.metricId, unique=False)
 
 
 t_batchhistory =  Table('batchhistory', metadata,
@@ -776,29 +772,31 @@ t_batchhistory =  Table('batchhistory', metadata,
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
 	Column(u'event', TEXT, nullable=False, key=u'event', doc=''),
 	Column(u'when', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'when', doc=''),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'batchhistory_userid_fkey'),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
+	CheckConstraint("event=ANY(ARRAY['assigned','abandoned','submitted','revoked'])")
 )
-Index(u'batchhistorybyuserid', t_batchhistory.c.userId, unique=False)
+Index('batchhistorybyuserid', t_batchhistory.c.userId, unique=False)
 
 
 t_customutterancegroupmembers =  Table('customutterancegroupmembers', metadata,
 	Column(u'groupid', INTEGER, nullable=False, key=u'groupId', doc=''),
 	Column(u'rawpieceid', INTEGER, nullable=False, key=u'rawPieceId', doc=''),
 	PrimaryKeyConstraint(u'groupId', u'rawPieceId'),
-	ForeignKeyConstraint([u'groupId'], [u'customutterancegroups.groupId'], name=u'customutterancegroupmembers_groupid_fkey'),
-	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId'], name=u'customutterancegroupmembers_rawpieceid_fkey'),
+	ForeignKeyConstraint([u'groupId'], [u'customutterancegroups.groupId']),
+	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId']),
 )
-Index(u'customutterancegroupmember_by_rawpieceid', t_customutterancegroupmembers.c.rawPieceId, unique=False)
+Index('customutterancegroupmember_by_rawpieceid', t_customutterancegroupmembers.c.rawPieceId, unique=False)
 
 
 t_pages =  Table('pages', metadata,
 	Column(u'pageid', INTEGER, primary_key=True, nullable=False, key=u'pageId', doc=''),
 	Column(u'batchid', INTEGER, nullable=False, key=u'batchId', doc=''),
 	Column(u'pageindex', INTEGER, nullable=False, key=u'pageIndex', doc=''),
-	ForeignKeyConstraint([u'batchId'], [u'batches.batchId'], name=u'pages_batchid_fkey'),
+	UniqueConstraint(u'batchId', u'pageIndex'),
+	ForeignKeyConstraint([u'batchId'], [u'batches.batchId']),
+	CheckConstraint('pageindex>=0'),
 )
-Index(u'pages_batchid_key', t_pages.c.batchId, t_pages.c.pageIndex, unique=True)
-Index(u'pagesbybatchid', t_pages.c.batchId, unique=False)
+Index('pagesbybatchid', t_pages.c.batchId, unique=False)
 
 
 t_rawpieces =  Table('rawpieces', metadata,
@@ -812,33 +810,33 @@ t_rawpieces =  Table('rawpieces', metadata,
 	Column(u'hypothesis', TEXT, key=u'hypothesis', doc=''),
 	Column(u'words', INTEGER, server_default=text(u'0'), key=u'words', doc=''),
 	Column(u'groupid', INTEGER, key=u'groupId', doc=''),
-	Column(u'loadid', INTEGER, nullable=False, key='loadId', doc=''),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'rawpieces_taskid_fkey'),
-	ForeignKeyConstraint([u'groupId'], [u'postprocessingutterancegroups.groupId'], name=u'rawpieces_groupid_fkey'),
-	ForeignKeyConstraint([u'taskId', u'loadId'], [u'loads.taskId', u'loads.loadId'], name=None),#u'rawpieces_taskid_fkey'),
+	Column(u'loadid', INTEGER, nullable=False, key=u'loadId', doc=''),
+	UniqueConstraint(u'taskId', u'assemblyContext'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'groupId'], [u'postprocessingutterancegroups.groupId']),
+	ForeignKeyConstraint([u'taskId', u'loadId'], [u'loads.taskId', u'loads.loadId']),
 )
-#Index(u'rawpiecesbygroupid', t_rawpieces.c.groupId, unique=False)
-Index(None, t_rawpieces.c.taskId, unique=False)
-Index(None, t_rawpieces.c.taskId, t_rawpieces.c.assemblyContext, unique=True)
+Index('rawpieces_taskid', t_rawpieces.c.taskId, unique=False)
+Index('rawpieces_loadid', t_rawpieces.c.loadId, unique=False)
+Index('rawpieces_groupid', t_rawpieces.c.groupId, unique=False)
 
 
 t_subtaskmetricerrors =  Table('subtaskmetricerrors', metadata,
 	Column(u'metricid', INTEGER, primary_key=True, nullable=False, key=u'metricId', doc=''),
 	Column(u'errortypeid', INTEGER, primary_key=True, nullable=False, key=u'errorTypeId', doc=''),
 	Column(u'occurences', INTEGER, nullable=False, key=u'occurences', doc=''),
-	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId'], name=u'subtaskmetricerrors_errortypeid_fkey'),
-	ForeignKeyConstraint([u'metricId'], [u'subtaskmetrics.metricId'], name=u'subtaskmetricerrors_metricid_fkey'),
+	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId']),
+	ForeignKeyConstraint([u'metricId'], [u'subtaskmetrics.metricId']),
 )
-Index(u'subtaskmetricerrorsbymetricid', t_subtaskmetricerrors.c.metricId, unique=False)
+Index('subtaskmetricerrorsbymetricid', t_subtaskmetricerrors.c.metricId, unique=False)
 
 
 t_utteranceselectionfilterpieces =  Table('utteranceselectionfilterpieces', metadata,
 	Column(u'filterid', INTEGER, primary_key=True, nullable=False, key=u'filterId', doc=''),
 	Column(u'pieceindex', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'index', doc=''),
 	Column(u'data', TEXT, nullable=False, key=u'data', doc=''),
-	ForeignKeyConstraint([u'filterId'], [u'utteranceselectionfilters.filterId'], name=u'utteranceselectionfilterpieces_filterid_fkey'),
+	ForeignKeyConstraint([u'filterId'], [u'utteranceselectionfilters.filterId']),
 )
-#Index('utteranceselectionfilterpieces_pkey', t_utteranceselectionfilterpieces.c.filterid, t_utteranceselectionfilterpieces.c.pieceindex, unique=True)
 
 
 # Level 160
@@ -849,19 +847,18 @@ t_batchcheckincache =  Table('batchcheckincache', metadata,
 	Column(u'rawpieceid', INTEGER, nullable=False, key=u'rawPieceId', doc=''),
 	Column(u'result', TEXT, nullable=False, key=u'result', doc=''),
 	Column(u'pageid', INTEGER, nullable=False, key=u'pageId', doc=''),
+	UniqueConstraint(u'batchId', u'rawPieceId'),
 )
-Index(u'batchcheckincache_batchid_key', t_batchcheckincache.c.batchId, t_batchcheckincache.c.rawPieceId, unique=True)
-Index(u'checkindatabybatchid', t_batchcheckincache.c.batchId, unique=False)
-Index(u'checkindatabyrawpiecehid', t_batchcheckincache.c.rawPieceId, unique=False)
+Index('checkindatabybatchid', t_batchcheckincache.c.batchId, unique=False)
+Index('checkindatabyrawpiecehid', t_batchcheckincache.c.rawPieceId, unique=False)
 
 
 t_utteranceselectioncache =  Table('utteranceselectioncache', metadata,
 	Column(u'selectionid', INTEGER, primary_key=True, nullable=False, key=u'selectionId', doc=''),
 	Column(u'rawpieceid', INTEGER, primary_key=True, nullable=False, key=u'rawPieceId', doc=''),
-	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId'], name=u'utteranceselectioncache_rawpieceid_fkey'),
-	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId'], name=u'utteranceselectioncache_selectionid_fkey'),
+	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId']),
+	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 )
-#Index('utteranceselectioncache_pkey', t_utteranceselectioncache.c.selectionid, t_utteranceselectioncache.c.rawpieceid, unique=True)
 
 
 t_workentries =  Table('workentries', metadata,
@@ -878,19 +875,19 @@ t_workentries =  Table('workentries', metadata,
 	Column(u'qaeduserid', INTEGER, key=u'qaedUserId', doc=''),
 	Column(u'qaedentryid', INTEGER, key=u'qaedEntryId', doc=''),
 	Column(u'pageid', INTEGER, nullable=False, key=u'pageId', doc=''),
-	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId'], name=u'workentries_rawpieceid_fkey'),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'workentries_subtaskid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'workentries_taskid_fkey'),
-	ForeignKeyConstraint([u'workTypeId'], [u'worktypes.workTypeId'], name=u'workentries_worktypeid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'workentries_userid_fkey'),
+	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId']),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'workTypeId'], [u'worktypes.workTypeId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
-Index(u'workentriesbypageid', t_workentries.c.pageId, unique=False)
-Index(u'workentriesbyqaedentryid', t_workentries.c.qaedEntryId, unique=False)
-Index(u'workentriesbyrawpieceid', t_workentries.c.rawPieceId, unique=False)
-Index(u'workentriesbysubtaskid', t_workentries.c.subTaskId, unique=False)
-Index(u'workentriesbytaskid', t_workentries.c.taskId, unique=False)
-Index(u'workentriesbybatchid', t_workentries.c.batchId, unique=False)
-Index(u'workentriesbyuserid', t_workentries.c.userId, unique=False)
+Index('workentriesbypageid', t_workentries.c.pageId, unique=False)
+Index('workentriesbyqaedentryid', t_workentries.c.qaedEntryId, unique=False)
+Index('workentriesbyrawpieceid', t_workentries.c.rawPieceId, unique=False)
+Index('workentriesbysubtaskid', t_workentries.c.subTaskId, unique=False)
+Index('workentriesbytaskid', t_workentries.c.taskId, unique=False)
+Index('workentriesbybatchid', t_workentries.c.batchId, unique=False)
+Index('workentriesbyuserid', t_workentries.c.userId, unique=False)
 
 
 # Level 170
@@ -901,11 +898,12 @@ t_pagemembers =  Table('pagemembers', metadata,
 	Column(u'memberindex', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'memberIndex', doc=''),
 	Column(u'rawpieceid', INTEGER, key=u'rawPieceId', doc=''),
 	Column(u'workentryid', INTEGER, key=u'workEntryId', doc=''),
-	ForeignKeyConstraint([u'pageId'], [u'pages.pageId'], name=u'pagemembers_pageid_fkey'),
-	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId'], name=u'pagemembers_rawpieceid_fkey'),
-	ForeignKeyConstraint([u'workEntryId'], [u'workentries.entryId'], name=u'pagemembers_workentryid_fkey'),
+	ForeignKeyConstraint([u'pageId'], [u'pages.pageId']),
+	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId']),
+	ForeignKeyConstraint([u'workEntryId'], [u'workentries.entryId']),
+	CheckConstraint('rawpieceid IS NOT NULL AND workentryid IS NULL OR rawpieceid IS NULL AND workentryid IS NOT NULL'),
 )
-Index(u'pagememberbyrawpiecid', t_pagemembers.c.rawPieceId, unique=False)
+Index('pagememberbyrawpiecid', t_pagemembers.c.rawPieceId, unique=False)
 
 
 t_payableevents =  Table('payableevents', metadata,
@@ -922,50 +920,51 @@ t_payableevents =  Table('payableevents', metadata,
 	Column(u'localconnection', BOOLEAN, key=u'localConnection', doc=''),
 	Column(u'ipaddress', CIDR(), key=u'ipaddress', doc=''),
 	Column(u'ratio', DOUBLE_PRECISION, nullable=False, server_default=text(u'1.0'), key=u'ratio', doc=''),
-	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId'], name=u'payableevents_subtaskid_fkey'),
-	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId'], name=u'payableevents_taskid_fkey'),
-	ForeignKeyConstraint([u'calculatedPaymentId'], [u'calculatedpayments.calculatedPaymentId'], name=u'payableevents_calculatedpaymentid_fkey'),
-	ForeignKeyConstraint([u'userId'], [u'users.userId'], name=u'payableevents_userid_fkey'),
+	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
+	ForeignKeyConstraint([u'calculatedPaymentId'], [u'calculatedpayments.calculatedPaymentId']),
+	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
-Index(u'payableeventsbycalculatedpaymentid', t_payableevents.c.calculatedPaymentId, unique=False)
-Index(u'payableeventsbypageid', t_payableevents.c.pageId, unique=False)
-Index(u'payableeventsbyrawpieceid', t_payableevents.c.rawPieceId, unique=False)
-Index(u'payableeventsbysubtaskid', t_payableevents.c.subTaskId, unique=False)
-Index(u'payableeventsbybatchid', t_payableevents.c.batchId, unique=False)
-Index(u'payableeventsbytaskid', t_payableevents.c.taskId, unique=False)
-Index(u'payableeventsbyuserid', t_payableevents.c.userId, unique=False)
-Index(u'payableeventsbyworkentryid', t_payableevents.c.workEntryId, unique=False)
+Index('payableeventsbycalculatedpaymentid', t_payableevents.c.calculatedPaymentId, unique=False)
+Index('payableeventsbypageid', t_payableevents.c.pageId, unique=False)
+Index('payableeventsbyrawpieceid', t_payableevents.c.rawPieceId, unique=False)
+Index('payableeventsbysubtaskid', t_payableevents.c.subTaskId, unique=False)
+Index('payableeventsbybatchid', t_payableevents.c.batchId, unique=False)
+Index('payableeventsbytaskid', t_payableevents.c.taskId, unique=False)
+Index('payableeventsbyuserid', t_payableevents.c.userId, unique=False)
+Index('payableeventsbyworkentryid', t_payableevents.c.workEntryId, unique=False)
 
 
 t_workentryerrors =  Table('workentryerrors', metadata,
 	Column(u'entryid', INTEGER, primary_key=True, nullable=False, key=u'entryId', doc=''),
 	Column(u'errortypeid', INTEGER, primary_key=True, nullable=False, key=u'errorTypeId', doc=''),
 	Column(u'severity', DOUBLE_PRECISION, nullable=False, key=u'severity', doc=''),
-	ForeignKeyConstraint([u'entryId'], [u'workentries.entryId'], name=u'workentryerrors_entryid_fkey'),
-	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId'], name=u'workentryerrors_errortypeid_fkey'),
+	ForeignKeyConstraint([u'entryId'], [u'workentries.entryId']),
+	ForeignKeyConstraint([u'errorTypeId'], [u'errortypes.errorTypeId']),
+	CheckConstraint('severity>=0 AND severity<=1'),
 )
-Index(u'workentryerrorsbyentryid', t_workentryerrors.c.entryId, unique=False)
+Index('workentryerrorsbyentryid', t_workentryerrors.c.entryId, unique=False)
 
 
 t_workentrylabels =  Table('workentrylabels', metadata,
 	Column(u'entryid', INTEGER, primary_key=True, nullable=False, key=u'entryId', doc=''),
 	Column(u'labelid', INTEGER, primary_key=True, nullable=False, key=u'labelId', doc=''),
-	ForeignKeyConstraint([u'entryId'], [u'workentries.entryId'], name=u'workentrylabels_entryid_fkey'),
-	ForeignKeyConstraint([u'labelId'], [u'labels.labelId'], name=u'workentrylabels_labelid_fkey'),
+	ForeignKeyConstraint([u'entryId'], [u'workentries.entryId']),
+	ForeignKeyConstraint([u'labelId'], [u'labels.labelId']),
 )
-Index(u'workentrylabelsbyentryid', t_workentrylabels.c.entryId, unique=False)
-Index(u'workentrylabelsbylabelid', t_workentrylabels.c.labelId, unique=False)
+Index('workentrylabelsbyentryid', t_workentrylabels.c.entryId, unique=False)
+Index('workentrylabelsbylabelid', t_workentrylabels.c.labelId, unique=False)
 
 
 # Level 200
 
 t_pools =  Table('pools', metadata,
-	Column(u'pool_id', INTEGER, primary_key=True, nullable=False, key='poolId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key='name', doc=''),
+	Column(u'pool_id', INTEGER, primary_key=True, nullable=False, key=u'poolId', doc=''),
+	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column(u'meta', MutableDict.as_mutable(JsonString), nullable=False, ),
-	Column(u'task_type_id', INTEGER, nullable=False, key='taskTypeId', doc=''),
-	Column(u'auto_scoring', BOOLEAN, nullable=False, server_default=text('FALSE'), key='autoScoring', doc=''),
-	Column(u'tag_set_id', INTEGER, key='tagSetId', doc=''),
+	Column(u'task_type_id', INTEGER, nullable=False, key=u'taskTypeId', doc=''),
+	Column(u'auto_scoring', BOOLEAN, nullable=False, server_default=text('FALSE'), key=u'autoScoring', doc=''),
+	Column(u'tag_set_id', INTEGER, key=u'tagSetId', doc=''),
 	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
 	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
 	schema='q',
@@ -978,9 +977,9 @@ t_questions =  Table('questions', metadata,
 	Column(u'respondent_data', MutableDict.as_mutable(JsonString), nullable=False, server_default=text(u"'{}'::text"), key=u'respondentData', doc=''),
 	Column(u'scorer_data', MutableDict.as_mutable(JsonString), nullable=False, server_default=text(u"'{}'::text"), key=u'scorerData', doc=''),
 	Column(u'auto_scoring', BOOLEAN, nullable=False, server_default=text('FALSE'), key=u'autoScoring', doc=''),
-	Column(u'point', DOUBLE_PRECISION, nullable=False, server_default=text('1.0'), key='point', doc=''),
-	Column(u'type', TEXT, nullable=False, server_default=text(u"'text'::bpchar"), key='type', doc=''),
-	ForeignKeyConstraint([u'poolId'], [u'q.pools.poolId'], name=None),
+	Column(u'point', DOUBLE_PRECISION, nullable=False, server_default=text('1.0'), key=u'point', doc=''),
+	Column(u'type', TEXT, nullable=False, server_default=text(u"'text'::bpchar"), key=u'type', doc=''),
+	ForeignKeyConstraint([u'poolId'], [u'q.pools.poolId']),
 	schema='q',
 )
 
@@ -998,12 +997,12 @@ t_tests =  Table('tests', metadata,
 	Column(u'size', INTEGER, key=u'size', doc=''),
 	Column(u'enabled', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isEnabled', doc=''),
 	Column(u'task_type_id', INTEGER, nullable=False, key=u'taskTypeId', doc=''),
-	Column(u'pool_id', INTEGER, nullable=False, key='poolId', doc=''),
+	Column(u'pool_id', INTEGER, nullable=False, key=u'poolId', doc=''),
 	Column(u'message_success', TEXT, key=u'messageSuccess', doc=''),
-	Column(u'message_failure', TEXT, key='messageFailure', doc=''),
-	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId'], name=u'q_tests_tagsetid_fkey'),
-	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId'], name=u'q_tests__tasktypeid_fkey'),
-	ForeignKeyConstraint([u'poolId'], [u'q.pools.poolId'], name=u'q_tests_poolid_fkey'),
+	Column(u'message_failure', TEXT, key=u'messageFailure', doc=''),
+	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
+	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
+	ForeignKeyConstraint([u'poolId'], [u'q.pools.poolId']),
 	schema='q',
 )
 
@@ -1019,14 +1018,15 @@ t_answer_sheets =  Table('answer_sheets', metadata,
 	Column(u't_finished_at', TIMESTAMP(timezone=True), key=u'tFinishedAt', doc=''),
 	Column(u'score', DOUBLE_PRECISION, key=u'score', doc=''),
 	Column(u'comment', TEXT, key=u'comment', doc=''),
-	Column(u'more_attempts', BOOLEAN, nullable=False, server_default=text(u'false'), key='moreAttempts', doc=''),
-	ForeignKeyConstraint([u'testId'], [u'q.tests.testId'], name=u'q_answer_sheets_testid_fkey'),
+	Column(u'more_attempts', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'moreAttempts', doc=''),
+	UniqueConstraint(u'testId', u'userId', u'nTimes'),
+	ForeignKeyConstraint([u'testId'], [u'q.tests.testId']),
 	schema='q',
 )
-# Index(u'answer_sheet_by_testid', t_answer_sheets.c.testId, unique=False)
-# Index(u'answer_sheet_by_testid_userid', t_answer_sheets.c.testId, t_answer_sheets.c.userId, unique=False)
-# Index(u'answer_sheet_by_userid', t_answer_sheets.c.userId, unique=False)
-# Index(u'q_answer_sheets_testid_userid_n_times_key', t_answer_sheets.c.testId, t_answer_sheets.c.userId, t_answer_sheets.c.nTimes, unique=True)
+Index(u'answer_sheet_by_testid', t_answer_sheets.c.testId, unique=False)
+Index(u'answer_sheet_by_testid_userid', t_answer_sheets.c.testId, t_answer_sheets.c.userId, unique=False)
+Index(u'answer_sheet_by_userid', t_answer_sheets.c.userId, unique=False)
+
 
 
 t_sheet_entries =  Table('sheet_entries', metadata,
@@ -1047,10 +1047,10 @@ t_answers =  Table('answers', metadata,
 	Column(u'sheet_entry_id', INTEGER, nullable=False, key=u'sheetEntryId', doc=''),
 	Column(u'answer', TEXT, nullable=False, key=u'answer', doc=''),
 	Column(u't_created_at', TIMESTAMP(timezone=True), nullable=False, server_default=text(u'now()'), key=u'tCreatedAt', doc=''),
-	ForeignKeyConstraint([u'sheetEntryId'], [t_sheet_entries.c.sheetEntryId], name=None),
+	ForeignKeyConstraint([u'sheetEntryId'], [t_sheet_entries.c.sheetEntryId]),
 	schema='q',
 )
-Index(u'answer_by_sheet_entry_id', t_answers.c.sheetEntryId, unique=False)
+Index('answer_by_sheet_entry_id', t_answers.c.sheetEntryId, unique=False)
 
 
 t_markings =  Table('markings', metadata,
@@ -1060,11 +1060,11 @@ t_markings =  Table('markings', metadata,
 	Column(u'scorer_id', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'scorerId', doc=''),
 	Column(u'score', DOUBLE_PRECISION, nullable=False, key=u'score', doc=''),
 	Column(u'comment', TEXT, key=u'comment', doc=''),
-	ForeignKeyConstraint([u'sheetEntryId'], [u'q.sheet_entries.sheetEntryId'], name=None),
-	ForeignKeyConstraint([u'scorerId'], [u'users.userId'], name=u'q_markings_userid_fkey'),
+	ForeignKeyConstraint([u'sheetEntryId'], [u'q.sheet_entries.sheetEntryId']),
+	ForeignKeyConstraint([u'scorerId'], [u'users.userId']),
 	schema='q',
 )
-Index(u'marking_by_sheet_entry_id', t_markings.c.sheetEntryId, unique=False)
+Index('marking_by_sheet_entry_id', t_markings.c.sheetEntryId, unique=False)
 
 
 j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
