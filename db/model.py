@@ -91,7 +91,7 @@ class WorkTypeSchema(Schema):
 # Batch
 class Batch(Base):
 	__table__ = t_batches
-	user = relationship('User')
+	user = relationship('User', foreign_keys=[t_batches.c.userId])
 	userName = association_proxy('user', 'userName')
 	pages = relationship('Page', order_by='Page.pageIndex')
 	task = relationship('Task')
