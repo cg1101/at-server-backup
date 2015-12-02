@@ -1,9 +1,10 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -26,9 +27,9 @@ def get_projects():
 		projects = m.Project.query.all()
 		# TODO: filter-out projects that user doesn't manage
 		rs = m.Project.dump(projects)
-	return {
+	return jsonify({
 		'projects': rs,
-	}
+	})
 
 
 @bp.route(_name + '/<int:projectId>', methods=['GET'])
@@ -41,9 +42,9 @@ def get_project(projectId):
 	project = m.Project.query.get(projectId)
 	if not project:
 		abort(404)
-	return {
+	return jsonify({
 		'project': m.Project.dump(project),
-	}
+	})
 
 
 @bp.route(_name + '/<int:projectId>', methods=['PUT'])
@@ -63,7 +64,7 @@ def migrate_project(projectId):
 	SS.add(project)
  	project = m.Project.query.get(projectId)
 	s = m.ProjectSchema()
-	return {
+	return jsonify({
 		'status': _('project {0} successfully migrated').format(projectId),
 		'project': m.Project.dump(project),
-	}
+	})

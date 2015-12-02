@@ -1,10 +1,11 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 from sqlalchemy.orm.exc import NoResultFound
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -14,9 +15,9 @@ _name = __file__.split('/')[-1].split('.')[0]
 @caps()
 def get_tasks():
 	tasks = m.Task.query.all()
-	return {
+	return jsonify({
 		'tasks': m.Task.dump(tasks),
-	}
+	})
 
 
 @bp.route(_name + '/<int:taskId>', methods=['GET'])
@@ -26,9 +27,9 @@ def get_task(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		abort(404)
-	return {
+	return jsonify({
 		'task': m.Task.dump(task),
-	}
+	})
 
 
 @bp.route(_name + '/<int:taskId>', methods=['PUT'])
@@ -39,41 +40,41 @@ def migrate_task(taskId):
 	if not pdb_task:
 		abort(404)
 	task = m.Task()
-	return {
+	return jsonify({
 		'task': m.Task.dump(task)
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
 @api
 @caps()
 def get_task_daily_subtotals(taskId):
-	return {
+	return jsonify({
 
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/errorclasses/', methods=['GET'])
 @api
 @caps()
 def get_task_error_classes(taskId):
-	return {
+	return jsonify({
 
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['GET'])
 @api
 @caps()
 def get_task_error_types(taskId):
 	taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=taskId).all()
-	return {
+	return jsonify({
 		'taskErrorTypes': m.TaskErrorType.dump(taskErrorTypes),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['PUT'])
 @api
 @caps()
 def update_task_error_types(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['PUT'])
 @api
@@ -88,9 +89,9 @@ def configure_task_error_type(taskId, errorTypeId):
 	except NoResultFound:
 		data = request.get_json()
 	 	taskErrorType = m.TaskErrorType(**data)
-	return {
+	return jsonify({
 		'taskErrorType': m.TaskErrorType.dump(taskErrorType),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['DELETE'])
 @api
@@ -106,9 +107,9 @@ def disable_task_error_type(taskId, errorTypeId):
 		abort(404)
 	taskErrorType.removed = True
 	SS.flush()
-	return {
+	return jsonify({
 		'taskErrorType': m.TaskErrorType.dump(taskErrorType)
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/extract_<timestamp>.txt', methods=['GET', 'POST'])
 def getTaskExtract(taskId, timestamp):
@@ -118,92 +119,92 @@ def getTaskExtract(taskId, timestamp):
 @api
 @caps()
 def get_s(taskId):
-	return {
+	return jsonify({
 
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/instructions/', methods=['GET'])
 def get_task_instruction_files(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/instructions/', methods=['POST'])
 def upload_task_instruction_file(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/loads/', methods=['POST'])
 def create_task_load(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/payments/', methods=['GET'])
 @api
 @caps()
 def get_task_payments(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/paystats/', methods=['GET'])
 @api
 @caps()
 def get_task_payment_statistics(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/rawpieces/', methods=['GET'])
 def get_task_raw_pieces(taskId):
 	rawPieces = m.RawPiece.query.filter_by(taksId=taskId).all()
-	return {
+	return jsonify({
 		'rawPieces': m.RawPiece.dump(rawPieces),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['GET'])
 def get_task_utterrance_selection(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
 def create_task_utterrance_selection(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
 def populate_task_utterrance_selection(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
 def delete_task_utterrance_selection(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/status', methods=['GET'])
 def get_task_status(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/status', methods=['PUT'])
 def update_task_status(taskId):
-	return {
+	return jsonify({
 
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/summary/', methods=['GET'])
 @api
 @caps()
 def get_task_summary(taskId):
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['GET'])
 @api
 @caps()
 def get_task_sub_tasks(taskId):
 	subTasks = m.SubTask.query.filter_by(taskId=taskId).all()
-	return {
+	return jsonify({
 		'subTask': m.SubTask.dump(subTasks),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['POST'])
 @api
@@ -214,9 +215,9 @@ def create_sub_task(taskId):
 	workInterval = m.WorkInterval()
 	SS().add(subTask)
 	SS().add(workInterval)
-	return {
+	return jsonify({
 		'subTask': m.SubTask.dump(subTask),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/supervisors/', methods=['GET'])
 @api
@@ -225,9 +226,9 @@ def get_task_supervisors(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		abort(404)
-	return {
+	return jsonify({
 		'supervisors': m.TaskSupervisor.dump(task.supervisors),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['PUT'])
 @api
@@ -238,9 +239,9 @@ def update_task_supervisor_settings(taskId, userId):
 			).filter_by(userId=userId).one()
 	except NoResultFound:
 		abort(404)
-	return {
+	return jsonify({
 		'supervisor': m.TaskSupervisor.dump(supervisor),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['DELETE'])
 @api
@@ -259,9 +260,9 @@ def remove_task_supervisor(taskId, userId):
 @caps()
 def get_task_custom_utterance_groups(taskId):
 	uttGroups = m.CustomUtteranceGroup.query.filter_by(taskId=taskId).all()
-	return {
+	return jsonify({
 		'uttgroups': m.CustomUtteranceGroup.dump(uttGroups),
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>', methods=['DELETE'])
 @api
@@ -273,8 +274,8 @@ def delete_custom_utterance_group(taskId, groupId):
 	if not uttGroup.taskId == taskId:
 		abort(404)
 	# TODO: delete custom utterance group
-	return {
-	}
+	return jsonify({
+	})
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/words', methods=['GET'])
 @api
@@ -286,9 +287,9 @@ def get_utterance_group_word_count(taskId, groupId):
 @api
 @caps()
 def get_task_warnings(taskId):
-	return {
+	return jsonify({
 		'warnings': [],
-	}
+	})
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
 def get_task_workers(taskId):
@@ -296,5 +297,5 @@ def get_task_workers(taskId):
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['DELETE'])
 def unassign_all_task_workers(taskId):
-	return {
-	}
+	return jsonify({
+	})

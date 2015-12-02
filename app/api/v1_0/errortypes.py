@@ -1,9 +1,10 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -16,9 +17,9 @@ def get_error_types():
 	returns a list of error types
 	'''
 	errorTypes = m.ErrorType.query.order_by(m.ErrorType.errorTypeId).all()
-	return {
+	return jsonify({
 		'errorTypes': m.ErrorType.dump(errorTypes),
-	}
+	})
 
 @bp.route(_name + '/', methods=['POST'])
 @api
@@ -62,7 +63,7 @@ def create_error_type():
 			errorClassId=errorType.errorClassId).filter_by(
 			name=errorType.name).one()
 	assert errorType is _errorType
-	return {
+	return jsonify({
 		'status': _('new error type {0} successfully created').format(errorType.name),
 		'errorType': m.ErrorType.dump(errorType),
-	}
+	})

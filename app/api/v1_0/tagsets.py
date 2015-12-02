@@ -1,9 +1,10 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
 from app.api import api, caps, validate_input as v, get_text as _
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -16,9 +17,9 @@ def get_tag_sets():
 	returns a list of tag sets
 	'''
 	tagSets = m.TagSet.query.order_by(m.TagSet.tagSetId).all()
-	return {
+	return jsonify({
 		'tagSets': m.TagSet.dump(tagSets),
-	}
+	})
 
 @bp.route(_name + '/<int:tagSetId>', methods=['GET'])
 @api
@@ -30,9 +31,9 @@ def get_tag_set(tagSetId):
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
 		abort(404)
-	return {
+	return jsonify({
 		'tagSet': m.TagSet.dump(tagSet),
-	}
+	})
 
 @bp.route(_name + '/<int:tagSetId>/tags/', methods=['POST'])
 @api
@@ -75,10 +76,10 @@ def create_tag():
 			errorClassId=errorType.errorClassId).filter_by(
 			name=errorType.name).one()
 	assert tag is _tag
-	return {
+	return jsonify({
 		'status': _('new tag {0} successfully created').format(tag.name),
 		'errorType': m.Tag.dump(tag),
-	}
+	})
 
 @bp.route(_name + '<int:tagSetId>/tags/<int:tagId>', methods=['PUT'])
 @api
@@ -87,6 +88,6 @@ def update_tag(tagSetId, tagId):
 	'''
 	updates tag settings
 	'''
-	return {
+	return jsonify({
 		'tag': {},
-	}
+	})

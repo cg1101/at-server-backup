@@ -1,11 +1,13 @@
 
 import types
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
 from .. import api, caps, validate_input as v, get_text as _
+from app.i18n import get_text as _
+
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -19,9 +21,9 @@ def get_label_sets():
 	'''
 	labelSets = m.LabelSet.query.order_by(m.LabelSet.labelSetId).all()
 	s = m.LabelSetSchema()
-	return {
+	return jsonify({
 		'labelSets': m.LabelSet.dump(labelSets),
-	}
+	})
 
 
 @bp.route(_name + '/<int:labelSetId>', methods=['GET'])
@@ -35,9 +37,9 @@ def get_label_set(labelSetId):
 	if not labelSet:
 		abort(404)
 	s = m.LabelSetSchema()
-	return {
+	return jsonify({
 		'labelSet': m.LabelSet.dump(labelSet),
-	}
+	})
 
 def validate_label_name(data, key, value, labelSetId, labelId):
 	if not isinstance(value, basestring):
@@ -102,10 +104,10 @@ def create_label(labelSetId):
 	assert label is _label
 
 	s = m.LabelSchema()
-	return {
+	return jsonify({
 		'status': _('new label {0} successfully created').format(label.name),
 		'label': m.Label.dump(label),
-	}
+	})
 
 
 @bp.route(_name + '/<int:labelSetId>/labels/<int:labelId>', methods=['PUT'])
@@ -115,9 +117,9 @@ def update_label(labelSetId, labelId):
 	'''
 	updates label settings
 	'''
-	return {
+	return jsonify({
 		'label': {},
-	}
+	})
 
 
 def validate_group_name(data, key, value, labelSetId, labelGroupId):
@@ -156,10 +158,10 @@ def create_label_group(labelSetId):
 			labelSetId=labelSetId).filter_by(
 			name=labelGroup.name).one()
 	assert labelGroup is _labelGroup
-	return {
+	return jsonify({
 		'status': _('new label group {0} successfully created').format(labelGroup.name),
 		'labelGroup': m.LabelGroup.dump(labelGroup),
-	}
+	})
 
 
 @bp.route(_name + '/<int:labelSetId>/labelgroups/<int:labelGroupId>', methods=['PUT'])
@@ -183,11 +185,11 @@ def update_label_group(labelSetId, labelGroupId):
 			setattr(labelGroup, k, data[k]);
 
 	s = m.LabelGroupSchema()
-	return {
+	return jsonify({
 		'status': _('label group {0} was updated').format(labelGroup.name),
 		'labelGroup': m.LabelGroup.dump(labelGroup),
 
-	}
+	})
 
 
 @bp.route(_name + '/<int:labelSetId>/labelgroups/<int:labelGroupId>', methods=['DELETE'])
@@ -205,7 +207,7 @@ def delete_label_group(labelSetId, labelGroupId):
 		i.labelGroup = None
 	name = labelGroup.name
 	SS().delete(labelGroup)
-	return {
+	return jsonify({
 		'status': _('label group {} has been deleted').format(name),
-	}
+	})
 

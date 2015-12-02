@@ -1,11 +1,12 @@
 
 import datetime
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -17,9 +18,9 @@ def get_sheet(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
 		abort(404)
-	return {
+	return jsonify({
 		'sheet': m.Sheet.dump(sheet, context={'level': 1}),
-	}
+	})
 
 
 @bp.route(_name + '/<int:sheetId>', methods=['DELETE'])
@@ -44,9 +45,9 @@ def submit_sheet(sheetId):
 	SS().flush()
 	# score the sheet
 	#if sheet.
-	return {
+	return jsonify({
 		'message': 'submitted',
-	}
+	})
 
 
 @bp.route(_name + '/<int:sheetId>/answers/', methods=['POST'])
@@ -62,9 +63,9 @@ def submit_answer(sheetId):
 	answer = m.Answer(**data)
 	sheet.entries[index].answer = answer
 	SS().flush()
-	return {
+	return jsonify({
 		'answer': m.Answer.dump(answer),
-	}
+	})
 
 
 @bp.route(_name + '/<int:sheetId>/markings/', methods=['GET'])
@@ -74,9 +75,9 @@ def get_sheet_with_markings(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
 		abort(404)
-	return {
+	return jsonify({
 		'sheet': m.Sheet.dump(sheet, context={'level': 2})
-	}
+	})
 
 
 @bp.route(_name + '/<int:sheetId>/markings/', methods=['POST'])
@@ -92,6 +93,6 @@ def submit_marking(sheetId):
 	marking = m.Marking(**data)
 	sheet.entries[index].marking = marking
 	SS().flush()
-	return {
+	return jsonify({
 		'message': 'blabh',
-	}
+	})

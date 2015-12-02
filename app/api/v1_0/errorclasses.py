@@ -1,9 +1,10 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -16,9 +17,9 @@ def get_error_classes():
 	returns a list of error classes
 	'''
 	errorClasses = m.ErrorClass.query.order_by(m.ErrorClass.errorClassId).all()
-	return {
+	return jsonify({
 		'errorClasses': m.ErrorClass.dump(errorClasses),
-	}
+	})
 
 @bp.route(_name + '/', methods=['POST'])
 @api
@@ -50,7 +51,7 @@ def create_error_class():
 	errorClass = m.ErrorClass(**data)
 	SS.add(errorClass)
 	SS.flush()
-	return {
+	return jsonify({
 		'status': _('new error class {0} successfully created').format(errorClass.name),
 		'errorClass': m.ErrorClass.dump(errorClass),
-	}
+	})

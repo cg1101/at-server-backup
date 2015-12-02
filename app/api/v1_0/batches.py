@@ -1,9 +1,10 @@
 
-from flask import request, abort, session
+from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, get_text as _
+from app.api import api, caps
+from app.i18n import get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -15,9 +16,9 @@ def get_batch(batchId):
 	batch = m.Batch.get(batchId)
 	if not batch:
 		abort(404)
-	return {
+	return jsonify({
 		'batch': m.Batch.dump(batch),
-	}
+	})
 
 @bp.route(_name + '/<int:batchId>/stat', methods=['GET'])
 @api
@@ -36,9 +37,9 @@ def assign_batch_to_user(batchId, userId):
 	if batch.userId != None:
 		pass
 	batch.user = user
-	return {
+	return jsonify({
 
-	}
+	})
 
 @bp.route(_name + '/<int:batchId>/users/', methods=['DELETE'])
 @api
@@ -49,6 +50,6 @@ def unassign_batch(batchId):
 		abort(404)
 	if batch.userId != None:
 		batch.userId = Nnone
-	return {
+	return jsonify({
 	
-	}
+	})
