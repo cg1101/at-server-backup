@@ -20,16 +20,16 @@ class DevelopmentConfig(Config):
 	MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 	MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 	SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-		'postgres://localhost/atdb'
+		'postgresql://localhost/atdb'
 
 class TestingConfig(Config):
 	TESTING = True
 	SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
-		'postgres://localhost/at_test'
+		'postgresql://localhost/at_test'
 
 class ProductionConfig(Config):
 	SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-		'postgres://dbserver/appentext'
+		'postgresql://dbserver/appentext'
 
 config = {
 	'development': DevelopmentConfig,

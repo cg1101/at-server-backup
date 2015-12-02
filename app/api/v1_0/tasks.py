@@ -4,13 +4,13 @@ from sqlalchemy.orm.exc import NoResultFound
 
 import db.model as m
 from db.db import SS
-from app.api import ajax, caps, get_text as _
+from app.api import api, caps, get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_tasks():
 	tasks = m.Task.query.all()
@@ -20,7 +20,7 @@ def get_tasks():
 
 
 @bp.route(_name + '/<int:taskId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task(taskId):
 	task = m.Task.query.get(taskId)
@@ -32,7 +32,7 @@ def get_task(taskId):
 
 
 @bp.route(_name + '/<int:taskId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def migrate_task(taskId):
 	pdb_task = m.PdbTask.query.get(taskId)
@@ -44,7 +44,7 @@ def migrate_task(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_daily_subtotals(taskId):
 	return {
@@ -52,7 +52,7 @@ def get_task_daily_subtotals(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/errorclasses/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_error_classes(taskId):
 	return {
@@ -60,7 +60,7 @@ def get_task_error_classes(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_error_types(taskId):
 	taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=taskId).all()
@@ -69,14 +69,14 @@ def get_task_error_types(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['PUT'])
-@ajax
+@api
 @caps()
 def update_task_error_types(taskId):
 	return {
 	}
 
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def configure_task_error_type(taskId, errorTypeId):
 	task = m.Task.query.get(taskId)
@@ -93,7 +93,7 @@ def configure_task_error_type(taskId, errorTypeId):
 	}
 
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['DELETE'])
-@ajax
+@api
 @caps()
 def disable_task_error_type(taskId, errorTypeId):
 	task = m.Task.query.get(taskId)
@@ -115,7 +115,7 @@ def getTaskExtract(taskId, timestamp):
 	return 'extract of task %s' % taskId
 
 @bp.route(_name + '/<int:taskId>/filehandlers/', methods=['PUT'])
-@ajax
+@api
 @caps()
 def get_s(taskId):
 	return {
@@ -138,14 +138,14 @@ def create_task_load(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/payments/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_payments(taskId):
 	return {
 	}
 
 @bp.route(_name + '/<int:taskId>/paystats/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_payment_statistics(taskId):
 	return {
@@ -190,14 +190,14 @@ def update_task_status(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/summary/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_summary(taskId):
 	return {
 	}
 
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_sub_tasks(taskId):
 	subTasks = m.SubTask.query.filter_by(taskId=taskId).all()
@@ -206,7 +206,7 @@ def get_task_sub_tasks(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['POST'])
-@ajax
+@api
 @caps()
 def create_sub_task(taskId):
 	data = request.get_json()
@@ -219,7 +219,7 @@ def create_sub_task(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/supervisors/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_supervisors(taskId):
 	task = m.Task.query.get(taskId)
@@ -230,7 +230,7 @@ def get_task_supervisors(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def update_task_supervisor_settings(taskId, userId):
 	try:
@@ -243,7 +243,7 @@ def update_task_supervisor_settings(taskId, userId):
 	}
 
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['DELETE'])
-@ajax
+@api
 @caps()
 def remove_task_supervisor(taskId, userId):
 	try:
@@ -255,7 +255,7 @@ def remove_task_supervisor(taskId, userId):
 	return 'remove supervisor %s from task %s' % (userId, taskId)
 
 @bp.route(_name + '/<int:taskId>/uttgroups/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_custom_utterance_groups(taskId):
 	uttGroups = m.CustomUtteranceGroup.query.filter_by(taskId=taskId).all()
@@ -264,7 +264,7 @@ def get_task_custom_utterance_groups(taskId):
 	}
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>', methods=['DELETE'])
-@ajax
+@api
 @caps()
 def delete_custom_utterance_group(taskId, groupId):
 	uttGroup = m.CustomUtteranceGroup.query.get(groupId)
@@ -277,13 +277,13 @@ def delete_custom_utterance_group(taskId, groupId):
 	}
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/words', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_utterance_group_word_count(taskId, groupId):
 	return 'get utterance group word count'
 
 @bp.route(_name + '/<int:taskId>/warnings/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_task_warnings(taskId):
 	return {

@@ -3,13 +3,13 @@ from flask import request, abort, session
 
 import db.model as m
 from db.db import SS
-from app.api import ajax, caps, get_text as _
-from . import api_1_0 as bp
+from app.api import api, caps, get_text as _
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_projects():
 	'''
@@ -32,7 +32,7 @@ def get_projects():
 
 
 @bp.route(_name + '/<int:projectId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_project(projectId):
 	'''
@@ -47,7 +47,7 @@ def get_project(projectId):
 
 
 @bp.route(_name + '/<int:projectId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def migrate_project(projectId):
 	'''

@@ -3,13 +3,13 @@ from flask import request, abort, session
 
 import db.model as m
 from db.db import SS
-from app.api import ajax, caps, get_text as _
+from app.api import api, caps, get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_pools():
 	pools = m.Pool.query.all()
@@ -19,7 +19,7 @@ def get_pools():
 
 
 @bp.route(_name + '/', methods=['POST'])
-@ajax
+@api
 @caps()
 def create_pool():
 	data = request.get_json()
@@ -32,7 +32,7 @@ def create_pool():
 
 
 @bp.route(_name + '/<int:poolId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_pool(poolId):
 	pool = m.Pool.query.get(poolId)

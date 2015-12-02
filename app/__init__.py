@@ -6,6 +6,7 @@ from flask import Flask, session, request, send_file
 
 from config import config
 from db.model import User
+from db.db import SS
 
 # app = Flask(__name__)
 
@@ -18,13 +19,14 @@ def create_app(config_name):
 	app = Flask(__name__)
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
-  
- 	from app.api import api_1_0
- 	from app.webservices import webservices
+
+	from app.api import api_1_0
+	from app.webservices import webservices
 	# app.register_blueprint(api_1_0, url_prefix='/api/1.0')
 	app.register_blueprint(api_1_0, url_prefix='/')
 	app.register_blueprint(webservices, url_prefix='/webservices')
 
+	@app.before_request
 	def get_current_user():
 		print '\033[1;32mApp.before_request()\n' + '='* 30
 		# if request.headers.get('Content-Type', '') == 'application/json':
@@ -43,12 +45,19 @@ def create_app(config_name):
 			print 'data', request.data
 			#print 'json', request.json
 
+	@app.after_request
 	def clear_current_user(resp):
 		session['current_user'] = None
 		return resp
 
-	app.before_request(get_current_user)
-	app.after_request(clear_current_user)
+	@app.teardown_request
+	def terminate_transaction(exception):
+		if exception is None:
+			app.logger.info('\033[1;32mSuccess\033[0m ===> commit')
+			SS.commit()
+		else:
+			app.logger.info('\033[1;31mFailed\033[0m ===> rollback')
+			SS.rollback()
 
 	dot = os.path.dirname(__file__)
 

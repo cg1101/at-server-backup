@@ -139,7 +139,20 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_project(self):
 		# /projects/<int:projectId>
-		pass
+		rv = self.app.get('/projects/10000')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'project' in data
+		assert 'projectId' in data['project']
+		assert 'name' in data['project']
+		assert 'description' in data['project']
+		assert 'created' in data['project']
+		assert 'migratedBy' in data['project']
+		rv = self.app.get('/projects/000')
+		assert rv.mimetype == 'application/json'
+		assert rv.status_code == 404
+		data = json.loads(rv.get_data())
+		assert 'error' in data
 
 	def test_get_projects(self):
 		# /projects/
@@ -149,12 +162,12 @@ class MyTestCase(unittest.TestCase):
 		assert rv.mimetype == 'application/json'
 		data = json.loads(rv.get_data())
 		assert 'projects' in data
-		assert len(data['projects']) == 0
+		assert len(data['projects']) > 0
 		rv = self.app.get('/projects/?t=candidate')
 		assert rv.mimetype == 'application/json'
 		data = json.loads(rv.get_data())
 		assert 'projects' in data
-		assert len(data['projects']) == 0
+		assert len(data['projects']) > 0
 
 	def test_get_rate(self):
 		# /rates/<int:rateId>

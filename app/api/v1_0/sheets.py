@@ -5,13 +5,13 @@ from flask import request, abort, session
 
 import db.model as m
 from db.db import SS
-from app.api import ajax, caps, get_text as _
+from app.api import api, caps, get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/<int:sheetId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_sheet(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
@@ -23,7 +23,7 @@ def get_sheet(sheetId):
 
 
 @bp.route(_name + '/<int:sheetId>', methods=['DELETE'])
-@ajax
+@api
 @caps()
 def submit_sheet(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
@@ -50,7 +50,7 @@ def submit_sheet(sheetId):
 
 
 @bp.route(_name + '/<int:sheetId>/answers/', methods=['POST'])
-@ajax
+@api
 @caps()
 def submit_answer(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
@@ -68,7 +68,7 @@ def submit_answer(sheetId):
 
 
 @bp.route(_name + '/<int:sheetId>/markings/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_sheet_with_markings(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
@@ -80,7 +80,7 @@ def get_sheet_with_markings(sheetId):
 
 
 @bp.route(_name + '/<int:sheetId>/markings/', methods=['POST'])
-@ajax
+@api
 @caps()
 def submit_marking(sheetId):
 	sheet = m.Sheet.query.get(sheetId)

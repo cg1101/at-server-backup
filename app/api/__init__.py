@@ -6,31 +6,63 @@ import traceback
 from functools import wraps
 from types import NoneType, BooleanType, IntType, StringType, DictType
 
-from flask import Response, request
+from flask import Response, request, make_response, jsonify, current_app
+from werkzeug.exceptions import HTTPException
 
 from db.db import SS
 
-def ajax(fn):
+class InvalidUsage(Exception):
+	status_code = 400
+
+	def __init__(self, message, status_code=None, payload=None):
+		Exception.__init__(self)
+		self.message = message
+		if status_code is not None:
+			self.status_code = status_code
+		self.payload = payload
+	def to_dict(self):
+		rv = dict(self.payload or ())
+		rv['error'] = self.message
+		return rv
+
+
+def api(fn):
 	@wraps(fn)
 	def decorated(*args, **kwargs):
 		'''
-		always return result as json object
+		api handlers generally return responses with mimetype set to json,
+		this can be changed by returning a response instead (e.g. froma file
+		download handler).
 		'''
-		resp = Response(mimetype='application/json')
 		try:
 			result = fn(*args, **kwargs)
+			if isinstance(result, dict):
+				resp = jsonify(result)
+			elif isinstance(result, Response):
+				resp = result
+			else:
+				raise RuntimeError, 'unexpected datatype returned from api handler'
+		except HTTPException, e:
+			#
+			# Normally we should not end up being here because all api
+			# handlers are suppose to raise InvalidUsage and such Exceptions
+			# should be caught by api version blueprint's error handler.
+			# In case there are non-compliant handlers that are still using
+			# using HTTPException directly, we explicitly convert it to a
+			# JSON response.
+			#
+			resp = make_response(jsonify({'error': '%s' % e}), e.code, {})
 		except Exception, e:
+			#
+			# Oops! Caught unhandled exception, log what happend
+			# and return an error response to client
+			#
+			out = cStringIO.StringIO()
+			traceback.print_exc(file=out)
+			current_app.logger.error('\033[1;31mERROR:\033[0m\n%s\n' % out.getvalue())
+
 			# TODO: hide debug information for production deployment
-			print '\033[1;31mERROR:\033[0m %r' % e
-			resp.status_code = 500
-			result = {'error': '%s' % e}
-			# TODO: here or after_request?
-			SS.rollback()
-		else:
-			SS.commit()
-		resp.set_data(json.dumps(result, indent=2))
-		# TODO:
-		# return (resp, status, headers)
+			resp = make_response((jsonify({'error': '%s' % e}), 500, {}))
 		return resp
 	return decorated
 

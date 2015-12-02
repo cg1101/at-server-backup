@@ -5,13 +5,13 @@ from flask import request, abort, session
 
 import db.model as m
 from db.db import SS
-from .. import ajax, caps, validate_input as v, get_text as _
+from .. import api, caps, validate_input as v, get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_label_sets():
 	'''
@@ -25,7 +25,7 @@ def get_label_sets():
 
 
 @bp.route(_name + '/<int:labelSetId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_label_set(labelSetId):
 	'''
@@ -77,7 +77,7 @@ def validate_label_group_id(labelSetId, labelGroupId):
 			raise ValueError, _('label group {0} not found in label set {1}').format(labelGroupId, labelSetId)
 
 @bp.route(_name + '/<int:labelSetId>/labels/', methods=['POST'])
-@ajax
+@api
 @caps()
 def create_label(labelSetId):
 	'''
@@ -109,7 +109,7 @@ def create_label(labelSetId):
 
 
 @bp.route(_name + '/<int:labelSetId>/labels/<int:labelId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def update_label(labelSetId, labelId):
 	'''
@@ -135,7 +135,7 @@ def validate_group_name(data, key, value, labelSetId, labelGroupId):
 
 
 @bp.route(_name + '/<int:labelSetId>/labelgroups/', methods=['POST'])
-@ajax
+@api
 @caps()
 def create_label_group(labelSetId):
 	'''
@@ -163,7 +163,7 @@ def create_label_group(labelSetId):
 
 
 @bp.route(_name + '/<int:labelSetId>/labelgroups/<int:labelGroupId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def update_label_group(labelSetId, labelGroupId):
 	'''
@@ -191,7 +191,7 @@ def update_label_group(labelSetId, labelGroupId):
 
 
 @bp.route(_name + '/<int:labelSetId>/labelgroups/<int:labelGroupId>', methods=['DELETE'])
-@ajax
+@api
 @caps()
 def delete_label_group(labelSetId, labelGroupId):
 	'''

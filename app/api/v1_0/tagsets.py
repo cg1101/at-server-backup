@@ -3,13 +3,13 @@ from flask import request, abort, session
 
 import db.model as m
 from db.db import SS
-from app.api import ajax, caps, validate_input as v, get_text as _
+from app.api import api, caps, validate_input as v, get_text as _
 from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_tag_sets():
 	'''
@@ -21,7 +21,7 @@ def get_tag_sets():
 	}
 
 @bp.route(_name + '/<int:tagSetId>', methods=['GET'])
-@ajax
+@api
 @caps()
 def get_tag_set(tagSetId):
 	'''
@@ -35,7 +35,7 @@ def get_tag_set(tagSetId):
 	}
 
 @bp.route(_name + '/<int:tagSetId>/tags/', methods=['POST'])
-@ajax
+@api
 @caps()
 def create_tag():
 	'''
@@ -81,7 +81,7 @@ def create_tag():
 	}
 
 @bp.route(_name + '<int:tagSetId>/tags/<int:tagId>', methods=['PUT'])
-@ajax
+@api
 @caps()
 def update_tag(tagSetId, tagId):
 	'''
