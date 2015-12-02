@@ -6,9 +6,10 @@ import traceback
 from functools import wraps
 from types import NoneType, BooleanType, IntType, StringType, DictType
 
-from flask import Response, request, make_response, jsonify, current_app
+from flask import Response, request, make_response, jsonify, current_app, session
 from werkzeug.exceptions import HTTPException
 
+from app.i18n import get_text as _
 from db.db import SS
 
 class InvalidUsage(Exception):
@@ -42,6 +43,9 @@ def api(fn):
 				resp = result
 			else:
 				raise RuntimeError, 'unexpected datatype returned from api handler'
+		except InvalidUsage, e:
+			resp = make_response(jsonify(e.to_dict()), e.status_code, {})
+			SS.rollback()
 		except HTTPException, e:
 			#
 			# Normally we should not end up being here because all api
@@ -52,6 +56,7 @@ def api(fn):
 			# JSON response.
 			#
 			resp = make_response(jsonify({'error': '%s' % e}), e.code, {})
+			SS.rollback()
 		except Exception, e:
 			#
 			# Oops! Caught unhandled exception, log what happend
@@ -63,22 +68,24 @@ def api(fn):
 
 			# TODO: hide debug information for production deployment
 			resp = make_response((jsonify({'error': '%s' % e}), 500, {}))
+			SS.rollback()
+		else:
+			SS.commit()
 		return resp
 	return decorated
-
-
-def get_text(s):
-	return s
-_ = get_text
-
 
 def caps(*caps):
 	def customized_decorator(fn):
 		@wraps(fn)
 		def decorated(*args, **kwargs):
-			if False:
-				# TODO: check required capabilities here
-				raise RuntimeError, _('user does not have required capabilities: {}').format(repr(caps))
+			user = session['current_user']
+			missing = set(caps) - set(getattr(user, 'caps', set()))
+			if missing:
+				raise InvalidUsage(
+					_('not enough capabilities to perform requested operation'),
+					403,
+					{'missing': list(missing)}
+				)
 			return fn(*args, **kwargs)
 		return decorated
 	return customized_decorator

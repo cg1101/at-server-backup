@@ -3,7 +3,7 @@ from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, validate_input as v, get_text as _
+from app.api import api, caps, validate_input as v
 from app.i18n import get_text as _
 from . import api_1_0 as bp
 

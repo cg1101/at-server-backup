@@ -52,10 +52,7 @@ def create_app(config_name):
 
 	@app.teardown_request
 	def terminate_transaction(exception):
-		if exception is None:
-			app.logger.info('\033[1;32mSuccess\033[0m ===> commit')
-			SS.commit()
-		else:
+		if exception is not None:
 			app.logger.info('\033[1;31mFailed\033[0m ===> rollback')
 			SS.rollback()
 
