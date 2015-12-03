@@ -14,30 +14,49 @@ from flask import redirect, Response, Request
 from i18n import get_text as _
 
 COOKIE_SECRET = '01342dfa/12340af/afds'
+COOKIE_PREFIX = 'Cookie'
 
 class CookieError(Exception):
 	def __init__(self, message):
 		Exception.__init__(self)
 		self.message = message
 
-def decode_cookies(cookies):
+def random_bytes(size):
+	with open('/dev/urandom', 'rb') as f:
+		return f.read(size)
+
+def pad(s, block_size):
+	extra = len(s) % block_size
+	size = block_size - extra if extra else 0
+	return s + ' ' * size
+
+def encode_cookie(data, secret=COOKIE_SECRET, timeout=0):
+	pickled = cPickle.dumps((data, timeout))
+	compressed = zlib.compress(COOKIE_PREFIX + pickled)
+	init_vec = random_bytes(AES.block_size)
+	key = hashlib.md5(secret).digest()
+	encryptor = AES.new(key, AES.MODE_CBC, init_vec)
+	cipher_text = encryptor.encrypt(pad(compressed, AES.block_size))
+	encrypted = base64.urlsafe_b64encode(init_vec + cipher_text)
+	return encrypted
+
+def decode_cookie(cookie, secret=COOKIE_SECRET):
 	data = None
 	try:
-		encrypted = cookies['appen'].encode('utf8')
+		encrypted = cookie.encode('utf8')
 		ctav = base64.urlsafe_b64decode(encrypted)
 		if len(ctav) < AES.block_size:
 			raise CookieError, 'cookie currupted'
 		init_vec, cipher_text = ctav[:AES.block_size], ctav[AES.block_size:]
-		secret = COOKIE_SECRET
 		if len(cipher_text) % AES.block_size:
 			raise CookieError, 'cookie currupted'
 		key = hashlib.md5(secret).digest()
 		decryptor = AES.new(key, AES.MODE_CBC, init_vec)
 		compressed = decryptor.decrypt(cipher_text)
 		decompressed = zlib.decompress(compressed)
-		if not decompressed.startswith('Cookie'):
+		if not decompressed.startswith(COOKIE_PREFIX):
 			raise CookieError, 'cookie malformed'
-		pickled = decompressed[len('Cookie'):]
+		pickled = decompressed[len(COOKIE_PREFIX):]
 		(data, timeout) = cPickle.loads(pickled)
 		if timeout and timeout < time.time():
 			raise CookieError, 'cookie expired'
@@ -69,7 +88,7 @@ class MyAuthMiddleWare(object):
 			if i.match(request.path):
 				return self.app(environ, start_response)
 
-		user_dict = decode_cookies(request.cookies)
+		user_dict = decode_cookie(request.cookies.get('appen', ''))
 		if user_dict:
 			environ['myauthmiddleware'] = user_dict
 			return self.app(environ, start_response)
@@ -86,7 +105,7 @@ class MyAuthMiddleWare(object):
 			response = Response(mimetype='application/json')
 			response.status_code = 401
 			response.set_data(json.dumps({'error':
-				_('Could not verify your access level for requested URL.\nYou have to login with proper credentials')}))
+				_('authentication required to access requested url')}))
 			return response(environ, start_response)
 
 		url = self.authentication_url + '?r=' + \
