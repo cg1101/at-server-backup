@@ -156,6 +156,14 @@ class MyTestCase(unittest.TestCase):
 		assert 'pool' in data
 		assert isinstance(data['pool'], dict)
 		assert 'name' in data['pool']
+		assert 'poolId' in data['pool']
+		assert 'meta' in data['pool']
+		assert 'autoScoring' in data['pool']
+		assert 'questions' in data['pool']
+		assert 'taskTypeId' in data['pool']
+		assert 'taskType' in data['pool']
+		assert isinstance(data['pool']['meta'], dict)
+		assert isinstance(data['pool']['questions'], list)
 		assert data['pool']['name'] == 'My Fake Test Pool'
 		rv = self.app.get('/api/1.0/pools/125')
 		assert rv.mimetype == 'application/json'
@@ -174,7 +182,7 @@ class MyTestCase(unittest.TestCase):
 		assert 'pools' in data
 		assert isinstance(data['pools'], list)
 		assert len(data['pools']) >= 0
-		#assert data['pools'][0]['name'] == ''
+		assert data['pools'][0]['name'] == 'My Fake Test Pool'
 
 	def test_get_project(self):
 		# /projects/<int:projectId>
@@ -374,15 +382,67 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_test(self):
 		# /tests/<int:testId>
-		pass
+		rv = self.app.get('/api/1.0/tests/1')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'test' in data
+		assert isinstance(data['test'], dict)
+		assert 'testId' in data['test']
+		assert 'name' in data['test']
+		assert 'description' in data['test']
+		assert 'testType' in data['test']
+		assert 'requirement' in data['test']
+		assert 'timeLimit' in data['test']
+		assert 'passingScore' in data['test']
+		assert 'isEnabled' in data['test']
+		assert 'instructionPage' in data['test']
+		assert isinstance(data['test']['requirement'], dict)
+		assert data['test']['testType'] in ('static', 'dynamic')
+		if data['test']['testType'] == 'dynamic':
+			assert 'size' in data['test']
+		assert data['test']['name'] == 'My Fake Test'
+		rv = self.app.get('/api/1.0/tests/125')
+		assert rv.mimetype == 'application/json'
+		assert rv.status_code == 404
+		data = json.loads(rv.get_data())
+		assert 'error' in data
+		assert data['error'] == 'test 125 not found'
 
 	def test_get_test_sheets(self):
 		# /tests/<int:testId>/sheets/
-		pass
+		rv = self.app.get('/api/1.0/tests/1/sheets')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/tests/1/sheets/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'sheets' in data
+		assert isinstance(data['sheets'], list)
+		assert len(data['sheets']) > 0
+		sheet = data['sheets'][0]
+		assert 'sheetId' in sheet
+		assert 'testId' in sheet
+		assert 'nTimes' in sheet
+		assert 'user' in sheet
+		assert 'tStartedAt' in sheet
+		assert 'tExpiresBy' in sheet
+		assert 'tExpiredAt' in sheet
+		assert 'tFinishedAt' in sheet
+		assert 'score' in sheet
+		assert 'moreAttempts' in sheet
+		assert isinstance(sheet['entries'], list)
+
 
 	def test_get_tests(self):
 		# /tests/
-		pass
+		rv = self.app.get('/api/1.0/tests')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/tests/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'tests' in data
+		assert isinstance(data['tests'], list)
+		assert len(data['tests']) > 0
+
 
 	def test_get_utterance_group_word_count(self):
 		# /tasks/<int:taskId>/uttgroups/<int:groupId>/words

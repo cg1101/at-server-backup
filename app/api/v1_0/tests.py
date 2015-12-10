@@ -5,7 +5,7 @@ import db.model as m
 from db.db import SS
 from app.api import api, caps
 from app.i18n import get_text as _
-from . import api_1_0 as bp
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -51,7 +51,9 @@ def get_test_sheets(testId):
 	test = m.Test.query.get(testId)
 	if not test:
 		raise InvalidUsage(_('test {0} not found').format(testId), 404)
-	sheets = m.Sheet.query.filter_by(testId=testId).order_by(m.Sheet.userId).order_by(m.Sheet.nTimes).all()
+	sheets = m.Sheet.query.filter_by(testId=testId
+			).order_by(m.Sheet.userId
+			).order_by(m.Sheet.nTimes).all()
 	return jsonify({
 		'sheets': m.Sheet.dump(sheets),
 	})
