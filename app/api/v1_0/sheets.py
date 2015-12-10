@@ -7,7 +7,7 @@ import db.model as m
 from db.db import SS
 from app.api import api, caps
 from app.i18n import get_text as _
-from . import api_1_0 as bp
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -17,7 +17,7 @@ _name = __file__.split('/')[-1].split('.')[0]
 def get_sheet(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
-		abort(404)
+		raise InvalidUsage(_('sheet {0} not found').format(sheetId), 404)
 	return jsonify({
 		'sheet': m.Sheet.dump(sheet, context={'level': 1}),
 	})
@@ -29,8 +29,8 @@ def get_sheet(sheetId):
 def submit_sheet(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
-		abort(404)
-	now = datetime.datetime.utcnow
+		raise InvalidUsage(_('sheet {0} not found').format(sheetId), 404)
+	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc).replace(tzinfo=None)
 	if sheet.tExpiresBy < now:
 		sheet.tExpiredAt = now
 		SS().flush()
@@ -56,7 +56,7 @@ def submit_sheet(sheetId):
 def submit_answer(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
-		abort(404)
+		raise InvalidUsage(_('sheet {0} not found').format(sheetId), 404)
 	# TODO:
 	data = request.get_json()
 	index = data['index']
@@ -74,7 +74,7 @@ def submit_answer(sheetId):
 def get_sheet_with_markings(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
-		abort(404)
+		raise InvalidUsage(_('sheet {0} not found').format(sheetId), 404)
 	return jsonify({
 		'sheet': m.Sheet.dump(sheet, context={'level': 2})
 	})
@@ -86,7 +86,7 @@ def get_sheet_with_markings(sheetId):
 def submit_marking(sheetId):
 	sheet = m.Sheet.query.get(sheetId)
 	if not sheet:
-		abort(404)
+		raise InvalidUsage(_('sheet {0} not found').format(sheetId), 404)
 	# TODO
 	data = rquest.get_json()
 	index = data['index']

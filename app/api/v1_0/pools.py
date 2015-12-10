@@ -13,7 +13,7 @@ _name = __file__.split('/')[-1].split('.')[0]
 @api
 @caps()
 def get_pools():
-	pools = m.Pool.query.all()
+	pools = m.Pool.query.order_by(m.Pool.poolId).all()
 	return jsonify({
 		'pools': m.Pool.dump(pools, context={'level': 0}),
 	})
@@ -38,7 +38,7 @@ def create_pool():
 def get_pool(poolId):
 	pool = m.Pool.query.get(poolId)
 	if not pool:
-		raise InvalidUsage(_('pool {0} not found').format(poolId))
+		raise InvalidUsage(_('pool {0} not found').format(poolId), 404)
 	return jsonify({
 		'pool': m.Pool.dump(pool, context={'level': 0}),
 	})

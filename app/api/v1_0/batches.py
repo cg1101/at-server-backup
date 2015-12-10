@@ -25,7 +25,7 @@ _name = __file__.split('/')[-1].split('.')[0]
 def get_batch(batchId):
 	batch = m.Batch.query.get(batchId)
 	if not batch:
-		raise InvalidUsage(_('batch {0} not found').format(batchId))
+		raise InvalidUsage(_('batch {0} not found').format(batchId), 404)
 	return jsonify({
 		'batch': m.Batch.dump(batch),
 	})
@@ -36,7 +36,7 @@ def get_batch(batchId):
 def get_batch_stats(batchId):
 	batch = m.Batch.query.get(batchId)
 	if not batch:
-		raise InvalidUsage(_('batch {0} not found').format(batchId))
+		raise InvalidUsage(_('batch {0} not found').format(batchId), 404)
 	return jsonify({
 		'stat': {
 			'pageCount': len(batch.pages),
@@ -51,10 +51,10 @@ def get_batch_stats(batchId):
 def assign_batch_to_user(batchId, userId):
 	batch = m.Batch.query.get(batchId)
 	if not batch:
-		raise InvalidUsage(_('batch {0} not found').format(batchId))
+		raise InvalidUsage(_('batch {0} not found').format(batchId), 404)
 	user = m.User.query.get(userId)
 	if not user:
-		raise InvalidUsage(_('user {0} not found').format(userId))
+		raise InvalidUsage(_('user {0} not found').format(userId), 404)
 
 	# TODO: perform more checks according to policy
 	if policy.active_worker_only:
@@ -80,7 +80,7 @@ def assign_batch_to_user(batchId, userId):
 def unassign_batch(batchId):
 	batch = m.Batch.query.get(batchId)
 	if not batch:
-		raise InvalidUsage(_('batch {0} not found').format(batchId))
+		raise InvalidUsage(_('batch {0} not found').format(batchId), 404)
 	# TODO: check policy
 	# TODO: update history?
 	if batch.userId != None:

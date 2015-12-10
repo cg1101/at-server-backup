@@ -13,7 +13,7 @@ _name = __file__.split('/')[-1].split('.')[0]
 @api
 @caps()
 def get_tests():
-	tests = m.Test.query.all()
+	tests = m.Test.query.order_by(m.Test.testId).all()
 	return jsonify({
 		'tests': m.Test.dump(tests),
 	})
@@ -27,6 +27,7 @@ def create_test():
 	SS().add(test)
 	SS().flush()
 	return jsonify({
+		'message': _('new test {0} successfully created').format(test.testId),
 		'test': m.Test.dump(test),
 	})
 
@@ -37,7 +38,7 @@ def create_test():
 def get_test(testId):
 	test = m.Test.query.get(testId)
 	if not test:
-		return abort()
+		raise InvalidUsage(_('test {0} not found').format(testId), 404)
 	return jsonify({
 		'test': m.Test.dump(test),
 	})
@@ -47,6 +48,9 @@ def get_test(testId):
 @api
 @caps()
 def get_test_sheets(testId):
+	test = m.Test.query.get(testId)
+	if not test:
+		raise InvalidUsage(_('test {0} not found').format(testId), 404)
 	sheets = m.Sheet.query.filter_by(testId=testId).order_by(m.Sheet.userId).order_by(m.Sheet.nTimes).all()
 	return jsonify({
 		'sheets': m.Sheet.dump(sheets),

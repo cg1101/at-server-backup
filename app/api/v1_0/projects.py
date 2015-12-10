@@ -17,7 +17,8 @@ def get_projects():
 	returns a list of matched projects
 	'''
 	if request.args.get('t', '') == 'candidate':
-		if True: # and user has capability
+		# TODO: check for capability
+		if True:
 			projects = m.PdbProject.query.filter(m.PdbProject.projectId.notin_(
 				SS.query(m.Project.projectId))).all()
 		else:
@@ -41,7 +42,7 @@ def get_project(projectId):
 	'''
 	project = m.Project.query.get(projectId)
 	if not project:
-		abort(404)
+		raise InvalidUsage(_('project {0} not found').format(projectId), 404)
 	return jsonify({
 		'project': m.Project.dump(project),
 	})
@@ -56,14 +57,16 @@ def migrate_project(projectId):
 	'''
 	candidate = m.PdbProject.query.get(projectId)
 	if not candidate:
-		raise RuntimeError, _('project {0} not found').format(projectId)
+		raise InvalidUsage(_('project {0} not found').format(projectId), 404)
 	project = m.Project.query.get(projectId)
 	if project:
-		raise RuntimeError, _('project {0} already migrated').format(projectId)
-	project = m.Project(projectId=candidate.projectId, name=candidate.name, _migratedByUser=session['current_user'])
+		raise InvalidUsage(_('project {0} already migrated').format(projectId))
+	project = m.Project(projectId=candidate.projectId, name=candidate.name,
+			_migratedByUser=session['current_user'])
 	SS.add(project)
- 	project = m.Project.query.get(projectId)
-	s = m.ProjectSchema()
+	SS.flush()
+	# as an alternative, we do following to trigger flush()
+	#project = m.Project.query.get(projectId)
 	return jsonify({
 		'status': _('project {0} successfully migrated').format(projectId),
 		'project': m.Project.dump(project),

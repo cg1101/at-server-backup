@@ -5,7 +5,7 @@ import db.model as m
 from db.db import SS
 from app.api import api, caps
 from app.i18n import get_text as _
-from . import api_1_0 as bp
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -30,7 +30,7 @@ def get_rate(rateId):
 	'''
 	rate = m.Rate.query.get(rateId)
 	if not rate:
-		abort(404)
+		raise InvalidUsage(_('rate {0} not found').format(rateId), 404)
 	return jsonify({
 		'rate': m.Rate.dump(rate),
 	})
