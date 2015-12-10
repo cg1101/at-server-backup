@@ -14,6 +14,7 @@ class MyTestCase(unittest.TestCase):
 	def setUp(self):
 		# set up stuff
 		app = create_app('testing')
+		app.test_request_context(content_type='application/json')
 		self.app = app.test_client()
 		# print app.config['SQLALCHEMY_DATABASE_URI']
 		pass
@@ -27,7 +28,18 @@ class MyTestCase(unittest.TestCase):
 
 	def test_create_error_class(self):
 		# /errorclasses/
-		pass
+		rv = self.app.post('/api/1.0/errorclasses/', data={'name': 'SomethingNew'})
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'errorClass' in data
+		assert 'errorClassId' in data['errorClass']
+		assert 'name' in data['errorClass']
+		assert data['errorClass']['name'] == 'SomethingNew'
+		rv = self.app.post('/api/1.0/errorclasses/', data={'new': 'SomethingNew'})
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'error' in data
+
 
 	def test_create_error_type(self):
 		# /errortypes/
@@ -111,7 +123,14 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_error_classes(self):
 		# /errorclasses/
-		pass
+		rv = self.app.get('/api/1.0/errorclasses')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/errorclasses/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'errorClasses' in data
+		assert isinstance(data['errorClasses'], list)
+		assert len(data['errorClasses']) > 0
 
 	def test_get_error_types(self):
 		# /errortypes/
@@ -139,7 +158,7 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_project(self):
 		# /projects/<int:projectId>
-		rv = self.app.get('/projects/10000')
+		rv = self.app.get('/api/1.0/projects/10000')
 		assert rv.mimetype == 'application/json'
 		data = json.loads(rv.get_data())
 		assert 'project' in data
@@ -148,7 +167,7 @@ class MyTestCase(unittest.TestCase):
 		assert 'description' in data['project']
 		assert 'created' in data['project']
 		assert 'migratedBy' in data['project']
-		rv = self.app.get('/projects/000')
+		rv = self.app.get('/api/1.0/projects/000')
 		assert rv.mimetype == 'application/json'
 		assert rv.status_code == 404
 		data = json.loads(rv.get_data())
@@ -156,14 +175,15 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_projects(self):
 		# /projects/
-		rv = self.app.get('/projects')
+		rv = self.app.get('/api/1.0/projects')
 		assert rv.status_code == 301
-		rv = self.app.get('/projects/')
+		rv = self.app.get('/api/1.0/projects/')
 		assert rv.mimetype == 'application/json'
 		data = json.loads(rv.get_data())
 		assert 'projects' in data
+		assert isinstance(data['projects'], list)
 		assert len(data['projects']) > 0
-		rv = self.app.get('/projects/?t=candidate')
+		rv = self.app.get('/api/1.0/projects/?t=candidate')
 		assert rv.mimetype == 'application/json'
 		data = json.loads(rv.get_data())
 		assert 'projects' in data
