@@ -560,6 +560,8 @@ class Sheet(Base):
 	STATUS_EXPIRED = 'expired'
 	STATUS_SHOULD_EXPIRE = 'should_expire'
 	STATUS_ACTIVE = 'active'
+	user = relationship('User', primaryjoin='Sheet.userId==User.userId',
+			foreign_keys=[t_answer_sheets.c.userId])
 	shouldExpire = column_property(t_answer_sheets.c.tExpiresBy <= text('now()'))
 	entries = relationship('SheetEntry', order_by='SheetEntry.index')
 	@hybrid_property
@@ -595,7 +597,7 @@ class SheetSchema(Schema):
 	tFinishedAt = fields.DateTime()
 	def get_user(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
-		return s.dump(obj.scorer).data
+		return s.dump(obj.user).data
 	class Meta:
 		fields = ('sheetId', 'testId', 'user', 'nTimes', 'status',
 			'tStartedAt', 'tExpiresBy', 'tExpiredAt', 'tFinishedAt',
