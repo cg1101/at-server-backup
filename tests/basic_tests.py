@@ -150,11 +150,31 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_pool(self):
 		# /pools/<int:poolId>
-		pass
+		rv = self.app.get('/api/1.0/pools/1')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'pool' in data
+		assert isinstance(data['pool'], dict)
+		assert 'name' in data['pool']
+		assert data['pool']['name'] == 'My Fake Test Pool'
+		rv = self.app.get('/api/1.0/pools/125')
+		assert rv.mimetype == 'application/json'
+		assert rv.status_code == 404
+		data = json.loads(rv.get_data())
+		assert 'error' in data
+		assert data['error'] == 'pool 125 not found'
 
 	def test_get_pools(self):
 		# /pools/
-		pass
+		rv = self.app.get('/api/1.0/pools')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/pools/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'pools' in data
+		assert isinstance(data['pools'], list)
+		assert len(data['pools']) >= 0
+		#assert data['pools'][0]['name'] == ''
 
 	def test_get_project(self):
 		# /projects/<int:projectId>
@@ -191,11 +211,30 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_rate(self):
 		# /rates/<int:rateId>
-		pass
+		rv = self.app.get('/api/1.0/rates/1')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'rate' in data
+		assert isinstance(data['rate'], dict)
+		assert 'name' in data['rate']
+		assert data['rate']['name'] == 'Standard Curve'
+		rv = self.app.get('/api/1.0/rates/313')
+		assert rv.mimetype == 'application/json'
+		assert rv.status_code == 404
+		data = json.loads(rv.get_data())
+		assert 'error' in data
+		assert data['error'] == 'rate 313 not found'
 
 	def test_get_rates(self):
 		# /rates/
-		pass
+		rv = self.app.get('/api/1.0/rates')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/rates/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'rates' in data
+		assert isinstance(data['rates'], list)
+		assert len(data['rates']) > 0
 
 	def test_get_s(self):
 		# /tasks/<int:taskId>/filehandlers/
