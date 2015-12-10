@@ -38,7 +38,7 @@ def create_pool():
 def get_pool(poolId):
 	pool = m.Pool.query.get(poolId)
 	if not pool:
-		abort(404)
+		raise InvalidUsage(_('pool {0} not found').format(poolId))
 	return jsonify({
 		'pool': m.Pool.dump(pool, context={'level': 0}),
 	})

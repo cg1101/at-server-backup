@@ -13,7 +13,7 @@ _name = __file__.split('/')[-1].split('.')[0]
 @api
 @caps()
 def get_file_handlers():
-	handlers = m.FileHandler.query.all()
+	handlers = m.FileHandler.query.order_by(m.FileHandler.handlerId).all()
 	return jsonify({
 		'fileHandlers': m.FileHandler.dump(handlers),
 	})

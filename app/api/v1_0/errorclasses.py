@@ -52,6 +52,6 @@ def create_error_class():
 	SS.add(errorClass)
 	SS.flush()
 	return jsonify({
-		'status': _('new error class {0} successfully created').format(errorClass.name),
+		'message': _('new error class {0} successfully created').format(errorClass.name),
 		'errorClass': m.ErrorClass.dump(errorClass),
 	})
