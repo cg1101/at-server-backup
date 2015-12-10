@@ -509,7 +509,7 @@ class PoolSchema(Schema):
 		raise ValueError, 'invalid tagSet value'
 	questions = fields.Nested('QuestionSchema', many=True)
 	class Meta:
-		fields = ('poolId', 'name', 'taskTypeId', 'taskType', 'tagSet', 'autoScoring', 'questions')
+		fields = ('poolId', 'name', 'meta', 'taskTypeId', 'taskType', 'tagSet', 'autoScoring', 'questions')
 
 # Question
 class Question(Base):
@@ -910,7 +910,7 @@ class TaskWorker(Base):
 
 class TaskWorkerSchema(Schema):
 	class Meta:
-		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor')
+		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions')
 		ordered = True
 
 # User

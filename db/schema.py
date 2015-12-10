@@ -19,55 +19,55 @@ event.listen(metadata, 'before_create', DDL('CREATE SCHEMA IF NOT EXISTS q'))
 # Level 000
 
 t_pdb_projects = Table('pdb_projects', metadata,
-	Column('project_id', Integer, primary_key=True, autoincrement=False, key=u'projectId'),
-	Column('name', Text, nullable=False, unique=True, key=u'name'),
+	Column('project_id', Integer, primary_key=True, autoincrement=False, key=u'projectId', doc=''),
+	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
 )
 
 t_pdb_tasks = Table('pdb_tasks', metadata,
-	Column('task_id', Integer, primary_key=True, autoincrement=False, key=u'taskId'),
-	Column('project_id', Integer, ForeignKey('pdb_projects.projectId'), nullable=False, key=u'projectId'),
-	Column('work_area', Text, key=u'workArea'),
-	Column('name', Text, key=u'name'),
+	Column('task_id', Integer, primary_key=True, autoincrement=False, key=u'taskId', doc=''),
+	Column('project_id', Integer, ForeignKey('pdb_projects.projectId'), nullable=False, key=u'projectId', doc=''),
+	Column('work_area', Text, key=u'workArea', doc=''),
+	Column('name', Text, key=u'name', doc=''),
 )
 
 t_ao_payment_classes = Table('ao_payment_classes', metadata,
-	Column('paymentclassid', Integer, primary_key=True, autoincrement=False, key=u'paymentClassId'),
-	Column('name', Text, nullable=False, unique=True, key=u'name'),
-	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created')
+	Column('paymentclassid', Integer, primary_key=True, autoincrement=False, key=u'paymentClassId', doc=''),
+	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created', doc='')
 )
 
 t_ao_payment_types = Table('ao_payment_types', metadata,
-	Column('paymenttypeid', Integer, primary_key=True, autoincrement=False, key=u'paymentTypeId'),
-	Column('name', Text, nullable=False, unique=True, key=u'name'),
-	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created')
+	Column('paymenttypeid', Integer, primary_key=True, autoincrement=False, key=u'paymentTypeId', doc=''),
+	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created', doc='')
 )
 
 t_ao_payrolls = Table('ao_payrolls', metadata,
-	Column('payrollid', Integer, primary_key=True, autoincrement=False, key=u'payrollId'),
-	Column('startdate', Date, nullable=False, key=u'startDate'),
-	Column('enddate', Date, nullable=False, key=u'endDate'),
+	Column('payrollid', Integer, primary_key=True, autoincrement=False, key=u'payrollId', doc=''),
+	Column('startdate', Date, nullable=False, key=u'startDate', doc=''),
+	Column('enddate', Date, nullable=False, key=u'endDate', doc=''),
 )
 
 t_ao_users = Table('ao_users', metadata,
-	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId'),
-	Column('emailaddress', Text, nullable=False, key=u'emailAddress'),
-	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive'),
-	Column('familyname', Text, key=u'familyName'),
-	Column('givenname', Text, key=u'givenName'),
+	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId', doc=''),
+	Column('emailaddress', Text, nullable=False, key=u'emailAddress', doc=''),
+	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
+	Column('familyname', Text, key=u'familyName', doc=''),
+	Column('givenname', Text, key=u'givenName', doc=''),
 )
 
 # t_ao_countries = Table('ao_countries', metadata,
-# 	Column('country_id', Integer, primary_key=True, autoincrement=False, key=u'countryId'),
-# 	Column('name', Text, nullable=False, unique=True, key=u'name'),
-# 	Column('iso2', VARCHAR(2), nullable=False, unique=True, key=u'iso2'),
-# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3'),
+# 	Column('country_id', Integer, primary_key=True, autoincrement=False, key=u'countryId', doc=''),
+# 	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+# 	Column('iso2', VARCHAR(2), nullable=False, unique=True, key=u'iso2', doc=''),
+# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
 # )
 
 # t_ao_languages = Table('ao_languages', metadata,
-# 	Column('language_id', Integer, primary_key=True, autoincrement=False, key=u'languageId'),
-# 	Column('name', Text, nullable=False, unique=True, key=u'name'),
-# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3'),
-# 	Column('ltr', Boolean, nullable=False, server_default=text('TRUE')),
+# 	Column('language_id', Integer, primary_key=True, autoincrement=False, key=u'languageId', doc=''),
+# 	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+# 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
+# 	Column('ltr', Boolean, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
 # )
 
 
@@ -961,7 +961,7 @@ Index('workentrylabelsbylabelid', t_workentrylabels.c.labelId, unique=False)
 t_pools =  Table('pools', metadata,
 	Column(u'pool_id', INTEGER, primary_key=True, nullable=False, key=u'poolId', doc=''),
 	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
-	Column(u'meta', MutableDict.as_mutable(JsonString), nullable=False, ),
+	Column(u'meta', MutableDict.as_mutable(JsonString), nullable=False, key=u'meta', doc=''),
 	Column(u'task_type_id', INTEGER, nullable=False, key=u'taskTypeId', doc=''),
 	Column(u'auto_scoring', BOOLEAN, nullable=False, server_default=text('FALSE'), key=u'autoScoring', doc=''),
 	Column(u'tag_set_id', INTEGER, key=u'tagSetId', doc=''),
