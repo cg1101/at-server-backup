@@ -3,11 +3,12 @@ from flask import request, abort, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, validate_input as v
+from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
-from . import api_1_0 as bp
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
+
 
 @bp.route(_name + '/', methods=['GET'])
 @api
@@ -21,6 +22,7 @@ def get_tag_sets():
 		'tagSets': m.TagSet.dump(tagSets),
 	})
 
+
 @bp.route(_name + '/<int:tagSetId>', methods=['GET'])
 @api
 @caps()
@@ -30,64 +32,260 @@ def get_tag_set(tagSetId):
 	'''
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
-		abort(404)
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
 	return jsonify({
 		'tagSet': m.TagSet.dump(tagSet),
 	})
 
+
+def check_tag_name_uniqueness(data, key, name, tagSetId, tagId):
+	if m.Tag.query.filter_by(tagSetId=tagSetId
+			).filter_by(name=name
+			).filter(m.Tag.tagId!=tagId).count() > 0:
+		raise ValueError, _('name \'{0}\' is already in use').format(name)
+
+
+def check_extract_start_uniqueness(data, key, extractStart, tagSetId, tagId):
+	if m.Tag.query.filter_by(tagSetId=tagSetId
+			).filter_by(extractStart=extractStart
+			).filter(m.Tag.tagId!=tagId).count() > 0:
+		raise ValueError, _('extract start \'{0}\' is already in use').format(extractStart)
+
+
+def check_tag_shortcut_key_non_space(data, key, shortcutKey):
+	if shortcutKey == ' ':
+		raise ValueError, _('shortcut key must not be space')
+
+
+def check_tag_shortcut_key_uniqueness(data, key, shortcutKey, tagSetId, tagId):
+	if shortcutKey is not None:
+		if m.Tag.query.filter_by(tagSetId=tagSetId
+				).filter_by(shortcutKey=shortcutKey
+				).filter(m.Tag.tagId!=tagId).count() > 0:
+			raise ValueError, _('shortcut key \'{0}\' is already in use').format(shortcutKey)
+
+
+def normalize_is_foreground(data, key, isForeground):
+	tagType = data.get('tagType')
+	if tagType in (m.Tag.EMBEDDABLE, m.Tag.NON_EMBEDDABLE):
+		return bool(isForeground)
+
+
+def check_tag_extract_end_required(data, key, extractEnd):
+	tagType = data.get('tagType')
+	if tagType in (m.Tag.EMBEDDABLE,):
+		if extractEnd is None or not extractEnd:
+			raise ValueError, _('must be specified for {0} tag').format(tagType)
+
+
+def check_tag_image_required(data, key, previewId):
+	tagType = data.get('tagType')
+	if tagType in (m.Tag.EVENT,):
+		if previewId is None:
+			raise ValueError, _('must be specified for {0} tag').format(tagType)
+
+
+def check_tag_color_required(data, key, color):
+	tagType = data.get('tagType')
+	if tagType in (m.Tag.EMBEDDABLE, m.Tag.NON_EMBEDDABLE):
+		if color is None:
+			raise ValueError, _('must be specified for {0} tag').format(tagType)
+
+
+def check_tag_color_uniqueness(data, key, color, tagSetId, tagId):
+	isForeground = data.get('isForeground')
+	if color is not None:
+		if m.Tag.query.filter_by(tagSetId=tagSetId
+				).filter_by(isForeground=isForeground
+				).filter_by(color=color).count() > 0:
+			raise ValueError, _('color \'{0}\' is already in use'.format(color))
+
+
+def check_tag_image_existence(data, key, previewId):
+	if previewId is not None:
+		image = m.TagImage.query.get(previewId)
+		if not image:
+			raise ValueError, _('preview image {0} not found').format(previewId)
+
+
+def load_tag_preview_image(data, key, value):
+	previewId = data.get('previewId')
+	if previewId is not None:
+		image = m.TagImage.query.get(previewId)
+		if image:
+			return image.image
+
+
 @bp.route(_name + '/<int:tagSetId>/tags/', methods=['POST'])
 @api
 @caps()
-def create_tag():
+def create_tag(tagSetId):
 	'''
 	creates a new tag
 	'''
-	try:
-		if request.headers.get('Content-Type', '') == 'application/json':
-			data = json.loads(request.data)
-		else:
-			data = s.load(request.values).data
-	except Exception, e:
-		raise RuntimeError, _('error parsing parameters: {0}').format(e)
+	tagSet = m.TagSet.query.get(tagSetId)
+	if not tagSet:
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
 
-	if not data.has_key('name'):
-		raise RuntimeError, _('must provide parameter \'{0}\'').format('name')
-	elif not isinstance(data['name'], basestring):
-		raise RuntimeError, _('parameter \'{0}\' must be {1}').format('name', 'string')
-	elif not data['name'].strip():
-		raise RuntimeError, _('parameter \'{0}\' must not be blank').format('name')
-	if m.ErrorType.query.filter_by(name=data['name']).count() > 0:
-		raise RuntimeError, _('name \'{0}\' is already in use').format(data['name'])
-
-	if not data.has_key('errorClassId'):
-		raise RuntimeError, _('must provide parameter \'{0}\'').format('errorClassId')
-	elif not isinstance(data['errorClassId'], int):
-		raise RuntimeError, _('parameter \'{0}\' must be {1}').format('errorClassId', 'int')
-	if not m.ErrorClass.get(data['errorClassId']):
-		raise RuntimeError, _('ErrorClass #{0} not found').format(data['errorClassId'])
-
-
-	if data.has_key('errorTypeId'):
-		del data['errorTypeId']
+	data = MyForm(
+		Field('name', is_mandatory=True, validators=[
+			validators.non_blank,
+			(check_tag_name_uniqueness, (tagSetId, None)),
+		]),
+		Field('tagType', is_mandatory=True, validators=[
+			(validators.enum, (
+				m.Tag.EVENT,
+				m.Tag.NON_EMBEDDABLE,
+				m.Tag.EMBEDDABLE,
+				m.Tag.SUBSTITUTION,
+				m.Tag.ENTITY,
+				m.Tag.FOOTNOTE)),
+		]),
+		Field('extractStart', is_mandatory=True, validators=[
+			validators.non_blank,
+			(check_extract_start_uniqueness, (tagSetId, None)),
+		]),
+		Field('extractEnd', validators=[
+			validators.is_string,
+			check_tag_extract_end_required,
+		]),
+		Field('shortcutKey', validators=[
+			(validators.is_string, (), dict(length=1)),
+			check_tag_shortcut_key_non_space,
+			(check_tag_shortcut_key_uniqueness, (tagSetId, None)),
+		]),
+		Field('enabled', default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('surround', is_mandatory=True, validators=[
+			validators.is_bool,
+		]),
+		Field('extend', is_mandatory=True, validators=[
+			validators.is_bool,
+		]),
+		Field('split', is_mandatory=True, validators=[
+			validators.is_bool,
+		]),
+		Field('isDynamic', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('description', validators=[
+			validators.is_string,
+		]),
+		Field('tooltip', validators=[
+			validators.is_string,
+		]),
+		Field('isForeground', is_mandatory=True, default=lambda: None,
+			normalizer=normalize_is_foreground, validators=[
+			validators.is_bool,
+		]),
+		Field('color', is_mandatory=True, default=lambda: None, validators=[
+			check_tag_color_required,
+			(check_tag_color_uniqueness, (tagSetId, None)),
+		]),
+		Field('previewId', is_mandatory=True, default=lambda: None, validators=[
+			check_tag_image_required,
+			check_tag_image_existence,
+		]),
+		Field('image', is_mandatory=True, default=lambda: None,
+			normalizer=load_tag_preview_image
+		),
+	).get_data()
+	del data['previewId']
 
 	tag = m.Tag(**data)
 	SS.add(tag)
-	_tag = m.ErrorType.query.filter_by(
-			errorClassId=errorType.errorClassId).filter_by(
-			name=errorType.name).one()
-	assert tag is _tag
+	SS.flush()
 	return jsonify({
-		'status': _('new tag {0} successfully created').format(tag.name),
-		'errorType': m.Tag.dump(tag),
+		'message': _('created tag {0} successfully').format(tag.name),
+		'tag': m.Tag.dump(tag),
 	})
 
-@bp.route(_name + '<int:tagSetId>/tags/<int:tagId>', methods=['PUT'])
+
+@bp.route(_name + '/<int:tagSetId>/tags/<int:tagId>', methods=['PUT'])
 @api
 @caps()
 def update_tag(tagSetId, tagId):
 	'''
 	updates tag settings
 	'''
+	tagSet = m.TagSet.query.get(tagSetId)
+	if not tagSet:
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+	tag = m.Tag.query.get(tagId)
+	if not tag or tag.tagSetId != tagSetId:
+		raise InvalidUsage(_('tag {0} not found').format(tagId))
+
+	data = MyForm(
+		Field('name', validators=[
+			validators.non_blank,
+			(check_tag_name_uniqueness, (tagSetId, tagId)),
+		]),
+		# tag type cannot be updated
+		Field('tagType', is_mandatory=True, default=lambda: tag.tagType),
+		Field('extractStart', validators=[
+			validators.non_blank,
+			(check_extract_start_uniqueness, (tagSetId, tagId)),
+		]),
+		Field('extractEnd', validators=[
+			validators.is_string,
+			check_tag_extract_end_required,
+		]),
+		Field('shortcutKey', validators=[
+			(validators.is_string, (), dict(length=1)),
+			check_tag_shortcut_key_non_space,
+			(check_tag_shortcut_key_uniqueness, (tagSetId, tagId)),
+		]),
+		Field('enabled', validators=[
+			validators.is_bool,
+		]),
+		Field('surround', validators=[
+			validators.is_bool,
+		]),
+		Field('extend', validators=[
+			validators.is_bool,
+		]),
+		Field('split', validators=[
+			validators.is_bool,
+		]),
+		Field('isDynamic', validators=[
+			validators.is_bool,
+		]),
+		Field('description', validators=[
+			validators.is_string,
+		]),
+		Field('tooltip', validators=[
+			validators.is_string,
+		]),
+		Field('isForeground', default=lambda: None,
+			normalizer=normalize_is_foreground, validators=[
+			validators.is_bool,
+		]),
+		Field('color', default=lambda: None, validators=[
+			check_tag_color_required,
+			(check_tag_color_uniqueness, (tagSetId, tagId)),
+		]),
+		Field('previewId', default=lambda: None, validators=[
+			check_tag_image_required,
+			check_tag_image_existence,
+		]),
+		Field('image', default=lambda: None,
+			normalizer=load_tag_preview_image
+		),
+	).get_data()
+	del data['previewId']
+
+	tag = m.Tag(**data)
+	for key in data.keys():
+		value = data[key]
+		if getattr(tag, key) != value:
+			setattr(tag, key, value)
+		else:
+			del data[key]
+	SS.flush()
 	return jsonify({
-		'tag': {},
+		'message': _('updated tag {0} successfully').format(tagId),
+		'updatedFields': data.keys(),
+		'tag': m.Tag.dump(tag),
 	})
+

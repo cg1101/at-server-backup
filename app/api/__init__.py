@@ -74,6 +74,7 @@ def api(fn):
 		return resp
 	return decorated
 
+
 def caps(*caps):
 	def customized_decorator(fn):
 		@wraps(fn)
@@ -91,100 +92,162 @@ def caps(*caps):
 	return customized_decorator
 
 
-def validate_input(input_spec):
-	'''
-	validate request input according to input_spec
+class validators:
+	@classmethod
+	def is_mandatory(cls, data, key, value):
+		if key not in data:
+			raise ValueError, _('mandatory parameter missing')
+	@classmethod
+	def non_blank(cls, data, key, value):
+		if not isinstance(value, basestring) or not value.strip():
+			raise ValueError, _('must be non-blank string')
+	@classmethod
+	def enum(cls, data, key, value, *options):
+		if value not in options:
+			raise ValueError, _('must be one of {0}').format(
+					','.join(options))
+	@classmethod
+	def is_number(cls, data, key, value, max_value=None, min_value=None):
+		if max_value is not None and value > max_value:
+			raise ValueError, _('value {0} must not be greater than {1}'
+				).format(value, max_value)
+		if min_value is not None and value < min_value:
+			raise ValueError, _('value {0} must not be less than {1}'
+				).format(value, min_value)
+	@classmethod
+	def is_string(cls, data, key, value, length=None, max_length=None,
+			min_length=None):
+		print '+' * 80
+		print 'is_string() is validating %s' % value
+		if value is not None:
+			if not isinstance(value, basestring):
+				raise ValueError, _('value must of a string')
+			if length is not None and len(value) != length:
+				raise ValueError, _('value length must be {0}'
+					).format(length)
+			if max_length is not None and len(value) > max_length:
+				raise ValueError, _('value length must not be longer than {0}'
+					).format(max_length)
+			if min_length is not None and len(value) < min_length:
+				raise ValueError, _('value length must not be shorter than {0}'
+					).format(min_length)
+	@classmethod
+	def not_null(cls, data, key, value):
+		if value is None:
+			raise ValueError, _('value must not be None')
+	@classmethod
+	def is_bool(cls, data, key, value):
+		if value is not None:
+			if not (value is True or value is False):
+				# expression:
+				# value not in (False, True)
+				# won't work because 1 == True is always True
+				raise ValueError, _('value must be a boolean')
 
-	input_spec is a sequence of key specs, each has following fields:
 
-	key
-	mandatory
-	default
-	validator
-	args
-	kwargs
-	'''
-	data = request.get_json()
-	if not data:
-		try:
-			data = request.values
-		except Exception, e:
-			out = cStringIO.StringIO()
-			traceback.print_exc(file=out)
-			print out.getvalue()
-			raise RuntimeError, _('error parsing parameters: {0}').format(e)
-	validated = {}
-	for key, mandatory, default, validator, args, kwargs in input_spec:
-		if data.has_key(key):
-			value = data[key]
-			try:
-				if isinstance(validator, tuple):
-					if value not in validator:
-						raise ValueError, _('must be one of {0}, got \'{1}\'').format(validator, value)
-				elif validator in (NoneType, BooleanType, IntType, StringType, DictType):
-					if not isinstance(value, validator):
-						raise ValueError, _('expected {0}, got {1}').format(
-							validator.__name__, type(value).__name__)
-				elif callable(validator):
-					kwargs = dict([(k, data.get(k)) for k in kwargs])
-					value = validator(data, key, value, *args, **kwargs)
-			except ValueError, e:
-				reason = '%s' % e
-				raise RuntimeError, _('invalid parameter \'{0}\': {1}').format(key, reason)
-			else:
-				validated[key] = value
-		elif mandatory:
-			raise RuntimeError, _('must provide parameter \'{0}\'').format('name')
-		else:
-			if default != None:
-				validated[key] = default
-	return validated
-
-class Spec(object):
-	def __init__(self, name, mandatory=False, default=None, normalizer=None, validators=[]):
-		if not isinstance(name, basestring):
-			raise TypeError, 'name must be of string type'
-		elif not name.strip():
-			raise ValueError, 'name must not be blank'
-		if normalizer is None:
-			normalizer = lambda x: x
-		elif not isinstance(normalizer, callable):
-			raise TypeError, 'normalizer must be a callable'
-
+class Field(object):
+	def __init__(self, name, is_mandatory=False, default=None,
+			normalizer=None, validators=[]):
 		self.name = name
-		self.mandatory = mandatory
+		self.is_mandatory = is_mandatory
 		self.default = default
 		self.normalizer = normalizer
-		self.validators = validators
-	def __call__(self, input, output, errors):
-		if self.name in input:
-			value = input[self.name]
-		if not found and self.mandatory:
-			errors[self.name] = 'mandatory parameter missing'
+		self.validators = []
+		for x in validators:
+			args = ()
+			kwargs = {}
+			if isinstance(x, tuple):
+				if len(x) == 1:
+					func = x[0]
+				elif len(x) == 2:
+					func, args = x
+				elif len(x) == 3:
+					func, args, kwargs = x
+				else:
+					raise ValueError, 'invalid validator specification %s' % x
+			else:
+				func = x
+			if not callable(func) or not isinstance(args, tuple) or not isinstance(kwargs, dict):
+				raise ValueError, 'invalid validator specification: %s' % x
+			self.validators.append((func, args, kwargs))
 
-class Validator(object):
-	def __init__(self, *args):
-		self.input_spec = []
-		for spec in args:
-			if not isinstance(spec, Spec):
-				raise TypeError, 'input spec must be instances of Spec'
-			self.input_spec.append(i)
-	def __call__(self, data):
-		result = {}
-		errors = {}
-		for spec in self.input_spec:
-			key, value, err = spec(data)
-			if key:
-				result[key] 
-			if err:
-				errors[spec.name] = err
-		return result, errors
+	def validate(self, data, output):
+		key = self.name
+		if key in data:
+			value = data[key]
+		else:
+			if self.default:
+				value = self.default() if callable(self.default) else self.default
+			else:
+				if self.is_mandatory:
+					raise ValueError(_('{0}: mandatory parameter missing').format(key))
+				# non-mandatory parameter is omitted, skip further validation
+				return
+		try:
+			if self.normalizer:
+				value = self.normalizer(data, key, value)
+			for func, args, kwargs in self.validators:
+				#
+				# Note:
+				# To make context-aware validators work properly, 
+				# we use normalized output as context, as below:
+				#
+				func(output, key, value, *args, **kwargs)
+				#
+				# instead of following:
+				#
+				# func(data, key, value, *args, **kwargs)
+				#
+				# This is because validators of later fields
+				# may need to work on normalized values
+				#
+		except ValueError, exc:
+			raise InvalidUsage(_('{0}: {1}').format(key, exc))
+		except Exception, exc:
+			# out = cStringIO.StringIO()
+			# traceback.print_exc(file=out)
+			# error = out.getvalue()
+			# current_app.logger.error('\033[1;31mERROR:\033[0m\n%s\n' % error)
+			raise RuntimeError(_('{0}: {1}').format(key, exc))
+		output[key] = value
+		return
 
 
+class MyForm(object):
+	def __init__(self, *fields):
+		self.field_names = []
+		self.field_by_name = {}
+		for i in fields:
+			self.add_field(i)
 
-def v_mandatory(data, key):
-	if key not in data:
-		raise ValueError, _('mandatory parameter missing')
+	def add_field(self, field):
+		if not isinstance(field, Field):
+			raise TypeError, 'field must be instance of class Field'
+		if field.name in self.field_by_name:
+			raise ValueError, 'a field named \'%s\' already exists' % field.name
+		self.field_names.append(field.name)
+		self.field_by_name[field.name] = field
+
+	def get_data(self, with_view_args=True):
+		try:
+			data = request.get_json()
+		except Exception, exc:
+			raise InvalidUsage(_('error decoding json from incoming request'))
+		output = {}
+		# if not data:
+		# 	try:
+		# 		data = request.values
+		# 	except Exception, e:
+		# 		out = cStringIO.StringIO()
+		# 		traceback.print_exc(file=out)
+		# 		print out.getvalue()
+		# 		raise RuntimeError, _('error parsing parameters: {0}').format(e)
+		for key in self.field_names:
+			f = self.field_by_name[key]
+			f.validate(data, output)
+		if with_view_args:
+			output.update(request.view_args)
+		return output
 
 
 from v1_0 import api_1_0

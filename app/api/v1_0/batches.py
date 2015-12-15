@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 from datetime import datetime
 
@@ -19,6 +17,7 @@ import pytz
 
 _name = __file__.split('/')[-1].split('.')[0]
 
+
 @bp.route(_name + '/<int:batchId>', methods=['GET'])
 @api
 @caps()
@@ -29,6 +28,7 @@ def get_batch(batchId):
 	return jsonify({
 		'batch': m.Batch.dump(batch),
 	})
+
 
 @bp.route(_name + '/<int:batchId>/stat', methods=['GET'])
 @api
@@ -44,6 +44,7 @@ def get_batch_stats(batchId):
 			'unitCount': sum([i.rawPiece.words for p in batch.pages for i in p.members]),
 		}
 	})
+
 
 @bp.route(_name + '/<int:batchId>/users/<int:userId>', methods=['PUT'])
 @api
@@ -74,6 +75,7 @@ def assign_batch_to_user(batchId, userId):
 			).format(batchId, user.userName, batch.leaseExpires),
 	})
 
+
 @bp.route(_name + '/<int:batchId>/users/', methods=['DELETE'])
 @api
 @caps()
@@ -90,3 +92,4 @@ def unassign_batch(batchId):
 	return jsonify({
 		'message': _('batch {0} has been un-assigned').format(batchId),
 	})
+

@@ -9,6 +9,7 @@ from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
+
 @bp.route(_name + '/', methods=['GET'])
 @api
 @caps()
@@ -71,3 +72,4 @@ def migrate_project(projectId):
 		'status': _('project {0} successfully migrated').format(projectId),
 		'project': m.Project.dump(project),
 	})
+
