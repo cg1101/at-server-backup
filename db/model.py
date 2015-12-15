@@ -733,6 +733,15 @@ class SubTaskRateSchema(Schema):
 		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'validFrom', 'multiplier', 'updatedBy', 'updatedAt')
 		ordered = True
 
+# TagImage:
+class TagImage(Base):
+	__table__ = t_tagimagepreviews
+
+class TagImageSchema(Schema):
+	class Meta:
+		fields = ('previewId', 'created')
+		ordered = True
+
 # Tag
 class Tag(Base):
 	EVENT = 'Event'
