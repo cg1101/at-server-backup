@@ -8,6 +8,7 @@ from types import NoneType, BooleanType, IntType, StringType, DictType
 
 from flask import Response, request, make_response, jsonify, current_app, session
 from werkzeug.exceptions import HTTPException
+from werkzeug.datastructures import CombinedMultiDict
 
 from app.i18n import get_text as _
 from db.db import SS
@@ -117,8 +118,6 @@ class validators:
 	@classmethod
 	def is_string(cls, data, key, value, length=None, max_length=None,
 			min_length=None):
-		print '+' * 80
-		print 'is_string() is validating %s' % value
 		if value is not None:
 			if not isinstance(value, basestring):
 				raise ValueError, _('value must of a string')
@@ -176,7 +175,7 @@ class Field(object):
 		if key in data:
 			value = data[key]
 		else:
-			if self.default:
+			if self.default is not None:
 				value = self.default() if callable(self.default) else self.default
 			else:
 				if self.is_mandatory:
@@ -228,20 +227,16 @@ class MyForm(object):
 		self.field_names.append(field.name)
 		self.field_by_name[field.name] = field
 
-	def get_data(self, with_view_args=True):
-		try:
-			data = request.get_json()
-		except Exception, exc:
-			raise InvalidUsage(_('error decoding json from incoming request'))
+	def get_data(self, with_view_args=True, is_json=True):
+		if is_json:
+			try:
+				data = request.get_json() or {}
+			except Exception, exc:
+				raise InvalidUsage(_('error decoding json from incoming request'))
+		else:
+			data = request.values
+		data = CombinedMultiDict([data, request.files])
 		output = {}
-		# if not data:
-		# 	try:
-		# 		data = request.values
-		# 	except Exception, e:
-		# 		out = cStringIO.StringIO()
-		# 		traceback.print_exc(file=out)
-		# 		print out.getvalue()
-		# 		raise RuntimeError, _('error parsing parameters: {0}').format(e)
 		for key in self.field_names:
 			f = self.field_by_name[key]
 			f.validate(data, output)
