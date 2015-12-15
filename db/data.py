@@ -94,11 +94,13 @@ def init_db(engine, config):
 
 	if load('ao_users'):
 		todo = []
+		users = dict([r for r in engine.execute('''SELECT userid AS "userId", TRUE FROM users''')])
 		for i in ao_engine.execute('''SELECT userid AS "userId",
 				emailaddress AS "emailAddress", active, familyname AS "familyName", givenname AS "givenName"
 				FROM users
 				ORDER BY "userId"'''):
-			todo.append(dict(i))
+			if i.userId not in users:
+				todo.append(dict(i))
 		engine.execute(s.t_ao_users.insert(), todo)
 
 
@@ -106,7 +108,7 @@ def init_db(engine, config):
 
 	at_engine = create_engine(config.AT_URL)
 
-	if False:# or True: # only do this in office
+	if False or True: # only do this in office
 		from sqlalchemy.orm import sessionmaker
 		src = sessionmaker(bind=at_engine)()
 		dst = SS()
@@ -119,11 +121,16 @@ def init_db(engine, config):
 				#m.User,
 				#m.Project, m.Task,
 				#m.TaskSupervisor,
+				#m.TaskErrorType,
 				#m.SubTask, m.TaskWorker, m.SubTaskRate,
 				#m.Pool, m.Question, m.Test, m.Sheet, m.SheetEntry,
-				#m.Answer, m.Marking, 
+				#m.Answer, m.Marking, m.Load,
+				#m.UtteranceSelection, m.CustomUtteranceGroup,
+				m.CustomUtteranceGroupMember,
+				#m.WorkInterval, m.DailySubtotal
 			]:
 			for i in src.query(klass).all():
+				print i
 				src.expunge(i)
 				dst.merge(i)
 
