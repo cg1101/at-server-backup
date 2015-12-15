@@ -134,7 +134,22 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_error_types(self):
 		# /errortypes/
-		pass
+		rv = self.app.get('/api/1.0/errortypes')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/errortypes/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'errorTypes' in data
+		assert isinstance(data['errorTypes'], list)
+		assert len(data['errorTypes']) > 0
+		errorType = data['errorTypes'][0]
+		assert 'errorTypeId' in errorType
+		assert 'name' in errorType
+		assert 'errorClassId' in errorType
+		assert 'errorClass' in errorType
+		assert 'defaultSeverity' in errorType
+		assert 'isStandard' in errorType
+
 
 	def test_get_file_handlers(self):
 		# /filehandlers/
@@ -244,13 +259,28 @@ class MyTestCase(unittest.TestCase):
 		assert isinstance(data['rates'], list)
 		assert len(data['rates']) > 0
 
-	def test_get_s(self):
+	def test_configure_task_file_handler(self):
 		# /tasks/<int:taskId>/filehandlers/
 		pass
 
 	def test_get_sheet(self):
-		# /sheets/<int:sheetId>
-		pass
+		rv = self.app.get('/api/1.0/sheets/6')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'sheet' in data
+		assert isinstance(data['sheet'], dict)
+		assert 'sheetId' in data['sheet']
+		assert 'testId' in data['sheet']
+		assert 'user' in data['sheet']
+		assert 'nTimes' in data['sheet']
+		assert 'moreAttempts' in data['sheet']
+		# TODO: check if sheet content contains answers
+		rv = self.app.get('/api/1.0/sheets/1')
+		assert rv.mimetype == 'application/json'
+		assert rv.status_code == 404
+		data = json.loads(rv.get_data())
+		assert 'error' in data
+		assert data['error'] == 'sheet 1 not found'
 
 	def test_get_sheet_with_markings(self):
 		# /sheets/<int:sheetId>/markings/
@@ -348,10 +378,6 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/rawpieces/
 		pass
 
-	def test_get_task_status(self):
-		# /tasks/<int:taskId>/status
-		pass
-
 	def test_get_task_sub_tasks(self):
 		# /tasks/<int:taskId>/subtasks/
 		pass
@@ -364,7 +390,7 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/supervisors/
 		pass
 
-	def test_get_task_utterrance_selection(self):
+	def test_get_task_utterrance_selections(self):
 		# /tasks/<int:taskId>/selections/
 		pass
 
@@ -378,7 +404,23 @@ class MyTestCase(unittest.TestCase):
 
 	def test_get_tasks(self):
 		# /tasks/
-		pass
+		rv = self.app.get('/api/1.0/tasks')
+		assert rv.status_code == 301
+		rv = self.app.get('/api/1.0/tasks/')
+		assert rv.mimetype == 'application/json'
+		data = json.loads(rv.get_data())
+		assert 'tasks' in data
+		assert isinstance(data['tasks'], list)
+		assert len(data['tasks']) > 0
+		task = data['tasks'][0]
+		assert 'taskId' in task
+		assert 'name' in task
+		assert 'projectId' in task
+		assert 'status' in task
+		assert 'taskTypeId' in task
+		assert 'taskType' in task
+		assert 'migrated' in task
+		assert 'migratedBy' in task
 
 	def test_get_test(self):
 		# /tests/<int:testId>
