@@ -1,3 +1,3 @@
 
-def get_text(s):
-	return s
+def get_text(*args):
+	return ' '.join(args)
