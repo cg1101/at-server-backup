@@ -1,5 +1,5 @@
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 
 import db.model as m
 from db.db import SS
@@ -8,6 +8,7 @@ from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
+
 
 @bp.route(_name + '/', methods=['GET'])
 @api
@@ -24,8 +25,8 @@ def get_tests():
 @caps()
 def create_test():
 	test = m.Test(**data)
-	SS().add(test)
-	SS().flush()
+	SS.add(test)
+	SS.flush()
 	return jsonify({
 		'message': _('new test {0} successfully created').format(test.testId),
 		'test': m.Test.dump(test),
@@ -57,3 +58,4 @@ def get_test_sheets(testId):
 	return jsonify({
 		'sheets': m.Sheet.dump(sheets),
 	})
+

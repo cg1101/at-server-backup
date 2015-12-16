@@ -65,7 +65,7 @@ def api(fn):
 			#
 			out = cStringIO.StringIO()
 			traceback.print_exc(file=out)
-			current_app.logger.error('\033[1;31mERROR:\033[0m\n%s\n' % out.getvalue())
+			current_app.logger.error('\033[1;31mERROR caught inside api:\033[0m\n%s\n' % out.getvalue())
 
 			# TODO: hide debug information for production deployment
 			resp = make_response((jsonify({'error': '%s' % e}), 500, {}))
@@ -172,6 +172,13 @@ class Field(object):
 
 	def validate(self, data, output):
 		key = self.name
+		# print '\033[1;32m'
+		# print '=' * 80
+		# print '\033[0;36m'
+		# print 'validating', key
+		# print '\033[1;34m'
+		# print '-' * 80
+		# print '\033[0m'
 		if key in data:
 			value = data[key]
 		else:
@@ -179,12 +186,20 @@ class Field(object):
 				value = self.default() if callable(self.default) else self.default
 			else:
 				if self.is_mandatory:
-					raise ValueError(_('{0}: mandatory parameter missing').format(key))
+					raise InvalidUsage(_('{0}: mandatory parameter missing').format(key))
 				# non-mandatory parameter is omitted, skip further validation
 				return
 		try:
 			if self.normalizer:
-				value = self.normalizer(data, key, value)
+				#
+				# use output as context, this makes it possible
+				# to pass in extra parameters to normalizers
+				# either as view_args, or mandatory parameters
+				#
+				value = self.normalizer(output, key, value)
+				#
+				#value = self.normalizer(data, key, value)
+				#
 			for func, args, kwargs in self.validators:
 				#
 				# Note:
@@ -206,7 +221,7 @@ class Field(object):
 			# out = cStringIO.StringIO()
 			# traceback.print_exc(file=out)
 			# error = out.getvalue()
-			# current_app.logger.error('\033[1;31mERROR:\033[0m\n%s\n' % error)
+			# current_app.logger.error('\033[1;31mERROR caught inside validate():\033[0m\n%s\n' % error)
 			raise RuntimeError(_('{0}: {1}').format(key, exc))
 		output[key] = value
 		return
@@ -237,11 +252,11 @@ class MyForm(object):
 			data = request.values
 		data = CombinedMultiDict([data, request.files])
 		output = {}
+		if with_view_args:
+			output.update(request.view_args)
 		for key in self.field_names:
 			f = self.field_by_name[key]
 			f.validate(data, output)
-		if with_view_args:
-			output.update(request.view_args)
 		return output
 
 

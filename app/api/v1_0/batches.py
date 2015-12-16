@@ -1,7 +1,7 @@
 
 from datetime import datetime
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 import pytz
 
 import db.model as m

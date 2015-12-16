@@ -1,13 +1,14 @@
 
 import os
 import glob
+import datetime
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 from sqlalchemy.orm.exc import NoResultFound
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps
+from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 
@@ -269,6 +270,7 @@ def get_task_summary(taskId):
 	return jsonify({
 	})
 
+
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['GET'])
 @api
 @caps()
@@ -278,18 +280,123 @@ def get_task_sub_tasks(taskId):
 		'subTasks': m.SubTask.dump(subTasks),
 	})
 
+
+def check_sub_task_name_uniqueness(data, key, name, taskId, subTaskId):
+	if m.SubTask.query.filter_by(taskId=taskId
+			).filter_by(name=name
+			).filter(m.SubTask.subTaskId!=subTaskId).count() > 0:
+		raise ValueError, _('name \'{0}\' is already in use').format(name)
+
+
+def check_work_type_existence(data, key, workTypeId):
+	if not m.WorkType.query.get(workTypeId):
+		raise ValueError, _('work type {0} not found').format(workTypeId)
+
+
+def check_batching_mode_existence(data, key, modeId):
+	if not m.BatchingMode.query.get(modeId):
+		raise ValueError, _('batching mode {0} not found').format(modeId)
+
+
+def normalize_interval_as_seconds(data, key, value):
+	try:
+		value = int(value)
+	except:
+		raise ValueError, _('invalid interval {0}').format(value)
+	return datetime.timedelta(seconds=value)
+
+
+def check_lease_life_minimal_length(data, key, value, min_value):
+	if value < min_value:
+		raise ValueError, _('lease life must not be less than 5 minutes')
+
+
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['POST'])
 @api
 @caps()
 def create_sub_task(taskId):
-	data = request.get_json()
+	# TODO: define constants for ltr/rtl, nolimit/oneonly
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	data = MyForm(
+		Field('name', is_mandatory=True, validators=[
+			validators.non_blank,
+			(check_sub_task_name_uniqueness, (taskId, None)),
+		]),
+		Field('taskId', is_mandatory=True, default=task.taskId,
+				normalizer=lambda data, key, value: task.taskId),
+		Field('workTypeId', is_mandatory=True, validators=[
+			check_work_type_existence,
+		]),
+		Field('maxPageSize', default=20, validators=[
+			(validators.is_number, (), dict(min_value=1)),
+		]),
+		Field('dstDir', is_mandatory=True, default='ltr', validators=[
+			(validators.enum, ('ltr', 'rtl')),
+		]),
+		Field('modeId', is_mandatory=True, validators=[
+			check_batching_mode_existence,
+		]),
+		Field('getPolicy', is_mandatory=True, default='nolimit', validators=[
+			(validators.enum, ('nolimit', 'oneonly')),
+		]),
+		Field('expiryPolicy', is_mandatory=True, default='noextend', validators=[
+			(validators.enum, ('noextend',)),
+		]),
+		Field('allowPageSkip', is_mandatory=True, default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('needItemContext', is_mandatory=False, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('allowEditing', is_mandatory=True, default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('allowAbandon', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('lookAhead', is_mandatory=True, default=0, validators=[
+			(validators.is_number, (), dict(min_value=0)),
+		]),
+		Field('lookBehind', is_mandatory=True, default=0, validators=[
+			(validators.is_number, (), dict(min_value=0)),
+		]),
+		Field('allowCheckout', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('isSecondPassQa', validators=[
+			validators.is_bool,
+		]),
+		Field('defaultLeaseLife', is_mandatory=True, default=7*24*60*60,
+			normalizer=normalize_interval_as_seconds, validators=[
+			(check_lease_life_minimal_length, (datetime.timedelta(seconds=300),)),
+		]),
+		Field('needDynamicTagSet', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('instructionPage'),
+		Field('useQaHistory', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('hideLabels', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('validators', validators=[
+			validators.is_string,
+		]),
+	).get_data()
+
 	subTask = m.SubTask(**data)
-	workInterval = m.WorkInterval(subTaskId=subTask.subTaskId)
-	SS().add(subTask)
-	SS().add(workInterval)
+	SS.add(subTask)
+	SS.flush()
+	workInterval = m.WorkInterval(taskId=subTask.taskId, subTaskId=subTask.subTaskId)
+	SS.add(workInterval)
 	return jsonify({
+		'message': _('created sub task {0} sucessfully').format(subTask.name),
 		'subTask': m.SubTask.dump(subTask),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/supervisors/', methods=['GET'])
 @api
@@ -302,6 +409,7 @@ def get_task_supervisors(taskId):
 		'supervisors': m.TaskSupervisor.dump(task.supervisors),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['PUT'])
 @api
 @caps()
@@ -313,10 +421,32 @@ def update_task_supervisor_settings(taskId, userId):
 		supervisor = m.TaskSupervisor.query.filter_by(taskId=taskId
 			).filter_by(userId=userId).one()
 	except NoResultFound:
-		abort(404)
+		raise InvalidUsage(_('supervisor {0} not found').format(userId), 404)
+
+	data = MyForm(
+		Field('receivesFeedback', validators=[
+			validators.is_bool,
+		]),
+		Field('informLoads', validators=[
+			validators.is_bool,
+		]),
+	).get_data()
+
+	for key in data.keys():
+		value = data[key]
+		if getattr(supervisor, key) != value:
+			setattr(supervisor, key, value)
+		else:
+			del data[key]
+	SS.flush()
+
 	return jsonify({
+		'message': _('updated supervisor {0} of task {1} successfully').format(
+			supervisor.userName, supervisor.taskId),
+		'updatedFields': data.keys(),
 		'supervisor': m.TaskSupervisor.dump(supervisor),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/supervisors/<int:userId>', methods=['DELETE'])
 @api
@@ -326,47 +456,52 @@ def remove_task_supervisor(taskId, userId):
 		supervisor = m.TaskSupervisor.query.filter_by(taskId=taskId
 			).filter_by(userId=userId).one()
 	except NoResultFound:
-		abort(404)
-	SS().delete(supervisor)
-	return 'remove supervisor %s from task %s' % (userId, taskId)
+		raise InvalidUsage(_('supervisor {0} not found').format(userId), 404)
+	SS.delete(supervisor)
+	return jsonify({
+		'message': _('removed supervisor {0} from task {1}').format(supervisor.userName, taskId),
+	})
+
 
 @bp.route(_name + '/<int:taskId>/uttgroups/', methods=['GET'])
 @api
 @caps()
 def get_task_custom_utterance_groups(taskId):
-	uttGroups = m.CustomUtteranceGroup.query.filter_by(taskId=taskId).all()
+	groups = m.CustomUtteranceGroup.query.filter_by(taskId=taskId).all()
 	return jsonify({
-		'uttgroups': m.CustomUtteranceGroup.dump(uttGroups),
+		'utteranceGroups': m.CustomUtteranceGroup.dump(groups),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>', methods=['DELETE'])
 @api
 @caps()
 def delete_custom_utterance_group(taskId, groupId):
-	uttGroup = m.CustomUtteranceGroup.query.get(groupId)
-	if not uttGroup:
-		abort(404)
-	if not uttGroup.taskId == taskId:
-		abort(404)
+	group = m.CustomUtteranceGroup.query.get(groupId)
+	if not group or group.taskId != taskId:
+		raise InvalidUsage(_('utterance group {0} not found').format(taskId), 404)
 	# TODO: delete custom utterance group
 	return jsonify({
 	})
+
 
 @bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/words', methods=['GET'])
 @api
 @caps()
 def get_utterance_group_word_count(taskId, groupId):
-	# task = m.Task.query.get(taskId)
-	# if not task:
-	# 	raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	group = m.CustomUtteranceGroup.query.get(groupId)
-	if group.taskId != taskId:
-		abort(404)
+	if not group or group.taskId != taskId:
+		raise InvalidUsage(_('utterance group {0} not found').format(taskId), 404)
+
 	words = sum([i.words for i in group.rawPieces])
 	return jsonify({
 		'words': words,
 		'totalItems': len(group.rawPieces),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/warnings/', methods=['GET'])
 @api
@@ -377,23 +512,27 @@ def get_task_warnings(taskId):
 		'warnings': [],
 	})
 
+
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
 def get_task_workers(taskId):
-	# task = m.Task.query.get(taskId)
-	# if not task:
-	# 	raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
 	workers = m.TaskWorker.query.filter_by(taskId=taskId).all()
 	return jsonify({
 		'workers': m.TaskWorker.dump(workers),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/workers/', methods=['DELETE'])
 def unassign_all_task_workers(taskId):
-	# task = m.Task.query.get(taskId)
-	# if not task:
-	# 	raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	for i in m.TaskWorker.query.filter_by(taskId=taskId).all():
 		i.removed = True
 	return jsonify({
-		'message': _('all workers have been removed from task {0}').format(taskId),
+		'message': _('removed all workers from task {0}').format(taskId),
 	})
+

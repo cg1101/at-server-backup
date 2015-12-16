@@ -1,13 +1,14 @@
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps
+from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
-from . import api_1_0 as bp
+from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
+
 
 @bp.route(_name + '/<int:subTaskId>', methods=['GET'])
 @api
@@ -15,10 +16,11 @@ _name = __file__.split('/')[-1].split('.')[0]
 def get_sub_task(subTaskId):
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask:
-		abort(404)
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 	return jsonify({
 		'subTask': m.SubTask.dump(subTask, context={}),
 	})
+
 
 @bp.route(_name + '/<int:subTaskId>', methods=['PUT'])
 @api
@@ -26,11 +28,20 @@ def get_sub_task(subTaskId):
 def update_sub_task(subTaskId):
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask:
-		abort(404)
-	data = request.get_json()
-	# update subTask using data
-	SS().flush()
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
+
+	data = MyForm(
+	).get_data()
+
+	for key in data.keys():
+		value = data[key]
+		if getattr(subTask, key) != value:
+			setattr(subTask, key, value)
+		else:
+			del data[key]
+	SS.flush()
 	return jsonify({
+		'message': _('updated sub task {0} successfully').format(subTaskId),
 		'subTask': m.SubTask.dump(subTask, context={}),
 	})
 
@@ -138,5 +149,5 @@ def get_sub_task_warnings(subTaskId):
 def get_sub_task_workers(subTaskId):
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask:
-		abort(404)
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 

@@ -1,5 +1,5 @@
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 
 import db.model as m
 from db.db import SS
@@ -32,7 +32,7 @@ def get_tag_set(tagSetId):
 	'''
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
-		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId), 404)
 	return jsonify({
 		'tagSet': m.TagSet.dump(tagSet),
 	})
@@ -125,7 +125,7 @@ def create_tag(tagSetId):
 	'''
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
-		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId), 404)
 
 	data = MyForm(
 		Field('name', is_mandatory=True, validators=[
@@ -211,10 +211,10 @@ def update_tag(tagSetId, tagId):
 	'''
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
-		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId), 404)
 	tag = m.Tag.query.get(tagId)
 	if not tag or tag.tagSetId != tagSetId:
-		raise InvalidUsage(_('tag {0} not found').format(tagId))
+		raise InvalidUsage(_('tag {0} not found').format(tagId), 404)
 
 	data = MyForm(
 		Field('name', validators=[

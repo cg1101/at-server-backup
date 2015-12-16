@@ -1,5 +1,5 @@
 
-from flask import request, abort, session, jsonify
+from flask import request, session, jsonify
 
 import db.model as m
 from db.db import SS
@@ -213,7 +213,7 @@ def update_label_group(labelSetId, labelGroupId):
 		raise InvalidUsage(_('label set {0} not found').format(labelSetId), 404)
 	labelGroup = m.LabelGroup.query.get(labelGroupId)
 	if not labelGroup or labelGroup.labelSetId != labelSetId:
-		raise InvalidUsage(_('label group {0} not found').format(labelGroupId), 404);
+		raise InvalidUsage(_('label group {0} not found').format(labelGroupId), 404)
 
 	data = MyForm(
 		Field('name', is_mandatory=True, validators=[
@@ -252,7 +252,7 @@ def delete_label_group(labelSetId, labelGroupId):
 	for i in labelGroup.labels:
 		i.labelGroup = None
 	name = labelGroup.name
-	SS().delete(labelGroup)
+	SS.delete(labelGroup)
 	return jsonify({
 		'message': _('deleted label group {0} sucessfully').format(name),
 	})
