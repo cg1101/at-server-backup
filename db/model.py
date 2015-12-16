@@ -562,6 +562,7 @@ class Sheet(Base):
 	STATUS_ACTIVE = 'active'
 	user = relationship('User', primaryjoin='Sheet.userId==User.userId',
 			foreign_keys=[t_answer_sheets.c.userId])
+	test = relationship('Test')
 	shouldExpire = column_property(t_answer_sheets.c.tExpiresBy <= text('now()'))
 	entries = relationship('SheetEntry', order_by='SheetEntry.index')
 	@hybrid_property
