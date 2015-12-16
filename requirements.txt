@@ -2,5 +2,6 @@ alembic
 flask
 sqlalchemy
 psycopg2
+pytz
 marshmallow >= 1.2.6
 Flask-Script == 2.0.5
