@@ -9,6 +9,7 @@ from . import api_1_0 as bp
 
 _name = __file__.split('/')[-1].split('.')[0]
 
+
 @bp.route(_name + '/', methods=['GET'])
 @api
 @caps()
@@ -17,3 +18,4 @@ def get_file_handlers():
 	return jsonify({
 		'fileHandlers': m.FileHandler.dump(handlers),
 	})
+

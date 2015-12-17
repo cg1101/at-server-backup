@@ -14,7 +14,7 @@ if is_remote:
 else:
 	#dbUrl = 'postgresql://dbserver/appentext'
 	dbUrl = 'postgresql://localhost/atdb'
-	echo = True
+	echo = False
 engine = create_engine(dbUrl, echo=echo)
 
 SS = scoped_session(sessionmaker(bind=engine))
