@@ -49,7 +49,12 @@ def update_sub_task(subTaskId):
 @api
 @caps()
 def get_sub_task_batches(subTaskId):
-	pass
+	batches = m.Batch.query.filter_by(subTaskId=subTaskId
+		).order_by(m.Batch.batchId).all()
+	return jsonify({
+		'batches': m.Batch.dump(batches),
+	})
+
 
 @bp.route(_name + '/<int:subTaskId>/batches/', methods=['POST'])
 @api
@@ -73,7 +78,10 @@ def dismiss_all_batches(subTaskId):
 @api
 @caps()
 def get_sub_task_daily_subtotals(subTaskId):
-	pass
+	subtotals = m.DailySubtotal.query.filter_by(subTaskId=subTaskId).all()
+	return jsonify({
+		'subtotals': m.DailySubtotal.dump(subtotals),
+	})
 
 @bp.route(_name + '/<int:subTaskId>/intervals/', methods=['GET'])
 @api
@@ -123,7 +131,11 @@ def delete_sub_task_qa_settings(subTaskId):
 @api
 @caps()
 def get_sub_task_rate_records(subTaskId):
-	pass
+	rates = m.SubTaskRate.query.filter_by(subTaskId=subTaskId
+		).order_by(m.SubTaskRate.validFrom).all()
+	return jsonify({
+		'subTaskRates': m.SubTaskRate.dump(rates),
+	})
 
 @bp.route(_name + '/<int:subTaskId>/rates/', methods=['POST'])
 @api

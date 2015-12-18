@@ -10,7 +10,7 @@ is_remote = not hostname.startswith('macbookair20')
 
 if is_remote:
 	dbUrl = 'postgresql://localhost/atdb'
-	echo = True
+	echo = False
 else:
 	#dbUrl = 'postgresql://dbserver/appentext'
 	dbUrl = 'postgresql://localhost/atdb'

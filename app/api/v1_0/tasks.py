@@ -14,6 +14,7 @@ from . import api_1_0 as bp, InvalidUsage
 
 _name = __file__.split('/')[-1].split('.')[0]
 
+
 @bp.route(_name + '/', methods=['GET'])
 @api
 @caps()
@@ -45,6 +46,9 @@ def get_task(taskId):
 	})
 
 
+from .pools import check_task_type_existence
+
+
 @bp.route(_name + '/<int:taskId>', methods=['PUT'])
 @api
 @caps()
@@ -52,11 +56,45 @@ def migrate_task(taskId):
 	pdb_task = m.PdbTask.query.get(taskId)
 	if not pdb_task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	data = request.get_json()
-	task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name)
-	return jsonify({
-		'task': m.Task.dump(task)
-	})
+
+	if m.Task.query.get(taskId):
+		raise InvalidUsage(_('task {0} already exists').format(taskId))
+
+	me = session['current_user']
+
+	data = MyForm(
+		Field('taskTypeId', is_mandatory=True, validators=[
+			validators.is_number,
+			check_task_type_existence,
+		]),
+	).get_data()
+
+	project = m.Project.query.get(pdb_task.projectId)
+	migrate_project = not bool(project)
+	if migrate_project:
+		pdb_project = m.PdbProject.query.get(pdb_task.projectId)
+		if not pdb_project:
+			# this should never happen, just in case
+			raise InvalidUsage(_('unable to migrate project {0}').format(pdb_task.projectId))
+		project = m.Project(projectId=pdb_task.projectId,
+			name=pdb_project.name, _migratedByUser=me)
+		SS.add(project)
+		SS.flush()
+
+	task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
+		taskTypeId=data['taskTypeId'], projectId=project.projectId,
+		_migratedByUser=me)
+	SS.add(task)
+
+	rs = {'task': m.Task.dump(task)}
+	if migrate_project:
+		rs['message'] = _('migrated project {0} and task {0} successfully')\
+			.format(task.projectId, taskId)
+		rs['project'] = m.Project.dump(project)
+	else:
+		rs['message'] = _('migrated task {0} successfully').format(taskId),
+	return jsonify(rs)
+
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
 @api
@@ -67,6 +105,7 @@ def get_task_daily_subtotals(taskId):
 	return jsonify({
 		'subtotals': m.DailySubtotal.dump(subtotals),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/errorclasses/', methods=['GET'])
 @api
@@ -82,6 +121,7 @@ def get_task_error_classes(taskId):
 		'errorClasses': m.ErrorClass.dump(errorClasses)
 	})
 
+
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['GET'])
 @api
 @caps()
@@ -94,6 +134,7 @@ def get_task_error_types(taskId):
 		'taskErrorTypes': m.TaskErrorType.dump(taskErrorTypes),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/errortypes/', methods=['PUT'])
 @api
 @caps()
@@ -102,6 +143,12 @@ def update_task_error_types(taskId):
 	return jsonify({
 	})
 
+
+def check_error_type_existence(data, key, errorTypeId):
+	if not m.ErrorType.query.get(errorTypeId):
+		raise ValueError, _('error type {0} not found').format(errorTypeId)
+
+
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['PUT'])
 @api
 @caps()
@@ -109,15 +156,44 @@ def configure_task_error_type(taskId, errorTypeId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
+	data = MyForm(
+		Field('errorTypeId', is_mandatory=True, default=errorTypeId,
+			validators=[
+				check_error_type_existence,
+		]),
+		Field('severity', is_mandatory=True,
+			normalizer=lambda data, key, value: float(value),
+			validators=[
+				(validators.is_number, (), dict(max_value=1, min_value=0)),
+		]),
+		Field('disabled', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+	).get_data()
+
+	rs = {}
 	try:
 		taskErrorType = m.TaskErrorType.query.filter_by(taskId=taskId
-	 		).filter_by(errorTypeId=errorTypeId).one()
+			).filter_by(errorTypeId=errorTypeId).one()
 	except NoResultFound:
-		data = request.get_json()
-	 	taskErrorType = m.TaskErrorType(**data)
-	return jsonify({
-		'taskErrorType': m.TaskErrorType.dump(taskErrorType),
-	})
+		taskErrorType = m.TaskErrorType(**data)
+		SS.add(taskErrorType)
+		rs['message'] = _('added error type {0} to task {1}').format(errorTypeId, taskId)
+	else:
+		for key in data.keys():
+			value = data[key]
+			if getattr(taskErrorType, key) != value:
+				setattr(taskErrorType, key, value)
+			else:
+				del data[key]
+		rs['message'] = _('updated error type {0} of task {1}').format(errorTypeId, taskId)
+		rs['updatedFields'] = data.keys()
+	# reload instance to populate relationships
+	taskErrorType = m.TaskErrorType.query.get((taskId, errorTypeId))
+	rs['taskErrorType'] = m.TaskErrorType.dump(taskErrorType)
+	return jsonify(rs)
+
 
 @bp.route(_name + '/<int:taskId>/errortypes/<int:errorTypeId>', methods=['DELETE'])
 @api
@@ -133,46 +209,72 @@ def disable_task_error_type(taskId, errorTypeId):
 		# TODO: do not flag this as error?
 		raise InvalidUsage(_('error type {0} not configured for task {1}'
 			).format(errorTypeId, taskId))
-	taskErrorType.removed = True
+	taskErrorType.disabled = True
 	SS.flush()
 	return jsonify({
-		'message': _().format(),
+		'message': _('disabled error type {0} of task {1}').format(errorTypeId, taskId),
+		'taskErrorType': m.TaskErrorType.dump(taskErrorType),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/extract_<timestamp>.txt', methods=['GET', 'POST'])
-def getTaskExtract(taskId, timestamp):
+def get_task_extract(taskId, timestamp):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-
+	# TODO: implement this
 	return 'extract of task %s' % taskId
+
+
+def check_file_handler_existence(data, key, handlerId):
+	if not m.FileHandler.query.get(handlerId):
+		raise ValueError, _('file handler {0} not found').format(handlerId)
+
 
 @bp.route(_name + '/<int:taskId>/filehandlers/', methods=['PUT'])
 @api
 @caps()
 def configure_task_file_handler(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	data = MyForm(
+		Field('handlerId', is_mandatory=True, validators=[
+			validators.is_number,
+			check_file_handler_existence,
+		]),
+	).get_data()
+	task.handlerId = data['handlerId']
 	return jsonify({
-
+		'message': _('configured task {0} to use file handler {1}').format(taskId, data['handlerId'])
 	})
+
 
 @bp.route(_name + '/<int:taskId>/instructions/', methods=['GET'])
 @api
 @caps()
 def get_task_instruction_files(taskId):
-	root = '/audio2/AppenText/'
-	path = os.path.join(root, 'tasks', str(taskId))
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	# TODO: get root path from configuration
+	root = '/audio2/AppenText'
+	path = os.path.join(root, 'docs', 'tasks', str(taskId))
 	files = glob.glob(os.path.join(path, '*'))
-	basenames = map(os.path.basename, files)
 	return jsonify({
-		'instructions': basenames,
+		'instructions': [dict(basename=os.path.basename(i), path=i)
+			for i in files],
 	})
+
 
 @bp.route(_name + '/<int:taskId>/instructions/', methods=['POST'])
 @api
 @caps()
 def upload_task_instruction_file(taskId):
+	# TODO: implement this
 	return jsonify({
 	})
+
 
 @bp.route(_name + '/<int:taskId>/loads/')
 @api
@@ -186,26 +288,37 @@ def get_task_loads(taskId):
 		'loads': m.Load.dump(loads),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/loads/', methods=['POST'])
 @api
 @caps()
 def create_task_load(taskId):
+	# TODO: implement this
 	return jsonify({
 	})
+
 
 @bp.route(_name + '/<int:taskId>/payments/', methods=['GET'])
 @api
 @caps()
 def get_task_payments(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	payments = m.CalculatedPayment.query.filter_by(taskId=taskId).all()
 	return jsonify({
+		'payments': m.CalculatedPayment.dump(payments),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/paystats/', methods=['GET'])
 @api
 @caps()
 def get_task_payment_statistics(taskId):
+	# TODO: implement this
 	return jsonify({
 	})
+
 
 @bp.route(_name + '/<int:taskId>/rawpieces/', methods=['GET'])
 def get_task_raw_pieces(taskId):
@@ -216,6 +329,7 @@ def get_task_raw_pieces(taskId):
 	return jsonify({
 		'rawPieces': m.RawPiece.dump(rawPieces),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['GET'])
 def get_task_utterrance_selections(taskId):
@@ -230,15 +344,20 @@ def get_task_utterrance_selections(taskId):
 		'selections': m.UtteranceSelection.dump(selections),
 	})
 
+
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
 def create_task_utterrance_selection(taskId):
+	# TODO: implement this
 	return jsonify({
 	})
 
+
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
 def populate_task_utterrance_selection(taskId):
+	# TODO: implement this
 	return jsonify({
 	})
+
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
 def delete_task_utterrance_selection(taskId):
@@ -250,17 +369,48 @@ def delete_task_utterrance_selection(taskId):
 		raise InvalidUsage(_('selection {0} not found').format(selectionId), 404)
 	if selection.processed:
 		raise InvalidUsage(_('This utterance selection has already processed. Please refresh the page.'))
-	# TODO: delete utterance selection
+	# TODO: implement this
 	return jsonify({
 		'message': _('selection {0} has been deleted').format(selectionId),
 	})
 
 
+def check_task_status_transition(data, key, newStatus, currentStatus):
+	if newStatus == currentStatus:
+		raise ValueError, _('status not changing')
+	if currentStatus == m.Task.STATUS_ARCHIVED:
+		raise ValueError, _('cannot change status of archived task')
+
+
 @bp.route(_name + '/<int:taskId>/status', methods=['PUT'])
 def update_task_status(taskId):
-	return jsonify({
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	data = MyForm(
+		Field('status', is_mandatory=True, validators=[
+			(validators.enum, (m.Task.STATUS_ACTIVE,
+				m.Task.STATUS_DISABLED, m.Task.STATUS_FINISHED,
+				m.Task.STATUS_CLOSED, m.Task.STATUS_ARCHIVED)),
+			(check_task_status_transition, (task.status,)),
+		]),
+	).get_data()
 
+	# When reopening a closed task, we need to make sure that every sub task
+	# under current task has an active work interval, if not, we create one.
+	if task.status == m.Task.STATUS_CLOSED:
+		for subTask in m.SubTask.query.filter_by(taskId=taskId).all():
+			try:
+				workInterval = m.WorkInterval.query.filter_by(subTaskId=subTaskId
+					).filter_by(endTime=None).order_by(m.WorkInterval.startTime).all()[0]
+			except IndexError:
+				workInterval = m.WorkInterval(taskId=taskId, subTaskId=subTask.subTaskId)
+				SS.add(workInterval)
+	task.status = data['status']
+	return jsonify({
+		'message': _('changed status of task {0} to {1}').format(taskId, task.status),
 	})
+
 
 @bp.route(_name + '/<int:taskId>/summary/', methods=['GET'])
 @api
@@ -275,6 +425,9 @@ def get_task_summary(taskId):
 @api
 @caps()
 def get_task_sub_tasks(taskId):
+	# task = m.Task.query.get(taskId)
+	# if not task:
+	# 	raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	subTasks = m.SubTask.query.filter_by(taskId=taskId).all()
 	return jsonify({
 		'subTasks': m.SubTask.dump(subTasks),
@@ -395,6 +548,7 @@ def create_sub_task(taskId):
 	return jsonify({
 		'message': _('created sub task {0} sucessfully').format(subTask.name),
 		'subTask': m.SubTask.dump(subTask),
+		'workInterval': m.WorkInterval.dump(workInterval),
 	})
 
 
@@ -452,6 +606,7 @@ def update_task_supervisor_settings(taskId, userId):
 @api
 @caps()
 def remove_task_supervisor(taskId, userId):
+	# TODO: add test case
 	try:
 		supervisor = m.TaskSupervisor.query.filter_by(taskId=taskId
 			).filter_by(userId=userId).one()
@@ -480,7 +635,7 @@ def delete_custom_utterance_group(taskId, groupId):
 	group = m.CustomUtteranceGroup.query.get(groupId)
 	if not group or group.taskId != taskId:
 		raise InvalidUsage(_('utterance group {0} not found').format(taskId), 404)
-	# TODO: delete custom utterance group
+	# TODO: implement this
 	return jsonify({
 	})
 
