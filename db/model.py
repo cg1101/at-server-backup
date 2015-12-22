@@ -723,6 +723,15 @@ class SubTaskSchema(Schema):
 		ordered = True
 		# skip_missing = True
 
+# SubTaskContentEvent
+class SubTaskContentEvent(Base):
+	__table__ = t_reworkcontenthistory
+
+class SubTaskContentEventSchema(Schema):
+	class Meta:
+		fields = ('subTaskId', 'selectionId', 'amount', 'populating', 'tProcessedAt', 'operator')
+		ordered = True
+
 # SubTaskRate
 class SubTaskRate(Base):
 	__table__ = t_subtaskrates

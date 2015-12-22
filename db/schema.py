@@ -691,6 +691,7 @@ t_postprocessingutterancegroups =  Table('postprocessingutterancegroups', metada
 
 
 t_reworkcontenthistory =  Table('reworkcontenthistory', metadata,
+	Column(u'eventid', INTEGER, primary_key=True, key=u'eventId', doc=''),
 	Column(u'subtaskid', INTEGER, nullable=False, key=u'subTaskId', doc=''),
 	Column(u'selectionid', INTEGER, key=u'selectionId', doc=''),
 	Column(u'amount', INTEGER, nullable=False, key=u'amount', doc=''),
