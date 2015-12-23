@@ -3,5 +3,5 @@ flask
 sqlalchemy
 psycopg2
 pytz
-marshmallow >= 1.2.6
+marshmallow == 2.4.2
 Flask-Script == 2.0.5
