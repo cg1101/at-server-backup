@@ -333,7 +333,7 @@ t_tracking_events =  Table('tracking_events', metadata,
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
 	Column(u't_triggered_at', TIMESTAMP(timezone=True), key=u'tTriggeredAt', doc=''),
 	Column(u'hostip', INET(), key=u'hostIp', doc=''),
-	Column(u'details', TEXT, nullable=False, key=u'details', doc=''),
+	Column(u'details', MutableDict.as_mutable(JsonString), nullable=False, key=u'details', doc=''),
 )
 
 
