@@ -108,13 +108,26 @@ class validators:
 			raise ValueError, _('must be one of {0}').format(
 					','.join(options))
 	@classmethod
-	def is_number(cls, data, key, value, max_value=None, min_value=None):
+	def is_number(cls, data, key, value, max_value=None, min_value=None,
+			le=None, lt=None, gt=None, ge=None):
 		if max_value is not None and value > max_value:
 			raise ValueError, _('value {0} must not be greater than {1}'
 				).format(value, max_value)
 		if min_value is not None and value < min_value:
 			raise ValueError, _('value {0} must not be less than {1}'
 				).format(value, min_value)
+		if le and not value <= le:
+			raise ValueError, _('value {0} must be less than or equal to {1}'
+				).format(value, le)
+		if lt and not value < lt:
+			raise ValueError, _('value {0} must be less than {1}'
+				).format(value, lt)
+		if ge and not value >= ge:
+			raise ValueError, _('value {0} must be greater than or equal to {1}'
+				).format(value, ge)
+		if gt and not value > gt:
+			raise ValueError, _('value {0} must be greater than {1}'
+				).format(value, gt)
 	@classmethod
 	def is_string(cls, data, key, value, length=None, max_length=None,
 			min_length=None):
