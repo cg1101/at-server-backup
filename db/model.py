@@ -122,7 +122,7 @@ class CalculatedPaymentSchema(Schema):
 	class Meta:
 		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'items', 'units', 'qaedItems', 'qaedUnits', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # CustomUtteranceGroup
 class CustomUtteranceGroup(Base):
@@ -204,7 +204,7 @@ class JobSchema(Schema):
 	class Meta:
 		fields = ('jobId', 'added', 'started', 'completed', 'failed', 'isNew', 'name', 'pid')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # Label
 class Label(Base):
@@ -244,9 +244,13 @@ class LabelSetSchema(Schema):
 class Load(Base):
 	__table__ = t_loads
 	#rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId')
+	_createdByUser = relationship('User')
 
 class LoadSchema(Schema):
-	createdBy = fields.Nested('UserSchema')
+	createdBy = fields.Method('get_created_by')
+	def get_created_by(self, obj):
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj._createdByUser).data
 	class Meta:
 		fields = ('loadId', 'createdBy', 'createdAt', 'taskId')
 
@@ -287,7 +291,7 @@ class PageMemberSchema(Schema):
 	memberIndex = fields.Integer()
 	class Meta:
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 class WorkTypePageMember(PageMember):
 	__mapper_args__ = {
@@ -325,7 +329,7 @@ class WorkTypePageMemberSchema(PageMemberSchema):
 	class Meta:
 		additional = ('rawPiece', 'saved')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 class QaTypePageMember(PageMember):
 	__mapper_args__ = {
@@ -401,7 +405,7 @@ class QaTypePageMemberSchema(PageMemberSchema):
 	class Meta:
 		additional = ('rawPiece', 'qaedEntry', 'saved', 'lookAhead', 'lookBehind')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 class ReworkTypePageMember(PageMember):
 	__mapper_args__ = {
@@ -461,7 +465,7 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 	class Meta:
 		additional = ('rawPiece', 'latestEdition', 'saved')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # # PaymentClass
 # # PaymentType
@@ -487,7 +491,9 @@ class QaConfig(Base):
 
 class QaConfigSchema(Schema):
 	class Meta:
-		fields = ('workSubTaskId', 'qaSubTaskId', 'samplingError', 'defaultExpectedAccuracy', 'confidenceInterval', 'populateRework', 'reworkSubTaskId', 'accuracyThreshold', 'updatedBy')
+		fields = ('workSubTaskId', 'qaSubTaskId',
+			'samplingError', 'defaultExpectedAccuracy', 'confidenceInterval',
+			'populateRework', 'reworkSubTaskId', 'accuracyThreshold', 'updatedBy')
 		ordered = True
 
 # Pool
@@ -533,7 +539,7 @@ class QuestionSchema(Schema):
 	class Meta:
 		fields = ('questionId', 'type', 'poolId', 'respondentData', 'scorerData', 'autoScoring', 'point')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # Test
 class Test(Base):
@@ -551,7 +557,7 @@ class TestSchema(Schema):
 			'instructionPage', 'requirement', 'poolId', 'isEnabled',
 			'size', 'messageSuccess', 'messageFailure')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # Sheet
 class Sheet(Base):
@@ -642,7 +648,7 @@ class MarkingSchema(Schema):
 	class Meta:
 		fields = ('markingId', 'sheetEntryId', 'scorer', 'score', 'comment', 'tCreatedAt')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 
 # Rate
@@ -707,6 +713,8 @@ class SubTask(Base):
 	taskType = association_proxy('task', 'taskType')
 	_workType = relationship('WorkType')
 	workType = association_proxy('_workType', 'name')
+	qaConfig = relationship('QaConfig', primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
+		uselist=False)
 
 class SubTaskSchema(Schema):
 	class Meta:
@@ -730,6 +738,16 @@ class SubTaskContentEvent(Base):
 class SubTaskContentEventSchema(Schema):
 	class Meta:
 		fields = ('subTaskId', 'selectionId', 'amount', 'populating', 'tProcessedAt', 'operator')
+		ordered = True
+
+# SubTaskMetric
+class SubTaskMetric(Base):
+	__table__ = t_subtaskmetrics
+
+class SubTaskMetricSchema(Schema):
+	class Meta:
+		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'amount',
+			'words', 'workRate', 'accuracy', 'lastUpdated')
 		ordered = True
 
 # SubTaskRate
@@ -934,6 +952,14 @@ class TaskWorkerSchema(Schema):
 		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions')
 		ordered = True
 
+# TrackingEvent
+class TrackingEvent(Base):
+	__table__ = t_tracking_events
+
+class TrackingEventSchema(Schema):
+	class Meta:
+		fields = ('eventId', 'eventType', 'tTriggeredAt', 'hostIp', 'details')
+
 # User
 class User(Base):
 	__table__ = j_users
@@ -966,7 +992,7 @@ class UtteranceSelectionSchema(Schema):
 	class Meta:
 		fields = ('selectionId', 'taskId', 'userId', 'userName', 'limit', 'selected', 'action', 'subTaskId', 'name', 'processed', 'random', 'filters')
 		ordered = True
-		skip_missing = True
+		# skip_missing = True
 
 # WorkEntry
 class WorkEntry(Base):
