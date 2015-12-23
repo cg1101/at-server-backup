@@ -3,7 +3,8 @@ import sys
 import os
 import json
 import unittest
-from functools import wraps
+import re
+from functools import wraps, partial
 
 from flask import url_for
 
@@ -14,161 +15,95 @@ from app import create_app
 import db.model as m
 
 
-def post(keyword, has_data=True, enc_type='json', data={},
-		expected_keys=[], **values):
-	if not isinstance(keyword, basestring) or not keyword.strip():
-		raise RuntimeError, 'keyword must be non-blank string'
-	request_data = data
-	def customized_decorator(fn):
+def check_result(testcase, spec, result):
+	if spec is None:
+		return
+	elif isinstance(spec, type):
+		testcase.assertIsInstance(result, spec,
+			'expecting {0}, got {1}'.format(spec.__name__, type(result)))
+	elif isinstance(spec, dict):
+		testcase.assertIsInstance(result, dict,
+			'expecting a dict, got {0}'.format(repr(result)))
+		for key, child_spec in spec.iteritems():
+			testcase.assertIn(key, result,
+				'key {0} not found in {1}'.format(key, result))
+			value = result[key]
+			check_result(testcase, child_spec, value)
+	elif isinstance(spec, set):
+		testcase.assertIsInstance(result, dict,
+			'expecting a dict, got {0}'.format(repr(result)))
+		for key in spec:
+			if isinstance(key, basestring):
+				testcase.assertIn(key, result,
+					'key {0} not found in {1}'.format(key, result))
+			elif isinstance(key, tuple):
+				key, child_spec = key
+				testcase.assertIn(key, result,
+					'key {0} not found in {1}'.format(key, result))
+				value = result[key]
+				check_result(testcase, child_spec, value)
+	elif isinstance(spec, tuple):
+		testcase.assertIsInstance(result, list,
+			'expecting a list, got {0}'.format(repr(result)))
+		length = len(result)
+		length_expression, member_spec = spec
+		match = re.match('(?P<op><|<=|==|>|>=)(?P<value>\d+)$', length_expression)
+		if not match:
+			testcase.fail('unable to verify result list length: {0}'.format(length_expression))
+		op = match.group('op')
+		v = int(match.group('value'))
+		if op == '<':
+			testcase.assertLess(length, v)
+		elif op == '<=':
+			testcase.assertLessEqual(length, v)
+		elif op == '==':
+			testcase.assertEqual(length, v)
+		elif op == '>':
+			testcase.assertGreater(length, v)
+		else:
+			testcase.assertGreaterEqual(length, v)
+		if length:
+			first = result[0]
+			check_result(testcase, member_spec, first)
+
+
+def run_test(method='GET', headers=None, data=None,
+	content_type='application/json',
+	expected_mimetype='application/json',
+	expected_status_code=200,
+	expected_result=None,
+	endpoint_prefix='', **values):
+	if method not in ('GET', 'PATCH', 'POST', 'HEAD', 'PUT',
+			'DELETE', 'OPTIONS', 'TRACE'):
+		raise ValueError, 'invalid method'
+	request_data = json.dumps(data) if content_type == 'application/json' else data
+	def testcase_injection_decorator(fn):
 		@wraps(fn)
-		def routine_injected(*args, **kwargs):
-			self = args[0]
+		def testcase_injected(*args, **kwargs):
+			testcase = self = args[0]
 			with self.app.test_request_context():
-				url = url_for('api_1_0.' + fn.__name__[5:], **values)
-			if enc_type == 'json':
-				rv = self.client.post(url,
-					content_type='application/json',
-					data=json.dumps(request_data),
-					)
-			else:
-				rv = self.client.post(url, data=request_data)
-			assert rv.mimetype == 'application/json'
-			data = json.loads(rv.get_data())
-			if has_data:
-				assert keyword in data
-				result = data[keyword]
-				assert isinstance(result, dict)
-				first = result
-				assert isinstance(first, dict)
-				for key in expected_keys:
-					if isinstance(key, tuple):
-						key, value_type = key
-						assert key in first
-						assert isinstance(first[key], value_type)
-					else:
-						assert key in first
-			else:
-				if rv.status_code == 404:
-					assert 'error' in data
-					assert data['error'].endswith('not found')
-				elif rv.status_code == 200:
-					assert 'message' in data
+				url = url_for(endpoint_prefix + fn.__name__[5:], **values)
+			rv = self.client.open(url, method=method,
+				content_type=content_type, data=request_data)
+			testcase.assertEqual(rv.mimetype, expected_mimetype,
+				'expected mimetype {0}, got {1}'.format(expected_mimetype, rv.mimetype))
+			testcase.assertEqual(rv.status_code, expected_status_code,
+				'expected status code {0}, got {1}'.format(expected_status_code, rv.status_code))
+			if expected_result is None:
+				return fn(*args, **kwargs)
+			if expected_mimetype == 'application/json':
+				data = json.loads(rv.get_data())
+				testcase.assertIsInstance(data, dict)
+				# check result recursively
+				check_result(self, expected_result, data)
 			return fn(*args, **kwargs)
-		return routine_injected
-	return customized_decorator
+		return testcase_injected
+	return testcase_injection_decorator
 
 
-def put(keyword, has_data=True, enc_type='json', data={},
-		expected_keys=[], **values):
-	if not isinstance(keyword, basestring) or not keyword.strip():
-		raise RuntimeError, 'keyword must be non-blank string'
-	request_data = data
-	def customized_decorator(fn):
-		@wraps(fn)
-		def routine_injected(*args, **kwargs):
-			self = args[0]
-			with self.app.test_request_context():
-				url = url_for('api_1_0.' + fn.__name__[5:], **values)
-			if enc_type == 'json':
-				rv = self.client.put(url,
-					content_type='application/json',
-					data=json.dumps(request_data),
-					)
-			else:
-				rv = self.client.put(url, data=request_data)
-			assert rv.mimetype == 'application/json'
-			data = json.loads(rv.get_data())
-			if has_data:
-				assert keyword in data
-				result = data[keyword]
-				assert isinstance(result, dict)
-				first = result
-				assert isinstance(first, dict)
-				for key in expected_keys:
-					if isinstance(key, tuple):
-						key, value_type = key
-						assert key in first
-						assert isinstance(first[key], value_type)
-					else:
-						assert key in first
-			else:
-				if rv.status_code == 404:
-					assert 'error' in data
-					assert data['error'].endswith('not found')
-				elif rv.status_code == 200:
-					assert 'message' in data
-			return fn(*args, **kwargs)
-		return routine_injected
-	return customized_decorator
-
-
-def single_retrieveal(keyword, has_data=True, expected_keys=[], **values):
-	if not isinstance(keyword, basestring) or not keyword.strip():
-		raise RuntimeError, 'keyword must be non-blank string'
-	def customized_decorator(fn):
-		@wraps(fn)
-		def routine_injected(*args, **kwargs):
-			self = args[0]
-			with self.app.test_request_context():
-				url = url_for('api_1_0.' + fn.__name__[5:], **values)
-			rv = self.client.get(url)
-			assert rv.mimetype == 'application/json'
-			data = json.loads(rv.get_data())
-			if has_data:
-				assert keyword in data
-				result = data[keyword]
-				assert isinstance(result, dict)
-				first = result
-				assert isinstance(first, dict)
-				for key in expected_keys:
-					if isinstance(key, tuple):
-						key, value_type = key
-						assert key in first
-						assert isinstance(first[key], value_type)
-					else:
-						assert key in first
-			else:
-				if rv.status_code == 404:
-					assert 'error' in data
-					assert data['error'].endswith('not found')
-			return fn(*args, **kwargs)
-		return routine_injected
-	return customized_decorator
-
-
-def collection_retrieval(keyword, has_data=True, expected_keys=[], **values):
-	if not isinstance(keyword, basestring) or not keyword.strip():
-		raise RuntimeError, 'keyword must be non-blank string'
-	def customized_decorator(fn):
-		@wraps(fn)
-		def routine_injected(*args, **kwargs):
-			self = args[0]
-			with self.app.test_request_context():
-				url = url_for('api_1_0.' + fn.__name__[5:], **values)
-			assert url.endswith('/')
-			rv = self.client.get(url[:-1])
-			assert rv.status_code == 301
-			assert rv.headers['location'].endswith(url)
-			rv = self.client.get(url)
-			assert rv.mimetype == 'application/json'
-			data = json.loads(rv.get_data())
-			assert keyword in data
-			result = data[keyword]
-			assert isinstance(result, list)
-			if has_data:
-				assert len(result) > 0
-				first = result[0]
-				assert isinstance(first, dict)
-				for key in expected_keys:
-					if isinstance(key, tuple):
-						key, value_type = key
-						assert key in first
-						assert isinstance(first[key], value_type)
-					else:
-						assert key in first
-			return fn(*args, **kwargs)
-		return routine_injected
-	return customized_decorator
+for _ in ('put', 'post', 'delete', 'get'):
+	locals()[_] = partial(run_test, method=_.upper(),
+		endpoint_prefix='api_1_0.')
 
 
 class MyTestCase(unittest.TestCase):
@@ -181,10 +116,15 @@ class MyTestCase(unittest.TestCase):
 	def tearDown(self):
 		pass
 
-	@put('taskErrorType', data={'severity': 0.5}, expected_keys=['taskId',
-		'errorTypeId', 'severity', 'disabled', 'errorType',
-		'defaultSeverity', 'errorClassId', 'errorClass'], taskId=999999,
-		errorTypeId=1)
+	@put(
+		data={'severity': 0.5},
+		expected_result={
+			'taskErrorType': {'taskId', 'errorTypeId', 'severity',
+				'disabled', 'errorType', 'defaultSeverity',
+				'errorClassId', 'errorClass'},
+			'message': unicode,
+		},
+		taskId=999999, errorTypeId=1)
 	def test_configure_task_error_type(self):
 		# /tasks/<int:taskId>/errortypes/<int:errorTypeId>
 		pass
@@ -229,8 +169,10 @@ class MyTestCase(unittest.TestCase):
 		# /pools/
 		pass
 
-	@post('subTask', data={'name': 'mygreat', 'workTypeId': 1, 'modeId': 1},
-		expected_keys=['subTaskId', 'name'], taskId=999999)
+	@post(
+		data={'name': 'mygreat', 'workTypeId': 1, 'modeId': 1},
+		expected_result={'subTask': {'subTaskId', 'name'}},
+		taskId=999999)
 	def test_create_sub_task(self):
 		# /tasks/<int:taskId>/subtasks/
 		pass
@@ -300,21 +242,19 @@ class MyTestCase(unittest.TestCase):
 		# /batches/<int:batchId>/stat
 		pass
 
-	@collection_retrieval('errorClasses', expected_keys=['errorClassId',
-		'name'])
+	@get(expected_result={'errorClasses': ('>0', {'errorClassId', 'name'})})
 	def test_get_error_classes(self):
 		# /errorclasses/
 		pass
 
-	@collection_retrieval('errorTypes', expected_keys=['errorTypeId', 
-		'name', 'errorClassId', 'errorClass', 'defaultSeverity',
-		'isStandard'])
+	@get(expected_result={'errorTypes': ('>0', {'errorTypeId', 'name',
+		'errorClassId', 'errorClass', 'defaultSeverity', 'isStandard'})})
 	def test_get_error_types(self):
 		# /errortypes/
 		pass
 
-	@collection_retrieval('fileHandlers', expected_keys=['handlerId',
-		'name', 'description', ('options', list)])
+	@get(expected_result={'fileHandlers': ('>0', {'handlerId', 'name',
+		'description', ('options', list)})})
 	def test_get_file_handlers(self):
 		# /filehandlers/
 		pass
@@ -323,8 +263,7 @@ class MyTestCase(unittest.TestCase):
 		# /labelsets/<int:labelSetId>
 		pass
 
-	@collection_retrieval('labelSets', expected_keys=['labelSetId',
-		'created'])
+	@get(expected_result={'labelSets': ('>0', {'labelSetId', 'created'})})
 	def test_get_label_sets(self):
 		# /labelsets/
 		pass
@@ -353,8 +292,8 @@ class MyTestCase(unittest.TestCase):
 		assert 'error' in data
 		assert data['error'] == 'pool 125 not found'
 
-	@collection_retrieval('pools', expected_keys=['poolId', 'name',
-		'autoScoring', 'meta', 'taskTypeId', 'taskType', 'questions'])
+	@get(expected_result={'pools': ('>0', {'poolId', 'name', 'autoScoring',
+		'meta', 'taskTypeId', 'taskType', 'questions'})})
 	def test_get_pools(self):
 		# /pools/
 		pass
@@ -376,8 +315,8 @@ class MyTestCase(unittest.TestCase):
 		data = json.loads(rv.get_data())
 		assert 'error' in data
 
-	@collection_retrieval('projects', expected_keys=['projectId', 'name',
-		'description', 'migratedBy', 'created'])
+	@get(expected_result={'projects': ('>0', {'projectId', 'name',
+		'description', 'migratedBy', 'created'})})
 	def test_get_projects(self):
 		# /projects/
 		# rv = self.client.get('/api/1.0/projects')
@@ -410,13 +349,16 @@ class MyTestCase(unittest.TestCase):
 		assert 'error' in data
 		assert data['error'] == 'rate 313 not found'
 
-	@collection_retrieval('rates', expected_keys=['rateId', 'name',
-		'standardValue', 'targetAccuracy', 'maxValue', 'details'])
+	@get(expected_result={'rates': ('>0', {'rateId', 'name',
+		'standardValue', 'targetAccuracy', 'maxValue', 'details'})})
 	def test_get_rates(self):
 		# /rates/
 		pass
 
-	@put('message', data={'handlerId': 1}, has_data=False, taskId=999999)
+	@put(
+		data={'handlerId': 1},
+		expected_result={('message', unicode)},
+		taskId=999999)
 	def test_configure_task_file_handler(self):
 		# /tasks/<int:taskId>/filehandlers/
 		pass
@@ -448,14 +390,15 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>
 		pass
 
-	@collection_retrieval('batches', expected_keys=['batchId',
-		], subTaskId=1664)
+	@get(expected_result={'batches': ('>0', {'batchId', })},
+		subTaskId=1664)
 	def test_get_sub_task_batches(self):
 		# /subtasks/<int:subTaskId>/batches/
 		pass
 
-	@collection_retrieval('subtotals', expected_keys=['totalId', 'date',
-		'subTaskId', 'userId', 'userName', 'items', 'units'], subTaskId=1802)
+	@get(expected_result={'subtotals': ('>0', {'totalId', 'date',
+		'subTaskId', 'userId', 'userName', 'items', 'units'})},
+		subTaskId=1802)
 	def test_get_sub_task_daily_subtotals(self):
 		# /subtasks/<int:subTaskId>/dailysubtotals/
 		pass
@@ -464,21 +407,21 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/qasettings/
 		pass
 
-	@collection_retrieval('subTaskRates', expected_keys=['subTaskRateId',
+	@get(expected_result={'subTaskRates': ('>0', {'subTaskRateId',
 		'subTaskId', 'rateId', 'rateName', 'multiplier', 'updatedAt',
-		'updatedBy', 'validFrom'], subTaskId=1802)
+		'updatedBy', 'validFrom'})}, subTaskId=1802)
 	def test_get_sub_task_rate_records(self):
 		# /subtasks/<int:subTaskId>/rates/
 		pass
 
-	@collection_retrieval('events', expected_keys=['subTaskId',
-		'selectionId', 'amount', 'populating', 'tProcessedAt',
-		'operator'], subTaskId=2728)
+	@get(expected_result={'events': ('>0', {'subTaskId', 'selectionId',
+		'amount', 'populating', 'tProcessedAt', 'operator'})},
+		subTaskId=2728)
 	def test_get_sub_task_rework_load_records(self):
 		# /subtasks/<int:subTaskId>/loads/
 		pass
 
-	@single_retrieveal('batchCount', has_data=False, subTaskId=2148)
+	@get(expected_result={'batchCount'}, subTaskId=2148)
 	def test_get_sub_task_statistics(self):
 		# /subtasks/<int:subTaskId>/stats/
 		pass
@@ -487,8 +430,9 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/warnings/
 		pass
 
-	@collection_retrieval('intervals', expected_keys=['workIntervalId',
-		'taskId', 'subTaskId', 'startTime', 'endTime', 'status'], subTaskId=1802)
+	@get(expected_result={'intervals': ('>0', {'workIntervalId',
+		'taskId', 'subTaskId', 'startTime', 'endTime', 'status'})},
+		subTaskId=1802)
 	def test_get_sub_task_work_intervals(self):
 		# /subtasks/<int:subTaskId>/intervals/
 		pass
@@ -509,52 +453,54 @@ class MyTestCase(unittest.TestCase):
 		# /tagsets/<int:tagSetId>
 		pass
 
-	@collection_retrieval('tagSets', expected_keys=['tagSetId', 'created',
-		'lastUpdated', ('tags', list)])
+	@get(expected_result={'tagSets': ('>0', {'tagSetId', 'created',
+		'lastUpdated', ('tags', list)})})
 	def test_get_tag_sets(self):
 		# /tagsets/
 		pass
 
-	@single_retrieveal('task', expected_keys=['taskId', 'name', 'projectId',
-		'status', 'srcDir', 'migratedBy'], taskId=999999)
-	@single_retrieveal('task', has_data=False, taskId=382)
+	@get(expected_result={'task': {'taskId', 'name', 'projectId',
+		'status', 'srcDir', 'migratedBy'}}, taskId=999999)
+	@get(expected_result={'error': unicode},
+		expected_status_code=404, taskId=382)
 	def test_get_task(self):
 		# /tasks/<int:taskId>
 		pass
 
-	@collection_retrieval('utteranceGroups', expected_keys=['groupId',
-		'name', 'created', 'rawPieces'], taskId=999999)
+	@get(expected_result={'utteranceGroups': ('>0', {'groupId', 'name',
+		'created', 'rawPieces'})}, taskId=999999)
 	def test_get_task_custom_utterance_groups(self):
 		# /tasks/<int:taskId>/uttgroups/
 		pass
 
-	@collection_retrieval('subtotals', expected_keys=['totalId', 'date',
-		'subTaskId', 'userId', 'userName', 'items', 'units'], taskId=999999)
+	@get(expected_result={'subtotals': ('>0', {'totalId', 'date',
+		'subTaskId', 'userId', 'userName', 'items', 'units'})},
+		taskId=999999)
 	def test_get_task_daily_subtotals(self):
 		# /tasks/<int:taskId>/dailysubtotals/
 		pass
 
-	@collection_retrieval('errorClasses', expected_keys=['errorClassId',
-		'name'], taskId=999999)
+	@get(expected_result={'errorClasses': ('>0', {'errorClassId', 'name'})},
+		taskId=999999)
 	def test_get_task_error_classes(self):
 		# /tasks/<int:taskId>/errorclasses/
 		pass
 
-	@collection_retrieval('taskErrorTypes', expected_keys=['taskId',
-		'errorTypeId', 'errorType', 'errorClassId', 'errorClass',
-		'severity', 'defaultSeverity', 'disabled'], taskId=999999)
+	@get(expected_result={'taskErrorTypes': ('>0', {'taskId', 'errorTypeId',
+		'errorType', 'errorClassId', 'errorClass', 'severity',
+		'defaultSeverity', 'disabled'})}, taskId=999999)
 	def test_get_task_error_types(self):
 		# /tasks/<int:taskId>/errortypes/
 		pass
 
-	@collection_retrieval('instructions', expected_keys=['basename',
-		'path'], taskId=999999)
+	@get(expected_result={'instructions': ('>0', {'basename', 'path'})},
+		taskId=999999)
 	def test_get_task_instruction_files(self):
 		# /tasks/<int:taskId>/instructions/
 		pass
 
-	@collection_retrieval('loads', expected_keys=['loadId', 'taskId',
-		'createdAt', ('createdBy', dict)], taskId=999999)
+	@get(expected_result={'loads': ('>0', {'loadId', 'taskId', 'createdAt',
+		('createdBy', dict)})}, taskId=999999)
 	def test_get_task_loads(self):
 		# /tasks/<int:taskId>/loads/
 		pass
@@ -563,25 +509,25 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/paystats/
 		pass
 
-	@collection_retrieval('payments', expected_keys=['calculatedPaymentId',
+	@get(expected_result={'payments': ('>0', {'calculatedPaymentId',
 		'payrollId', 'taskId', 'subTaskId', 'workIntervalId', 'userId',
 		'userName', 'amount', 'originalAmount', 'updated', 'receipt',
-		'items', 'units', 'qaedItems', 'qaedUnits', 'accuracy'],
+		'items', 'units', 'qaedItems', 'qaedUnits', 'accuracy'})},
 		taskId=300464)
 	def test_get_task_payments(self):
 		# /tasks/<int:taskId>/payments/
 		pass
 
-	@collection_retrieval('rawPieces', expected_keys=['rawPieceId',
-		'rawText', 'allocationContext', 'assemblyContext', 'words',
-		'hypothesis'], taskId=999999)
+	@get(expected_result={'rawPieces': ('>0', {'rawPieceId', 'rawText',
+		'allocationContext', 'assemblyContext', 'words', 'hypothesis'})},
+		taskId=999999)
 	def test_get_task_raw_pieces(self):
 		# /tasks/<int:taskId>/rawpieces/
 		pass
 
-	@collection_retrieval('subTasks', expected_keys=['subTaskId', 'name',
-		'modeId', 'taskId', 'taskTypeId', 'taskType', 'workTypeId',
-		'workType', 'maxPageSize', 'defaultLeaseLife'], taskId=999999)
+	@get(expected_result={'subTasks': ('>0', {'subTaskId', 'name', 'modeId',
+		'taskId', 'taskTypeId', 'taskType', 'workTypeId', 'workType',
+		'maxPageSize', 'defaultLeaseLife'})}, taskId=999999)
 	def test_get_task_sub_tasks(self):
 		# /tasks/<int:taskId>/subtasks/
 		pass
@@ -590,15 +536,15 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/summary/
 		pass
 
-	@collection_retrieval('supervisors', expected_keys=['taskId',
-		'userId', 'userName', 'receivesFeedback', 'informLoads'],
-		taskId=999999)
+	@get(expected_result={'supervisors': ('>0', {'taskId', 'userId',
+		'userName', 'receivesFeedback', 'informLoads'})}, taskId=999999)
 	def test_get_task_supervisors(self):
 		# /tasks/<int:taskId>/supervisors/
 		pass
 
-	@collection_retrieval('selections', expected_keys=['selectionId', 'name',
-		'taskId', 'userId', 'userName', 'random', ('filters', list)], taskId=300735)
+	@get(expected_result={'selections': ('>0', {'selectionId', 'name',
+		'taskId', 'userId', 'userName', 'random', ('filters', list)})},
+		taskId=300735)
 	def test_get_task_utterrance_selections(self):
 		# /tasks/<int:taskId>/selections/
 		pass
@@ -607,16 +553,15 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/warnings/
 		pass
 
-	@collection_retrieval('workers', expected_keys=['userId', 'userName',
+	@get(expected_result={'workers': ('>0', {'userId', 'userName',
 		'taskId', 'subTaskId', 'removed', 'isNew', 'paymentFactor',
-		'hasReadInstructions'], taskId=999999)
+		'hasReadInstructions'})}, taskId=999999)
 	def test_get_task_workers(self):
 		# /tasks/<int:taskId>/workers/
 		pass
 
-	@collection_retrieval('tasks', expected_keys=['taskId', 'name',
-		'projectId', 'status', 'taskTypeId', 'taskType', 'migrated',
-		'migratedBy'])
+	@get(expected_result={'tasks': ('>0', {'taskId', 'name', 'projectId',
+		'status', 'taskTypeId', 'taskType', 'migrated', 'migratedBy'})})
 	def test_get_tasks(self):
 		# /tasks/
 		pass
@@ -649,22 +594,21 @@ class MyTestCase(unittest.TestCase):
 		assert 'error' in data
 		assert data['error'] == 'test 125 not found'
 
-	@collection_retrieval('sheets', expected_keys=['sheetId', 'testId',
-		'nTimes', 'user', 'tStartedAt', 'tExpiresBy', 'tExpiredAt',
-		'tFinishedAt', 'score', 'comment', 'moreAttempts',
-		('entries', list)], testId=1)
+	@get(expected_result={'sheets': ('>0', {'sheetId', 'testId', 'nTimes',
+		'user', 'tStartedAt', 'tExpiresBy', 'tExpiredAt', 'tFinishedAt',
+		'score', 'comment', 'moreAttempts', ('entries', list)})}, testId=1)
 	def test_get_test_sheets(self):
 		# /tests/<int:testId>/sheets/
 		pass
 
-	@collection_retrieval('tests', expected_keys=['testId', 'name',
-		'poolId', 'taskTypeId', 'taskType', 'requirement',
-		'passingScore', 'timeLimit', 'testType'])
+	@get(expected_result={'tests': ('>0', {'testId', 'name', 'poolId',
+		'taskTypeId', 'taskType', 'requirement', 'passingScore',
+		'timeLimit', 'testType'})})
 	def test_get_tests(self):
 		# /tests/
 		pass
 
-	@single_retrieveal('words', has_data=False, taskId=999999, groupId=814)
+	@get(expected_result={'words': int}, taskId=999999, groupId=814)
 	def test_get_utterance_group_word_count(self):
 		# /tasks/<int:taskId>/uttgroups/<int:groupId>/words
 		pass
@@ -673,8 +617,10 @@ class MyTestCase(unittest.TestCase):
 		# /projects/<int:projectId>
 		pass
 
-	@put('task', data={'taskTypeId':1}, expected_keys=['taskId', 'name',
-		'migrated', 'migratedBy', 'taskTypeId', 'taskType'], taskId=1500)
+	@put(data={'taskTypeId':1}, expected_result={
+			'task': {'taskId', 'name', 'migrated', 'migratedBy',
+				'taskTypeId', 'taskType'}},
+		taskId=1500)
 	def test_migrate_task(self):
 		# /tasks/<int:taskId>
 		pass
@@ -735,13 +681,20 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/errortypes/
 		pass
 
-	@put('message', data={'status': m.Task.STATUS_CLOSED}, has_data=False,
+	@put(
+		data={'status': m.Task.STATUS_CLOSED},
+		expected_result={'message': unicode},
 		taskId=999999)
 	def test_update_task_status(self):
 		# /tasks/<int:taskId>/status
 		pass
 
-	@put('supervisor', data={'informLoads': True}, taskId=999999, userId=699)
+	@put(
+		data={'informLoads': True},
+		expected_result={
+			'supervisor',
+		},
+		taskId=999999, userId=699)
 	def test_update_task_supervisor_settings(self):
 		# /tasks/<int:taskId>/supervisors/<int:userId>
 		pass
