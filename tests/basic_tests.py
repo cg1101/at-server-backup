@@ -471,10 +471,14 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/rates/
 		pass
 
+	@collection_retrieval('events', expected_keys=['subTaskId',
+		'selectionId', 'amount', 'populating', 'tProcessedAt',
+		'operator'], subTaskId=2728)
 	def test_get_sub_task_rework_load_records(self):
 		# /subtasks/<int:subTaskId>/loads/
 		pass
 
+	@single_retrieveal('batchCount', has_data=False, subTaskId=2148)
 	def test_get_sub_task_statistics(self):
 		# /subtasks/<int:subTaskId>/stats/
 		pass
@@ -483,6 +487,8 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/warnings/
 		pass
 
+	@collection_retrieval('intervals', expected_keys=['workIntervalId',
+		'taskId', 'subTaskId', 'startTime', 'endTime', 'status'], subTaskId=1802)
 	def test_get_sub_task_work_intervals(self):
 		# /subtasks/<int:subTaskId>/intervals/
 		pass
