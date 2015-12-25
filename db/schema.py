@@ -1071,7 +1071,7 @@ Index('marking_by_sheet_entry_id', t_markings.c.sheetEntryId, unique=False)
 j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
-	t_worktypes.c.name.label('workType'), t_pagemembers]).select_from(
+	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')
 
 j_workentries = select([t_worktypes.c.name.label('workType'), t_worktypes.c.modifiesTranscription, t_workentries]).select_from(

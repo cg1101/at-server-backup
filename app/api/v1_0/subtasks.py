@@ -10,6 +10,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
+from app.util import Batcher
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -34,6 +35,7 @@ def update_sub_task(subTaskId):
 	if not subTask:
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 
+	# TODO: implement this
 	data = MyForm(
 	).get_data()
 
@@ -47,6 +49,7 @@ def update_sub_task(subTaskId):
 	return jsonify({
 		'message': _('updated sub task {0} successfully').format(subTaskId),
 		'subTask': m.SubTask.dump(subTask, context={}),
+		'updatedFields': data.keys(),
 	})
 
 
@@ -69,7 +72,22 @@ def create_new_batches(subTaskId):
 	if not subTask:
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId))
 	if subTask.workType != m.WorkType.WORK:
-		raise InvalidUsage(_('target sub tsak must be of type {0}').format(m.WokrType.WORK))
+		raise InvalidUsage(_('target sub task must be of type {0}').format(m.WorkType.WORK))
+	# TODO: implement this
+	rawPieces = m.RawPiece.query.filter_by(taskId=taskId
+		).filter(m.RawPiece.isNew==True
+		).filter(m.RawPiece.rawPieceId.notin_(
+			SS.query(m.PageMember.rawPieceId
+				).filter_by(taskId=taskId
+				).filter(m.PageMember.rawPieceId!=None
+				).distinct())
+		).all()
+	batches = Batcher.batch(subTask, rawPieces)
+	for batch in batches:
+		SS.add(batch)
+	return jsonify({
+		'message': _('created {0} batches').format(len(batches)),
+	})
 
 
 def normalize_batch_ids(data, key, value):
@@ -88,8 +106,7 @@ def normalize_batch_ids(data, key, value):
 
 def normalize_prority_expression(data, key, value):
 	literal = str(value)
-	m = re.match(r'\+?\d+$', literal)
-	if not m:
+	if not re.match(r'\+?\d+$', literal):
 		raise ValueError, _('invalid priority expression')
 	if literal[0] == '+':
 		value = lambda x: x + int(literal[1:])
@@ -184,8 +201,8 @@ def dismiss_all_batches(subTaskId):
 	itemCount = sum([len(p.members) for p in batches])
 	for b in batches:
 		for p in batches.pages:
-			for m in p.members:
-				SS.delete(m)
+			for member in p.members:
+				SS.delete(member)
 			SS.delete(p)
 		SS.delete(b)
 
@@ -248,12 +265,16 @@ def get_sub_task_rework_load_records(subTaskId):
 @caps()
 def get_sub_task_work_metrics(subTaskId):
 	# TODO: modify query condition to include interval metrics
-	metrics = m.SubTaskMetric.query.filter_by(subTaskId=subTaskId).all()
-	metrics_i = m.SubTaskMetric.query.filter(m.SubTaskMetric.workIntervalId.in_(
-		SS.query([m.WorkInterval.workIntervalId])
-		))
+	metrics = m.SubTaskMetric.query.filter_by(
+		subTaskId=subTaskId).all()
+	metrics_i = m.SubTaskMetric.query.filter(
+			m.SubTaskMetric.workIntervalId.in_(
+				SS.query(m.WorkInterval.workIntervalId
+				).filter(m.WorkInterval.subTaskId==subTaskId)
+			)
+		).all()
 	return jsonify({
-		'metrics': m.SubTaskMetric.dump(metrics),
+		'metrics': m.SubTaskMetric.dump(metrics + metrics_i),
 	})
 
 
@@ -391,7 +412,7 @@ def update_sub_task_qa_settings(subTaskId):
 	me = session['current_user']
 	if subTask.qaConfig:
 		qaConfig = subTask.qaConfig
-		for key in data:
+		for key in data.keys():
 			value = data[key]
 			if getattr(qaConfig, key) != value:
 				setattr(qaConfig, key, value)
@@ -406,7 +427,7 @@ def update_sub_task_qa_settings(subTaskId):
 	return jsonify({
 		'message': message,
 		'qaConfig': m.QaConfig.dump(qaConfig),
-		'updateFields': data.keys(),
+		'updatedFields': data.keys(),
 	})
 
 

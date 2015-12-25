@@ -17,7 +17,7 @@ class MyBase(object):
 	@classmethod
 	def set_schema(cls, schema_class):
 		if not issubclass(schema_class, Schema):
-			raise TypeError, 'schema class must subclass of {}'.format(
+			raise TypeError, 'schema class must be subclass of {}'.format(
 				Schema.__name__)
 		cls._schema_class = schema_class
 	@classmethod
@@ -101,10 +101,16 @@ class BatchSchema(Schema):
 	pages = fields.Nested('PageSchema', many=True)
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
-		ordered = True
+		# ordered = True
 
 # BathchingMode
 class BatchingMode(Base):
+	NONE = 'None'
+	SESSION = 'Session'
+	RECORDING = 'Recording'
+	LONG_RECORDING = 'Long Recordings'
+	CUSTOM_CONTEXT = 'Custom Context'
+	ALLOCATION_CONTEXT = 'Allocation Context'
 	__table__ = t_batchingmodes
 
 class BatchingModeSchema(Schema):
