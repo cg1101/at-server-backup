@@ -74,11 +74,11 @@ def create_new_batches(subTaskId):
 	if subTask.workType != m.WorkType.WORK:
 		raise InvalidUsage(_('target sub task must be of type {0}').format(m.WorkType.WORK))
 	# TODO: implement this
-	rawPieces = m.RawPiece.query.filter_by(taskId=taskId
+	rawPieces = m.RawPiece.query.filter_by(taskId=subTask.taskId
 		).filter(m.RawPiece.isNew==True
 		).filter(m.RawPiece.rawPieceId.notin_(
 			SS.query(m.PageMember.rawPieceId
-				).filter_by(taskId=taskId
+				).filter_by(taskId=subTask.taskId
 				).filter(m.PageMember.rawPieceId!=None
 				).distinct())
 		).all()

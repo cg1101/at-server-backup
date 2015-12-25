@@ -28,16 +28,17 @@ class _batcher(object):
 				).format(subTask.batchingMode))
 		batches = []
 		for batch_load in partitions:
-			b = Batch(taskId=subTask.taskId,
+			b = m.Batch(taskId=subTask.taskId,
 				subTaskId=subTask.subTaskId, priority=priority)
 			for pageIndex, page_load in enumerate(split_by_size(
 					batch_load, subTask.maxPageSize)):
-				p = Page(pageIndex=pageIndex)
+				p = m.Page(pageIndex=pageIndex)
 				b.pages.append(p)
 				for memberIndex, rawPiece in enumerate(page_load):
-					member = m.PageMember(memberIndex=memberIndex)
-					p.member.rawPiecedId = rawPiece.rawPieceId
-					p.members.append(member)
+					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
+					memberEntry.rawPieceId = rawPiece.rawPieceId
+					p.memberEntries.append(memberEntry)
+			batches.append(b)
 		return batches
 
 	@staticmethod

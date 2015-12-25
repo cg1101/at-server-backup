@@ -265,6 +265,7 @@ class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
 		primaryjoin="Page.pageId == PageMember.pageId", order_by='PageMember.memberIndex')
+	memberEntries = relationship('PageMemberEntry')
 
 class PageSchema(Schema):
 	members = fields.Method('get_members')
@@ -282,6 +283,14 @@ class PageSchema(Schema):
 	class Meta:
 		fields = ('pageId', 'batchId', 'pageIndex', 'members')
 		ordered = True
+
+# PageMemberEntry
+class PageMemberEntry(Base):
+	__table__ = t_pagemembers
+
+class PageMemberEntrySchema(Schema):
+	class Meta:
+		fields = ('pageId', 'memberIndex', 'rawPieceId', 'workEntryId')
 
 # PageMember
 class PageMember(Base):
@@ -717,6 +726,8 @@ class SubTask(Base):
 	task = relationship('Task')
 	taskTypeId = association_proxy('task', 'taskTypeId')
 	taskType = association_proxy('task', 'taskType')
+	_batchingMode = relationship('BatchingMode')
+	batchingMode = association_proxy('_batchingMode', 'name')
 	_workType = relationship('WorkType')
 	workType = association_proxy('_workType', 'name')
 	qaConfig = relationship('QaConfig', primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
