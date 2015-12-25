@@ -180,6 +180,7 @@ class MyTestCase(unittest.TestCase):
 		# /labelsets/<int:labelSetId>/labelgroups/
 		raise NotImplementedError
 
+	@post(expected_result={'message': unicode}, subTaskId=1668)
 	def test_create_new_batches(self):
 		# /subtasks/<int:subTaskId>/batches/
 		raise NotImplementedError
