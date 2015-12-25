@@ -97,7 +97,8 @@ def check_tag_color_uniqueness(data, key, color, tagSetId, tagId):
 	if color is not None:
 		if m.Tag.query.filter_by(tagSetId=tagSetId
 				).filter_by(isForeground=isForeground
-				).filter_by(color=color).count() > 0:
+				).filter_by(color=color
+				).filter(m.Tag.tagId!=tagId).count() > 0:
 			raise ValueError, _('color \'{0}\' is already in use'.format(color))
 
 
@@ -261,7 +262,7 @@ def update_tag(tagSetId, tagId):
 			normalizer=normalize_is_foreground, validators=[
 			validators.is_bool,
 		]),
-		Field('color', default=lambda: None, validators=[
+		Field('color', default=lambda: tag.color, validators=[
 			check_tag_color_required,
 			(check_tag_color_uniqueness, (tagSetId, tagId)),
 		]),

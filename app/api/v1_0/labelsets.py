@@ -216,7 +216,7 @@ def update_label_group(labelSetId, labelGroupId):
 		raise InvalidUsage(_('label group {0} not found').format(labelGroupId), 404)
 
 	data = MyForm(
-		Field('name', is_mandatory=True, validators=[
+		Field('name', validators=[
 			validators.is_string,
 			(check_label_group_name_uniqueness, (labelSetId, None)),
 		]),
@@ -235,6 +235,7 @@ def update_label_group(labelSetId, labelGroupId):
 	return jsonify({
 		'message': _('updated label group {0} successfully').format(labelGroup.name),
 		'labelGroup': m.LabelGroup.dump(labelGroup),
+		'updatedFields': data.keys(),
 	})
 
 

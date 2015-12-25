@@ -61,8 +61,9 @@ def assign_batch_to_user(batchId, userId):
 	if policy.active_worker_only:
 		if m.TaskWorker.query.filter_by(taskId=batch.taskId
 				).filter_by(subTaskId=batch.subTaskId
+				).filter_by(userId=userId
 				).filter_by(removed=False).count() == 0:
-			raise InvalidUsage(_('user {0} not working on sub task {1}'
+			raise InvalidUsage(_('user {0} is not working on sub task {1}'
 					).format(userId, batch.subTaskId))
 
 	# TODO: change time from naive to timezone aware
@@ -89,7 +90,10 @@ def unassign_batch(batchId):
 		batch.userId = None
 		batch.leaseGranted = None
 		batch.leaseExpires = None
+		message = _('batch {0} has been un-assigned').format(batchId)
+	else:
+		message = _('batch {0} is not assigned to anyone').format(batchId)
 	return jsonify({
-		'message': _('batch {0} has been un-assigned').format(batchId),
+		'message': message,
 	})
 

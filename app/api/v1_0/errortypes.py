@@ -48,7 +48,8 @@ def create_error_type():
 		Field('errorClassId', is_mandatory=True, validators=[
 			check_error_class_existence,
 		]),
-		Field('defaultSeverity', is_mandatory=True, normalizer=float, validators=[
+		Field('defaultSeverity', is_mandatory=True,
+			normalizer=lambda data, key, value: float(value), validators=[
 			(validators.is_number, (), dict(max_value=1, min_value=0)),
 		]),
 	).get_data()

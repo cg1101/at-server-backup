@@ -177,8 +177,8 @@ def normalize_marking_data(data, key, value):
 
 
 def calculate_sheet_score(data, key, value):
-	import pprint
-	pprint.pprint(data)
+	# import pprint
+	# pprint.pprint(data)
 	score = 0.0
 	for md in data['markings']:
 		score += md['score']
