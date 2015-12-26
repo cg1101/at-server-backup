@@ -219,7 +219,7 @@ class MyTestCase(unittest.TestCase):
 		# /tagsets/<int:tagSetId>/tags/
 		raise NotImplementedError
 
-	@post(data={'options': {}, 'dataFile': data_file},
+	@post(data={'options': 'jsonstring', 'dataFile': data_file},
 		content_type='multipart/form-data',
 		expected_result={'message': unicode, 'load': {'loadId', 'taskId',
 		'createdAt', 'createdBy'}}, taskId=999991)
