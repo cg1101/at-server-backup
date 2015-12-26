@@ -264,8 +264,9 @@ class LoadSchema(Schema):
 class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
-		primaryjoin="Page.pageId == PageMember.pageId", order_by='PageMember.memberIndex')
-	memberEntries = relationship('PageMemberEntry')
+		primaryjoin="Page.pageId == PageMember.pageId", order_by='PageMember.memberIndex',
+		cascade='all, delete-orphan')
+	memberEntries = relationship('PageMemberEntry', cascade='all, delete-orphan')
 
 class PageSchema(Schema):
 	members = fields.Method('get_members')

@@ -198,11 +198,12 @@ def dismiss_all_batches(subTaskId):
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 
 	batches = m.Batch.query.filter_by(subTaskId=subTaskId).all()
-	itemCount = sum([len(p.members) for p in batches])
+	itemCount = 0
 	for b in batches:
-		for p in batches.pages:
-			for member in p.members:
-				SS.delete(member)
+		for p in b.pages:
+			itemCount += len(p.memberEntries)
+			for memberEntry in p.memberEntries:
+				SS.delete(memberEntry)
 			SS.delete(p)
 		SS.delete(b)
 
