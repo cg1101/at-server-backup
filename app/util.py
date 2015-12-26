@@ -5,6 +5,7 @@ from app.i18n import get_text as _
 import db.model as m
 from db.db import SS
 
+
 def split_by_size(seq, size):
 	if not size >= 1:
 		raise ValueError('size must be greater than or equal to 1')
@@ -49,6 +50,7 @@ class _batcher(object):
 	def _create_rework_batches(subTask, rawPieceIds, priority):
 		raise NotImplementedError
 
+
 class Batcher(object):
 	@staticmethod
 	def batch(subTask, things, priority=5):
@@ -61,3 +63,19 @@ class Batcher(object):
 		else:
 			raise RuntimeError(_('work type not supported {0}'
 				).format(subTask.workType))
+
+
+class Loader(object):
+	@staticmethod
+	def load(handler, task, dataFile, **options):
+		# TODO: implement this
+		rawPieces = []
+		for i in range(10):
+			rawPiece = m.RawPiece()
+			rawPiece.rawText = 'raw text #' + str(i)
+			rawPiece.words = i
+			rawPiece.hypothesis = 'this is hypothesis of ' + str(i)
+			rawPiece.meta = None
+			rawPieces.append(rawPiece)
+		return rawPieces
+

@@ -16,6 +16,7 @@ from app import create_app
 import db.model as m
 
 question_file = cStringIO.StringIO('this is a fake file')
+data_file = cStringIO.StringIO('this is a sample data file')
 
 def check_result(testcase, spec, result):
 	if spec is None:
@@ -218,6 +219,10 @@ class MyTestCase(unittest.TestCase):
 		# /tagsets/<int:tagSetId>/tags/
 		raise NotImplementedError
 
+	@post(data={'options': {}, 'dataFile': data_file},
+		content_type='multipart/form-data',
+		expected_result={'message': unicode, 'load': {'loadId', 'taskId',
+		'createdAt', 'createdBy'}}, taskId=999991)
 	def test_create_task_load(self):
 		# /tasks/<int:taskId>/loads/
 		raise NotImplementedError

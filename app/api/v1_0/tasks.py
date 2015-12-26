@@ -11,6 +11,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
+from app.util import Loader
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -75,7 +76,8 @@ def migrate_task(taskId):
 		pdb_project = m.PdbProject.query.get(pdb_task.projectId)
 		if not pdb_project:
 			# this should never happen, just in case
-			raise InvalidUsage(_('unable to migrate project {0}').format(pdb_task.projectId))
+			raise InvalidUsage(_('unable to migrate project {0}'
+				).format(pdb_task.projectId))
 		project = m.Project(projectId=pdb_task.projectId,
 			name=pdb_project.name, _migratedByUser=me)
 		SS.add(project)
@@ -246,7 +248,8 @@ def configure_task_file_handler(taskId):
 	).get_data()
 	task.handlerId = data['handlerId']
 	return jsonify({
-		'message': _('configured task {0} to use file handler {1}').format(taskId, data['handlerId'])
+		'message': _('configured task {0} to use file handler {1}'
+			).format(taskId, data['handlerId'])
 	})
 
 
@@ -293,8 +296,45 @@ def get_task_loads(taskId):
 @api
 @caps()
 def create_task_load(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	handler = (None if task.handlerId is None else
+			m.FileHandler.query.get(task.handlerId))
+	if not handler:
+		raise InvalidUsage(_('no handler configured for task {0}').format(taskId))
 	# TODO: implement this
+	data = MyForm(
+		Field('options'),
+		Field('dataFile')
+	).get_data(is_json=False)
+	data['options'] = {}
+	try:
+		rawPieces = Loader.load(handler, task,
+				data['dataFile'], **data['options'])
+	except Exception, e:
+		raise InvalidUsage(_('failed to load file: {0}').format(str(e)))
+	me = session['current_user']
+	load = m.Load(taskId=taskId, createdBy=me.userId)
+	SS.add(load)
+	SS.flush()
+	for i, rawPiece in enumerate(rawPieces):
+		# no need to populate: rawPieceId, isNew, groupId
+		# inferred from context: taskId
+		# context-free fields: rawText, words, meta, hypothesis
+		# populated in context: allocationContext, assemblyContext
+		# auto-populated: loadId
+		rawPiece.taskId = taskId
+		rawPiece.loadId = load.loadId
+		if getattr(rawPiece, 'allocationContext') is None:
+			rawPiece.allocationContext = 'L%05d' % load.loadId
+		if getattr(rawPiece, 'assemblyContext') is None:
+			rawPiece.assemblyContext = 'L%05d_%05d' % (load.loadId, i)
+		load.rawPieces.append(rawPiece)
 	return jsonify({
+		'message': _('loaded {0} raw pieces into task {0} successfully'
+			).format(len(rawPieces), taskId),
+		'load': m.Load.dump(load),
 	})
 
 
@@ -368,7 +408,8 @@ def delete_task_utterrance_selection(taskId):
 	if not selection:
 		raise InvalidUsage(_('selection {0} not found').format(selectionId), 404)
 	if selection.processed:
-		raise InvalidUsage(_('This utterance selection has already processed. Please refresh the page.'))
+		raise InvalidUsage(_('This utterance selection has already processed.',
+			'Please refresh the page.'))
 	# TODO: implement this
 	return jsonify({
 		'message': _('selection {0} has been deleted').format(selectionId),
@@ -418,6 +459,9 @@ def update_task_status(taskId):
 def get_task_summary(taskId):
 	# TODO: generate summary
 	return jsonify({
+		'summary': {
+
+		}
 	})
 
 

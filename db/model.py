@@ -249,7 +249,7 @@ class LabelSetSchema(Schema):
 # Load
 class Load(Base):
 	__table__ = t_loads
-	#rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId')
+	rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId', viewonly=True)
 	_createdByUser = relationship('User')
 
 class LoadSchema(Schema):
