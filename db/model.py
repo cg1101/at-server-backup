@@ -133,8 +133,9 @@ class CalculatedPaymentSchema(Schema):
 # CustomUtteranceGroup
 class CustomUtteranceGroup(Base):
 	__table__ = t_customutterancegroups
-	_members = relationship('CustomUtteranceGroupMember')
+	_members = relationship('CustomUtteranceGroupMember', cascade='all, delete-orphan')
 	rawPieces = association_proxy('_members', 'rawPiece')
+	selection = relationship('UtteranceSelection')
 
 class CustomUtteranceGroupSchema(Schema):
 	rawPieces = fields.Nested('RawPieceSchema', many=True)
@@ -705,7 +706,9 @@ class RawPieceSchema(Schema):
 # SelectionFilter
 class SelectionFilter(Base):
 	__table__ = t_utteranceselectionfilters
-	pieces = relationship('SelectionFilterPiece', order_by='SelectionFilterPiece.index')
+	pieces = relationship('SelectionFilterPiece',
+		order_by='SelectionFilterPiece.index',
+		cascade='all, delete-orphan')
 
 class SelectionFilterSchema(Schema):
 	pieces = fields.Nested('SelectionFilterPieceSchema', many=True)
@@ -1003,7 +1006,8 @@ class UtteranceSelection(Base):
 	__table__ = t_utteranceselections
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
-	filters = relationship('SelectionFilter', order_by='SelectionFilter.filterId')
+	filters = relationship('SelectionFilter', order_by='SelectionFilter.filterId',
+		cascade='all, delete-orphan')
 
 class UtteranceSelectionSchema(Schema):
 	filters = fields.Nested('SelectionFilterSchema', many=True)
