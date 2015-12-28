@@ -231,10 +231,16 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
 
+	@post(data={'name': 'mynewgreattest', 'description': 'a new test',
+		'taskTypeId': 1, 'timeLimit': 600, 'passingScore': 60,
+		'poolId': 1, 'testType': 'dynamic', 'size': 3},
+		content_type='multipart/form-data',
+		expected_result={'message': unicode, 'test': {'testId', 'name'}})
 	def test_create_test(self):
 		# /tests/
 		raise NotImplementedError
 
+	@delete(expected_result={'message', unicode}, taskId=4295, groupId=7)
 	def test_delete_custom_utterance_group(self):
 		# /tasks/<int:taskId>/uttgroups/<int:groupId>
 		raise NotImplementedError
@@ -599,6 +605,10 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/subtasks/
 		raise NotImplementedError
 
+	@get(expected_result={'summary': {'itemCount', 'unitCount',
+		'finishedItemCount', 'finishedUnitCount', 'newItemCount',
+		'newUnitCount', 'completionRate', 'qaedItemCount',
+		'qaedUnitCount', 'overallQaScore'}}, taskId=999999)#200426)
 	def test_get_task_summary(self):
 		# /tasks/<int:taskId>/summary/
 		raise NotImplementedError
