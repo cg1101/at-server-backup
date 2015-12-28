@@ -227,7 +227,7 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/loads/
 		raise NotImplementedError
 
-	def test_create_task_utterrance_selection(self):
+	def test_create_task_utterance_selection(self):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
 
@@ -251,7 +251,9 @@ class MyTestCase(unittest.TestCase):
 		# /labelsets/<int:labelSetId>/labelgroups/<int:labelGroupId>
 		raise NotImplementedError
 
-	def test_delete_task_utterrance_selection(self):
+	@delete(expected_result={'message': unicode},
+		taskId=300735, selectionId=2259)
+	def test_delete_task_utterance_selection(self):
 		# /tasks/<int:taskId>/selections/<int:selectionId>
 		raise NotImplementedError
 
@@ -487,6 +489,7 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/stats/
 		raise NotImplementedError
 
+	@get(expected_result={'warnings': {'Critical'}}, subTaskId=1556)
 	def test_get_sub_task_warnings(self):
 		# /subtasks/<int:subTaskId>/warnings/
 		raise NotImplementedError
@@ -621,8 +624,8 @@ class MyTestCase(unittest.TestCase):
 
 	@get(expected_result={'selections': ('>0', {'selectionId', 'name',
 		'taskId', 'userId', 'userName', 'random', ('filters', list)})},
-		taskId=300735)
-	def test_get_task_utterrance_selections(self):
+		taskId=4340)
+	def test_get_task_utterance_selections(self):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
 
@@ -706,7 +709,7 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>
 		raise NotImplementedError
 
-	def test_populate_task_utterrance_selection(self):
+	def test_populate_task_utterance_selection(self):
 		# /tasks/<int:taskId>/selections/<int:selectionId>
 		raise NotImplementedError
 

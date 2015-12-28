@@ -373,7 +373,7 @@ def get_task_raw_pieces(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['GET'])
-def get_task_utterrance_selections(taskId):
+def get_task_utterance_selections(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
@@ -387,31 +387,31 @@ def get_task_utterrance_selections(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
-def create_task_utterrance_selection(taskId):
+def create_task_utterance_selection(taskId):
 	# TODO: implement this
 	return jsonify({
 	})
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
-def populate_task_utterrance_selection(taskId):
+def populate_task_utterance_selection(taskId):
 	# TODO: implement this
 	return jsonify({
 	})
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
-def delete_task_utterrance_selection(taskId):
+def delete_task_utterance_selection(taskId, selectionId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	selection = m.UtteranceSelection.query.get(selectionId)
 	if not selection:
 		raise InvalidUsage(_('selection {0} not found').format(selectionId), 404)
-	if selection.processed:
+	if selection.processed is not None:
 		raise InvalidUsage(_('This utterance selection has already processed.',
 			'Please refresh the page.'))
-	# TODO: implement this
+	SS.delete(selection)
 	return jsonify({
 		'message': _('selection {0} has been deleted').format(selectionId),
 	})
