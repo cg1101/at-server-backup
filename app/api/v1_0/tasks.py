@@ -5,6 +5,7 @@ import datetime
 
 from flask import request, session, jsonify
 from sqlalchemy.orm.exc import NoResultFound
+# from sqlalchemy import and_
 
 import db.model as m
 from db.db import SS
@@ -303,7 +304,7 @@ def create_task_load(taskId):
 			m.FileHandler.query.get(task.handlerId))
 	if not handler:
 		raise InvalidUsage(_('no handler configured for task {0}').format(taskId))
-	# TODO: implement this
+	# TODO: add validation
 	data = MyForm(
 		Field('options'),
 		Field('dataFile')
@@ -457,10 +458,47 @@ def update_task_status(taskId):
 @api
 @caps()
 def get_task_summary(taskId):
-	# TODO: generate summary
+	rs = SS.query(m.RawPiece.rawPieceId, m.RawPiece.isNew, m.RawPiece.words
+		).filter_by(taskId=taskId).all()
+	nrs = [x for x in rs if x.isNew]
+	itemCount = len(rs)
+	unitCount = sum([x.words for x in rs])
+	newItemCount = len(nrs)
+	newUnitCount = sum([x.words for x in nrs])
+
+	#
+	# following query is not necessary because WorkEntry has workType already
+	# qaed = SS.query(m.WorkEntry.qaedEntryId.distinct()
+	# 	).filter(m.WorkEntry.subTaskId.in_(
+	# 		SS.query(m.SubTask.subTaskId).filter(
+	# 			and_(m.SubTask.taskId==999999,
+	# 				m.SubTask.workTypeId==m.WorkType.workTypeId,
+	# 				m.WorkType.name==m.WorkType.QA))))
+	#
+
+	qaed = SS.query(m.WorkEntry.qaedEntryId.distinct()
+		).filter(m.WorkEntry.taskId==taskId
+		).filter(m.WorkEntry.workType==m.WorkType.QA)
+	rqaed = SS.query(m.WorkEntry.rawPieceId.distinct()
+		).filter(m.WorkEntry.entryId.in_(qaed))
+	qrs = SS.query(m.RawPiece.rawPieceId, m.RawPiece.isNew, m.RawPiece.words
+		).filter(m.RawPiece.rawPieceId.in_(rqaed)).all()
+	qaedItemCount = len(qrs)
+	qaedUnitCount = sum([x.words for x in qrs])
+
 	return jsonify({
 		'summary': {
-
+			'itemCount': itemCount,
+			'unitCount': unitCount,
+			'finishedItemCount': itemCount - newItemCount,
+			'finishedUnitCount': unitCount - newUnitCount,
+			'newItemCount': newItemCount,
+			'newUnitCount': newUnitCount,
+			'completionRate': None if itemCount == 0 else (1 - float(newItemCount) / itemCount),
+			'qaedItemCount': qaedItemCount,
+			'qaedUnitCount': qaedUnitCount,
+			'overallQaScore': None,
+			'overallAccuracy': None,
 		}
 	})
 
@@ -650,7 +688,6 @@ def update_task_supervisor_settings(taskId, userId):
 @api
 @caps()
 def remove_task_supervisor(taskId, userId):
-	# TODO: add test case
 	try:
 		supervisor = m.TaskSupervisor.query.filter_by(taskId=taskId
 			).filter_by(userId=userId).one()
@@ -676,11 +713,19 @@ def get_task_custom_utterance_groups(taskId):
 @api
 @caps()
 def delete_custom_utterance_group(taskId, groupId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	if task.status == m.Task.STATUS_ARCHIVED:
+		raise InvalidUsage(_('can\'t delete utterance groups from archived task'))
 	group = m.CustomUtteranceGroup.query.get(groupId)
 	if not group or group.taskId != taskId:
 		raise InvalidUsage(_('utterance group {0} not found').format(taskId), 404)
-	# TODO: implement this
+	SS.delete(group)
+	SS.delete(group.selection)
 	return jsonify({
+		'message': _('deleted custom utterance group {0} of task {1} successfully'
+			).format(groupId, taskId),
 	})
 
 
