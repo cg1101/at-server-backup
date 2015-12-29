@@ -227,6 +227,12 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/loads/
 		raise NotImplementedError
 
+	@post(data={'action':'batch', 'value': 2744,
+			'include_0_0': 'Transcribed utterances only',
+			'include_0_1': 'true', 'include_0_2': 'transcribed',
+			'include_0_3': 'true'},
+		expected_result={'message': unicode, 'selection': {
+		'action', 'limit'}}, taskId=999991)
 	def test_create_task_utterance_selection(self):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
@@ -276,6 +282,10 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/batches/
 		raise NotImplementedError
 
+	@post(data={'fileFormat': 'extract', 'sourceFormat': 'text',
+		'resultFormat': 'text', 'groupIds':[], 'keepLineBreaks': False,
+		'withQaErrors': False},
+		expected_mimetype='application/data', taskId=999999, timestamp='2016-01-01')
 	def test_get_task_extract(self):
 		# /tasks/<int:taskId>/extract_<timestamp>.txt
 		raise NotImplementedError
@@ -581,7 +591,10 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/loads/
 		raise NotImplementedError
 
-	def test_get_task_payment_statistics(self):
+	@get(expected_result={'paymentRecords': ('>0', {'taskId', 'payrollId',
+		'cutOffTime', 'itemCount', 'unitCount', 'paymentSubtotal'})},
+		taskId=300419)
+	def test_get_task_payment_records(self):
 		# /tasks/<int:taskId>/paystats/
 		raise NotImplementedError
 
@@ -629,6 +642,8 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
 
+	@get(expected_result={'warnings': {'Critical', 'Non-Critical'}},
+		taskId=999999)
 	def test_get_task_warnings(self):
 		# /tasks/<int:taskId>/warnings/
 		raise NotImplementedError
@@ -849,10 +864,13 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/instructions/
 		raise NotImplementedError
 
+	@run_test(method='GET', expected_mimetype='text/html')
 	def test_index(self):
 		# /
 		raise NotImplementedError
 
+	@run_test(method='GET', expected_mimetype='text/css',
+		filename='css/appentext.css')
 	def test_static(self):
 		# /static/<path:filename>
 		raise NotImplementedError

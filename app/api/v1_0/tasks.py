@@ -4,7 +4,7 @@ import glob
 import datetime
 import re
 
-from flask import request, session, jsonify
+from flask import request, session, jsonify, make_response
 from sqlalchemy.orm.exc import NoResultFound
 # from sqlalchemy import and_
 
@@ -13,7 +13,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Loader, Selector
+from app.util import Loader, Selector, Extractor, Warnings
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -221,13 +221,55 @@ def disable_task_error_type(taskId, errorTypeId):
 	})
 
 
+def normalize_utterance_group_ids(data, key, groupIds):
+	taskId= data['taskId']
+	try:
+		groupIds = set([int(i) for i in groupIds])
+	except:
+		raise ValueError(_('invalid groupIds input: {0}').format(groupIds))
+	for groupId in groupIds:
+		group = m.CustomUtteranceGroup.get(groupId)
+		if not group:
+			raise ValueError(_('custom utterance group {0} not found').format(groupId))
+		if group.taskId != taskId:
+			raise ValueError(_('custom utterance group {0} doesn\'t belong to task {1}'
+				).format(groupId, taskId))
+	return sorted(groupIds)
+
+
 @bp.route(_name + '/<int:taskId>/extract_<timestamp>.txt', methods=['GET', 'POST'])
+@caps()
 def get_task_extract(taskId, timestamp):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	# TODO: implement this
-	return 'extract of task %s' % taskId
+	data = MyForm(
+		Field('fileFormat', is_mandatory=True, validators=[
+			(validators.enum, (Extractor.EXTRACT, Extractor.TABULAR)),
+		]),
+		Field('sourceFormat', is_mandatory=True, validators=[
+			(validators.enum, (Extractor.HTML, Extractor.XML, Extractor.TEXT)),
+		]),
+		Field('resultFormat', is_mandatory=True, validators=[
+			(validators.enum, (Extractor.HTML, Extractor.XML, Extractor.TEXT)),
+		]),
+		Field('groupIds', is_mandatory=True, default=[],
+			normalizer=normalize_utterance_group_ids,
+		),
+		Field('keepLineBreaks', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('withQaErrors', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+	).get_data()
+	del data['timestamp']
+	del data['taskId']
+	data['compress'] = True
+	extract = Extractor.extract(task, **data)
+	response = make_response((extract, 200, {'Content-Type':
+		'application/data', 'Content-Encoding': 'gzip'}))
+	return response
 
 
 def check_file_handler_existence(data, key, handlerId):
@@ -356,9 +398,14 @@ def get_task_payments(taskId):
 @bp.route(_name + '/<int:taskId>/paystats/', methods=['GET'])
 @api
 @caps()
-def get_task_payment_statistics(taskId):
-	# TODO: implement this
+def get_task_payment_records(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	paymentRecords = m.TaskPaymentRecord.query.filter_by(taskId=taskId
+			).order_by(m.TaskPaymentRecord.payrollId).all()
 	return jsonify({
+		'paymentRecords': m.TaskPaymentRecord.dump(paymentRecords),
 	})
 
 
@@ -909,10 +956,48 @@ def get_utterance_group_word_count(taskId, groupId):
 @api
 @caps()
 def get_task_warnings(taskId):
-	# TODO: generate warnings
-	return jsonify({
-		'warnings': [],
-	})
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
+	warnings = Warnings()
+	if task.status != m.Task.STATUS_ACTIVE:
+		warnings.critical(_('Status is currently set to {0}.',
+			'This task cannot be worked on while having this status.'
+			).format(task.status))
+
+	if len(task.supervisors) == 0:
+		warnings.critical(_('This task has no supervisors assigned.',
+			'Please assign a supervisor using the user search page.'))
+
+	if not [x for x in task.supervisors if x.receivesFeedback]:
+		warnings.critical(_('This task has no supervisors assigned to receive feedback.',
+			'Please assign a supervisor to receive feedback on the Task Configuration page.'))
+
+	root = '/audio2/AppenText'
+	path = os.path.join(root, 'instructions', str(taskId))
+	if not os.path.exists(path):
+		warnings.non_critical(_('The default instructions directory for this task doesn\'t exists.'))
+
+	subTaskNames = [subTask.name for subTask in
+			filter(lambda x: x.workType == m.WorkType.WORK, task.subTasks)
+			if not m.QaConfig.query.get(subTask.subTaskId)]
+	if subTaskNames:
+		warnings.non_critical(_('The following {0} sub tasks do not have QA configured: {1}'
+			).format(m.WorkType.WORK, ', '.join(subTaskNames)))
+
+	# training modules/qualification test are not applicable
+
+	if m.TaskErrorType.query.filter_by(taskId=taskId).count() == 0:
+		warnings.non_critical(_('This task has no QA error types enabled.'))
+
+	subTaskNames = [subTask.name for subTask in task.subTasks if not
+			m.SubTaskRate.query.filter_by(subTaskId=subTask.subTaskId).first()]
+	if subTaskNames:
+		warnings.critical(_('The following sub tasks cannnot be worked on as they do not have payment rates set: {0}'
+			).format(', '.join(subTaskNames)))
+
+	return jsonify(warnings=warnings)
 
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
