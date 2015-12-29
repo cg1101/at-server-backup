@@ -940,6 +940,15 @@ class TaskErrorTypeSchema(Schema):
 	class Meta:
 		fields = ('taskId', 'errorTypeId', 'errorType', 'errorClassId', 'errorClass', 'severity', 'disabled', 'defaultSeverity')
 
+# TaskPaymentRecord
+class TaskPaymentRecord(Base):
+	__table__ = t_costperutterance
+
+class TaskPaymentRecordSchema(Schema):
+	class Meta:
+		fields = ('taskId', 'payrollId', 'cutOffTime', 'itemCount',
+			'unitCount', 'paymentSubtotal')
+
 # TaskSupervisor
 class TaskSupervisor(Base):
 	__table__ = t_tasksupervisors
