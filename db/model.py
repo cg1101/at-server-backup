@@ -705,10 +705,38 @@ class RawPieceSchema(Schema):
 
 # SelectionFilter
 class SelectionFilter(Base):
+	FILETER_TYPES = {
+		DATE_SINGLE: 'datesingle',
+		DATE_INTERVAL: 'dateinterval',
+		LABEL: 'label',
+		QA_ERROR_SEVERITY: 'qaseverity',
+		QA_ERROR_TYPE: 'qaerrortype',
+		QA_ERROR_CLASS: 'qaerrorclass',
+		SUB_TASK_WORK: 'subtaskwork',
+		SUB_TASK_BATCHING: 'subtaskbatching',
+		TAG: 'tag',
+		SOURCE_TAG: 'sourcetag',
+		TEXT: 'text',
+		RAW_TEXT: 'rawtext',
+		ALLOCATION_CONTEXT: 'allocationcontext',
+		TRANSCRIBED: 'transcribed',
+		USER: 'user',
+		WORK_TYPE_WORK: 'worktypework',
+		WORK_TYPE_BATCHING: 'worktypebatching',
+		PP_GROUP: 'ppgroup',
+		CUSTOM_GROUP: 'customgroup',
+		LOAD: 'load',
+		SOURCE_WORD_COUNT: 'sourcewordcount',
+		RESULT_WORD_COUNT: 'resultwordcount',
+		WORD_COUNT_GAP: 'wordcountgap',
+	}
 	__table__ = t_utteranceselectionfilters
 	pieces = relationship('SelectionFilterPiece',
 		order_by='SelectionFilterPiece.index',
 		cascade='all, delete-orphan')
+for key, value in SelectionFilter.FILETER_TYPES.iteritems():
+	setattr(SelectionFilter, key, value)
+del key, value
 
 class SelectionFilterSchema(Schema):
 	pieces = fields.Nested('SelectionFilterPieceSchema', many=True)
@@ -1003,6 +1031,9 @@ class UserSchema(Schema):
 
 # UtteranceSelection
 class UtteranceSelection(Base):
+	ACTION_BATCH = 'batch'
+	ACTION_CUSTOM = 'custom'
+	ACTION_PP = 'pp'
 	__table__ = t_utteranceselections
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
