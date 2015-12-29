@@ -705,7 +705,7 @@ class RawPieceSchema(Schema):
 
 # SelectionFilter
 class SelectionFilter(Base):
-	FILETER_TYPES = {
+	FILTER_TYPES = {
 		'DATE_SINGLE': 'datesingle',
 		'DATE_INTERVAL': 'dateinterval',
 		'LABEL': 'label',
@@ -734,7 +734,7 @@ class SelectionFilter(Base):
 	pieces = relationship('SelectionFilterPiece',
 		order_by='SelectionFilterPiece.index',
 		cascade='all, delete-orphan')
-for key, value in SelectionFilter.FILETER_TYPES.iteritems():
+for key, value in SelectionFilter.FILTER_TYPES.iteritems():
 	setattr(SelectionFilter, key, value)
 del key, value
 
