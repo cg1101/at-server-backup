@@ -1,4 +1,6 @@
 
+import cStringIO
+import gzip
 from collections import OrderedDict
 
 from app.i18n import get_text as _
@@ -9,8 +11,7 @@ from db.db import SS
 def split_by_size(seq, size):
 	if not size >= 1:
 		raise ValueError('size must be greater than or equal to 1')
-	return [seq[offset:offset+size] for offset in [i for i in
-		range(0, len(seq), size)]]
+	return [seq[offset:offset+size] for offset in range(0, len(seq), size)]
 
 
 class _batcher(object):
@@ -108,6 +109,7 @@ class Selector(object):
 	}
 	@staticmethod
 	def select(selection):
+		# TODO: implemet this
 		taskId = getattr(selection, 'taskId')
 		if taskId is None:
 			raise ValueError('must specify taskId')
@@ -115,4 +117,36 @@ class Selector(object):
 for key, value in Selector.FILTER_TYPES.iteritems():
 	setattr(Selector, key, value)
 del key, value
+
+
+class Extractor(object):
+	EXTRACT = 'extract'
+	TABULAR = 'tabular'
+	HTML = 'html'
+	XML = 'xml'
+	TEXT = 'text'
+	@staticmethod
+	def extract(task, fileFormat=EXTRACT, sourceFormat=TEXT,
+			resultFormat=TEXT, groupIds=[], keepLineBreaks=False,
+			withQaErrors=False, compress=True):
+		# TODO: implement this
+		data = 'this is a piece of fake extract'
+		if compress:
+			sio = cStringIO.StringIO()
+			with gzip.GzipFile(None, mode='w', compresslevel=9, fileobj=sio) as f:
+				f.write(data)
+			data = sio.getvalue()
+		return data
+
+
+class Warnings(dict):
+	CRITICAL = 'Critical'
+	NON_CRITICAL = 'Non-Critical'
+	NOTES = 'Notes'
+	def critical(self, message):
+		self.setdefault(self.CRITICAL, []).append(message)
+	def non_critical(self, message):
+		self.setdefault(self.NON_CRITICAL, []).append(message)
+	def notes(self, message):
+		self.setdefault(self.NOTES, []).append(message)
 

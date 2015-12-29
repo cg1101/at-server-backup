@@ -11,7 +11,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher
+from app.util import Batcher, Warnings
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -518,35 +518,29 @@ def get_sub_task_warnings(subTaskId):
 	if not subTask:
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId))
 
-	# TODO: define warning level constants on SubTask
-	CRITICAL = 'Critical'
-	NON_CRITICAL = 'Non-Critical'
-	NOTES = 'Notes'
-
-	warnings = {}
+	warnings = Warnings()
 	subTaskRate = m.SubTaskRate.query.filter_by(subTaskId=subTaskId).first()
 	if not subTaskRate:
-		warnings.setdefault(CRITICAL, []).append(
-			_('There is no payment rate set for this sub task.',
+		warnings.critical(_('There is no payment rate set for this sub task.',
 			'No work can be done on this sub task while there is no payment rate set.'))
+
 	# TODO: get root path from configuration
 	if subTask.instructionPage is not None:
 		root = '/audio2/AppenText'
 		path = os.path.join(root, 'instructions', str(subTask.taskId),
 			os.path.basename(subTask.instructionPage))
 		if not os.path.exists(path):
-			warnings.setdefault(NON_CRITICAL, []).append(
-				_('The selected instructions page, {0}, does not exist.'
+			warnings.non_critical(_('The selected instructions page, {0}, does not exist.'
 				).format(os.path.basename(subTask.instructionPage)))
+
 	if subTask.workType == m.WorkType.WORK:
 		qaConfig = m.QaConfig.query.get(subTask.subTaskId)
 		if not qaConfig:
-			warnings.setdefault(NON_CRITICAL, []).append(
-				_('There is no default QA configuration for this sub task.'))
+			warnings.non_critical(_('There is no default QA configuration for this sub task.'))
 	elif subTask.workType == m.WorkType.QA:
 		if m.TaskErrorType.query.filter_by(taskId=subTask.taskId
 				).filter_by(disabled=False).count() == 0:
-			warnings.setdefault(NON_CRITICAL, []).append(
+			warnings.non_critical(
 				_('There are no QA error types enabled for this task.',
 					'Please assign error types on the Task Configuration page.'))
 	return jsonify(warnings=warnings)
