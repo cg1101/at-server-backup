@@ -860,6 +860,7 @@ t_utteranceselectioncache =  Table('utteranceselectioncache', metadata,
 	ForeignKeyConstraint([u'rawPieceId'], [u'rawpieces.rawPieceId']),
 	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 )
+Index('idx_utteranceselectioncache_rawpieceid', t_utteranceselectioncache.c.rawPieceId, unique=False)
 
 
 t_workentries =  Table('workentries', metadata,
