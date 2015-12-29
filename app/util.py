@@ -79,3 +79,40 @@ class Loader(object):
 			rawPieces.append(rawPiece)
 		return rawPieces
 
+
+class Selector(object):
+	FILTER_TYPES = {
+		'DATE_SINGLE': 'datesingle',
+		'DATE_INTERVAL': 'dateinterval',
+		'LABEL': 'label',
+		'QA_ERROR_SEVERITY': 'qaseverity',
+		'QA_ERROR_TYPE': 'qaerrortype',
+		'QA_ERROR_CLASS': 'qaerrorclass',
+		'SUB_TASK_WORK': 'subtaskwork',
+		'SUB_TASK_BATCHING': 'subtaskbatching',
+		'TAG': 'tag',
+		'SOURCE_TAG': 'sourcetag',
+		'TEXT': 'text',
+		'RAW_TEXT': 'rawtext',
+		'ALLOCATION_CONTEXT': 'allocationcontext',
+		'TRANSCRIBED': 'transcribed',
+		'USER': 'user',
+		'WORK_TYPE_WORK': 'worktypework',
+		'WORK_TYPE_BATCHING': 'worktypebatching',
+		'PP_GROUP': 'ppgroup',
+		'CUSTOM_GROUP': 'customgroup',
+		'LOAD': 'load',
+		'SOURCE_WORD_COUNT': 'sourcewordcount',
+		'RESULT_WORD_COUNT': 'resultwordcount',
+		'WORD_COUNT_GAP': 'wordcountgap',
+	}
+	@staticmethod
+	def select(selection):
+		taskId = getattr(selection, 'taskId')
+		if taskId is None:
+			raise ValueError('must specify taskId')
+		return [1,2,3]
+for key, value in Selector.FILTER_TYPES.iteritems():
+	setattr(Selector, key, value)
+del key, value
+
