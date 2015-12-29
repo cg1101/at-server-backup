@@ -289,6 +289,9 @@ class PageSchema(Schema):
 # PageMemberEntry
 class PageMemberEntry(Base):
 	__table__ = t_pagemembers
+	__mapper_args__ = {
+		'confirm_deleted_rows': False,
+	}
 
 class PageMemberEntrySchema(Schema):
 	class Meta:
