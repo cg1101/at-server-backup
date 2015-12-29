@@ -255,7 +255,7 @@ class MyForm(object):
 		self.field_names.append(field.name)
 		self.field_by_name[field.name] = field
 
-	def get_data(self, with_view_args=True, is_json=True):
+	def get_data(self, with_view_args=True, is_json=True, copy=False):
 		if is_json:
 			try:
 				data = request.get_json() or {}
@@ -265,6 +265,12 @@ class MyForm(object):
 			data = request.values
 		data = CombinedMultiDict([data, request.files])
 		output = {}
+		if copy:
+			# for some reason, following statement doesn't work
+			# output.update(data)
+			# so we have to use following statement
+			for k in data.keys():
+				output[k] = data[k]
 		if with_view_args:
 			output.update(request.view_args)
 		for key in self.field_names:
