@@ -2,6 +2,7 @@
 import os
 import glob
 import datetime
+import re
 
 from flask import request, session, jsonify
 from sqlalchemy.orm.exc import NoResultFound
@@ -12,7 +13,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Loader
+from app.util import Loader, Selector
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -386,10 +387,167 @@ def get_task_utterance_selections(taskId):
 	})
 
 
+from .subtasks import (check_sub_task_existence, check_sub_task_type_in,
+	check_sub_task_attribute)
+
+
+def check_sub_task_batching_mode_in(data, key, subTaskId, *modes):
+	subTask = m.SubTask.query.get(subTaskId)
+	if subTask.batchingMode not in modes:
+		raise ValueError(_('batching mode not allowed').format(subTask.batchingMode))
+
+
+def check_custom_utterance_group_name_uniqueness(data, key, name, taskId):
+	if m.CustomUtteranceGroup.query.filter_by(taskId=taskId
+			).filter_by(name=name).count() > 0:
+		raise ValueError(_('name {0} is already in use').format(name))
+
+
+def normalize_utterance_selection_value_input(data, key, value):
+	taskId = data['taskId']
+	action = data['action']
+	if action == m.UtteranceSelection.ACTION_CUSTOM:
+		try:
+			check_custom_utterance_group_name_uniqueness(data, key, value, taskId)
+		except ValueError:
+			raise
+		else:
+			data['name'] = value
+			data['subTaskId'] = None
+	elif action == m.UtteranceSelection.ACTION_BATCH:
+		try:
+			subTaskId = int(value)
+		except:
+			raise ValueError(_('invalid sub task id {0}').format(value))
+		try:
+			check_sub_task_existence(data, key, subTaskId)
+			check_sub_task_attribute(data, key, subTaskId, taskId=taskId)
+			check_sub_task_type_in(data, key, subTaskId, m.WorkType.REWORK)
+			check_sub_task_batching_mode_in(data, key, subTaskId, m.BatchingMode.NONE)
+		except:
+			raise
+		data['subTaskId'] = subTaskId
+		data['name'] = None
+	else:
+		raise InvalidUsage(_('can\'t validate value due to unsupported action {0}'
+			).format(action))
+	return value
+
+
+def check_utterance_selection_limit(data, key, value):
+	if value is None:
+		return
+	try:
+		value = int(value)
+		if value < 0:
+			raise ValueError
+	except:
+		raise InvalidUsage(_('invalid limit value {0}').format(value))
+
+
+def normalize_utterance_selection_filters(data, key, value):
+	# load filters spec into tmp
+	tmp = {}
+	p = re.compile('(?P<isInclusive>include|exclude)_(?P<filterIndex>\d+)_(?P<paramIndex>\d+)$')
+	for key, value in data.iteritems():
+		match_obj = p.match(key)
+		if not match_obj:
+			continue
+		x = match_obj.groups()
+		isInclusive = x[0] == 'include'
+		filterIndex = int(x[1])
+		paramIndex = int(x[2])
+		tmp.setdefault(isInclusive, {}).setdefault(filterIndex, {})[paramIndex] = value
+
+	# validate tmp
+	filters = []
+	for isInclusive in (True, False):
+		for filterIndex in sorted(tmp.setdefault(isInclusive, {})):
+			input_dict = tmp[isInclusive][filterIndex]
+			output_dict = {}
+			output_dict['isInclusive'] = isInclusive
+			for i, field in enumerate(['description', 'isMandatory', 'filterType']):
+				if i not in input_dict:
+					raise ValueError(
+						_('filter {0}: {1}: mandatory field \'{2}\' missing'
+					).format(filterIndex, i, field))
+				value = input_dict[i]
+				if i == 0 and not (isinstance(value,
+						basestring) and value.strip()):
+					raise ValueError(_('filter {0}: {1}: {2} must be non-blank string'
+						).format(filterIndex, i, field))
+				elif i == 1:
+					if value not in ('true', 'false'):
+						raise ValueError(_('filter {0}: {1}: {2} must be \'true\' or \'false\''
+							).format(filterIndex, i, field))
+					else:
+						value = (value == 'true')
+				elif i == 2 and value not in Selector.FILTER_TYPES.values():
+					raise ValueError(_('filter {0}: {1}: {2} not found {3}'
+						).format(filterIndex, i, field, value))
+				output_dict[field] = value
+			output_dict['pieces'] = [input_dict[i] for i in sorted(input_dict) if i > 2]
+			filters.append(output_dict)
+	if len(filters) == 0:
+		raise ValueError(_('must specify at least one filter'))
+	return filters
+
+
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
 def create_task_utterance_selection(taskId):
-	# TODO: implement this
+	data = MyForm(
+		Field('action', is_mandatory=True, validators=[
+			# NOTE: action 'pp' is not supported
+			(validators.enum, (m.UtteranceSelection.ACTION_CUSTOM,
+				m.UtteranceSelection.ACTION_BATCH)),
+		]),
+		Field('value', is_mandatory=True,
+			normalizer=normalize_utterance_selection_value_input),
+		Field('limit', is_mandatory=True, default=lambda: None,
+			validators=[
+				check_utterance_selection_limit,
+		]),
+		Field('random', is_mandatory=True, default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('filters', is_mandatory=True, default=[],
+			normalizer=normalize_utterance_selection_filters),
+	).get_data(copy=True)
+
+	me = session['current_user']
+	selection = m.UtteranceSelection(taskId=taskId, userId=me.userId,
+		limit=data['limit'], action=data['action'], name=data['name'],
+		subTaskId=data['subTaskId'], random=data['random'])
+	for x in data['filters']:
+		pieces = x.pop('pieces')
+		selectionFilter = m.SelectionFilter(**x)
+		for i, data_literal in enumerate(pieces):
+			piece = m.SelectionFilterPiece(index=i, data=data_literal)
+			selectionFilter.pieces.append(piece)
+		selection.filters.append(selectionFilter)
+
+	# TODO: run query, if no result found, notify user, otherwise save in cache
+	rs = Selector.select(selection)
+	if not rs:
+		raise InvalidUsage(_('no result found'))
+
+	# SS.add(selection)
+	# SS.flush()
+
+	# summary = dict(
+	# 	identifier=selection.selectionId,
+	# 	number=len(selection.cached),
+	# 	timestamp=
+	# 	action=selection.action,
+	# 	value=selection.value,
+	# 	user=
+	# 	link=
+	# )
 	return jsonify({
+		'message': _('created utterance selection {0} successfully'
+			).format(selection.selectionId),
+		'selection': m.UtteranceSelection.dump(selection),
+		# 'summary': summary,
 	})
 
 
