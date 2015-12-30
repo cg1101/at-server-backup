@@ -5,7 +5,7 @@ import datetime
 import re
 import json
 
-from flask import request, session, jsonify, make_response
+from flask import request, session, jsonify, make_response, url_for
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
@@ -146,9 +146,13 @@ def get_task_error_types(taskId):
 @api
 @caps()
 def update_task_error_types(taskId):
-	# TODO: modify multiple error types
-	return jsonify({
-	})
+	url = url_for('.configure_task_error_type', taskId=taskId,
+		errorTypeId='-999999999', _method='PUT')
+	# TODO: generate url pattern from app.url_map directly
+	url = url.replace('/' + str(taskId) + '/', '/<int:taskId>/')
+	url = url.replace('-999999999', '<int:errorTypeId>')
+	raise InvalidUsage(_('this api endpoint has been removed'), 410,
+		{'message': _('use {0} instead').format(url)})
 
 
 def check_error_type_existence(data, key, errorTypeId):

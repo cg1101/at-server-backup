@@ -841,6 +841,8 @@ class MyTestCase(unittest.TestCase):
 		# /tagsets<int:tagSetId>/tags/<int:tagId>
 		raise NotImplementedError
 
+	@put(expected_result={'error': unicode, 'message': unicode},
+		expected_status_code=410, taskId=999999)
 	def test_update_task_error_types(self):
 		# /tasks/<int:taskId>/errortypes/
 		raise NotImplementedError
