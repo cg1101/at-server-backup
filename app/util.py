@@ -17,28 +17,30 @@ def split_by_size(seq, size):
 class _batcher(object):
 	@staticmethod
 	def _create_work_batches(subTask, rawPieces, priority):
-		partitions = []
 		if subTask.batchingMode == m.BatchingMode.NONE:
-			partitions.append(rawPieces[:])
+			key_gen = lambda i, x: (None, i / subTask.maxPageSize)
 		elif subTaks.batchingMode == m.BatchingMode.ALLOCATION_CONTEXT:
-			loads = OrderedDict()
-			for i in rawPieces:
-				loads.setdefault(i.allocationContext, []).append(i)
-			partitions.extend(loads.values())
+			key_gen = lambda i, x: x
 		else:
 			raise RuntimeError(_('unsupported batching mode {0}'
 				).format(subTask.batchingMode))
+
+		loads = OrderedDict()
+		for i, rawPiece in enumerate(rawPieces):
+			loads.setdefault(key_gen(i, rawPiece.allocationContext), []
+				).append(rawPiece.rawPieceId)
+
 		batches = []
-		for batch_load in partitions:
+		for batch_load in loads.values():
 			b = m.Batch(taskId=subTask.taskId,
 				subTaskId=subTask.subTaskId, priority=priority)
 			for pageIndex, page_load in enumerate(split_by_size(
 					batch_load, subTask.maxPageSize)):
 				p = m.Page(pageIndex=pageIndex)
 				b.pages.append(p)
-				for memberIndex, rawPiece in enumerate(page_load):
+				for memberIndex, rawPieceId in enumerate(page_load):
 					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
-					memberEntry.rawPieceId = rawPiece.rawPieceId
+					memberEntry.rawPieceId = rawPieceId
 					p.memberEntries.append(memberEntry)
 			batches.append(b)
 		return batches
@@ -49,7 +51,26 @@ class _batcher(object):
 
 	@staticmethod
 	def _create_rework_batches(subTask, rawPieceIds, priority):
-		raise NotImplementedError
+		key_gen = lambda i, x: (None, i / subTask.maxPageSize)
+
+		loads = OrderedDict()
+		for i, rawPieceId in enumerate(rawPieceIds):
+			loads.setdefault(key_gen(i, None), []).append(rawPieceId)
+
+		batches = []
+		for batch_load in loads.values():
+			b = m.Batch(taskId=subTask.taskId,
+				subTaskId=subTask.subTaskId, priority=priority)
+			for pageIndex, page_load in enumerate(split_by_size(
+					batch_load, subTask.maxPageSize)):
+				p = m.Page(pageIndex=pageIndex)
+				b.pages.append(p)
+				for memberIndex, rawPieceId in enumerate(page_load):
+					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
+					memberEntry.rawPieceId = rawPieceId
+					p.memberEntries.append(memberEntry)
+			batches.append(b)
+		return batches
 
 
 class Batcher(object):

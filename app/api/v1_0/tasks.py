@@ -3,9 +3,12 @@ import os
 import glob
 import datetime
 import re
+import json
 
 from flask import request, session, jsonify, make_response
 from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.utils import secure_filename
+import pytz
 # from sqlalchemy import and_
 
 import db.model as m
@@ -13,7 +16,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Loader, Selector, Extractor, Warnings
+from app.util import Batcher, Loader, Selector, Extractor, Warnings
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -314,12 +317,64 @@ def get_task_instruction_files(taskId):
 	})
 
 
+def check_input_file(data, key, value):
+	# value should an instance of FileStorage
+	pass
+
+
+from .pools import normalize_bool_literal
+
+
 @bp.route(_name + '/<int:taskId>/instructions/', methods=['POST'])
 @api
 @caps()
 def upload_task_instruction_file(taskId):
-	# TODO: implement this
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
+	data = MyForm(
+		Field('dataFile', is_mandatory=True, validators=[
+			check_input_file
+		]),
+		Field('overwrite', is_mandatory=True, default=False,
+			normalizer=normalize_bool_literal,
+			validators=[
+				validators.is_bool,
+		])
+	).get_data(is_json=False)
+
+	# TODO: use configuration
+	root = '/audio2/AppenText'
+	path = os.path.join(root, 'instructions', str(taskId))
+	if not os.path.exists(path):
+		os.makedirs(path)
+	filename = secure_filename(data['dataFile'].filename)
+	fullpath = os.path.join(path, filename)
+
+	# TODO: check app's setting to pretty print message
+	if os.path.exists(fullpath) and not data['overwrite']:
+		resp = make_response(('', 409, {'Content-Type': 'application/json'}))
+		resp.set_data(json.dumps({
+			'error': _('File \'{0}\' already exists, overwrite it?').format(filename),
+			'action': 'confirm',
+		}))
+		return resp
+	try:
+		with open(fullpath, 'w') as f:
+			f.write(data['dataFile'].read())
+	except Exception, e:
+		resp = make_response(('', 500, {'Content-Type': 'application/json'}))
+		resp.set_data(json.dumps({
+			'error': _('error writing file {0}, please try later'
+				).format(filename),
+		}))
+		return resp
+
 	return jsonify({
+		'message': _('uploaded instruction file {0} successfully'
+			).format(filename),
+		'filename': filename,
 	})
 
 
@@ -599,10 +654,83 @@ def create_task_utterance_selection(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
-def populate_task_utterance_selection(taskId):
-	# TODO: implement this
-	return jsonify({
-	})
+def populate_task_utterance_selection(taskId, selectionId):
+	selection = m.UtteranceSelection.query.get(selectionId)
+	if not selection:
+		raise InvalidUsage(_('utterance selection {0} not found').format(selectionId))
+	if selection.taskId != taskId:
+		raise InvalidUsage(_('utterance selection {0} does not belong to task {1}'
+			).format(selectionId, taskId))
+	if selection.processed is not None:
+		raise InvalidUsage(_('utterance selection {0} has been processed already'
+			).format(selectionId))
+
+	me = session['current_user']
+	if selection.userId != me.userId:
+		raise InvalidUsage(_('utterance selection {0} does not belong to user {1}'
+			).format(selectionId, me.userId))
+
+	entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
+	if not entries:
+		raise InvalidUsage(_('utterance selection {0} is corrupted: selection is empty'
+			).format(selectionId))
+	rawPieceIds = [entry.rawPieceId for entry in entries]
+	itemCount = len(rawPieceIds)
+
+	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+	if selection.action == m.UtteranceSelection.ACTION_BATCH:
+		subTask = m.SubTask.query.get(selection.subTaskId)
+		if not subTask:
+			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} not found'
+				).format(selectionId, selection.subTaskId))
+		if subTask.workType != m.WorkType.REWORK:
+			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} is not a {2} sub task'
+				).format(selectionId, selection.subTaskId, m.WorkType.REWORK))
+
+		batches = Batcher.batch(subTask, rawPieceIds)
+		for batch in batches:
+			SS.add(batch)
+
+		event = m.SubTaskContentEvent(subTaskId=subTask.subTaskId,
+			selectionId=selectionId, itemCount=itemCount,
+			isAdding=True, tProcessedAt=now, operator=me.userId)
+		SS.add(event)
+
+		resp = dict(message=_('created {0} batches into sub task {1}'
+			).format(len(batches), subTask.subTaskId),
+		)
+	elif selection.action == m.UtteranceSelection.ACTION_CUSTOM:
+		if not selection.name:
+			raise InvalidUsage(_('utterance selection {0} is corrupted: invalid custom utterance group name: {1}'
+				).format(selectionId, selection.name))
+		if m.CustomUtteranceGroup.query.filter_by(taskId=selection.taskId
+			).filter_by(name=selection.name).first():
+			raise InvalidUsage(_('custom utterance group name \'{0}\' is already in use for task {1}'
+				).format(selection.name, taskId))
+
+		group = m.CustomUtteranceGroup(name=selection.name,
+			taskId=taskId, selectionId=selectionId, utterances=itemCount)
+		for rawPieceId in rawPieceIds:
+			member = m.CustomUtteranceGroupMember(rawPieceId=rawPieceId)
+			group._members.append(member)
+		SS.add(group)
+		SS.flush()
+
+		resp = dict(message=_('created custom utterance group {0} with {1} items'
+			).format(group.groupId, itemCount))
+	else:
+		raise InvalidUsage(_('unsupported action {0}').format(selection.action))
+
+	for entry in entries:
+		SS.delete(entry)
+
+	selection.processed = now
+	selection.action = None
+	selection.name = None
+	selection.subTaskId = None
+
+	return jsonify(resp)
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
@@ -616,6 +744,9 @@ def delete_task_utterance_selection(taskId, selectionId):
 	if selection.processed is not None:
 		raise InvalidUsage(_('This utterance selection has already processed.',
 			'Please refresh the page.'))
+	entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
+	for entry in entries:
+		SS.delete(entry)
 	SS.delete(selection)
 	return jsonify({
 		'message': _('selection {0} has been deleted').format(selectionId),

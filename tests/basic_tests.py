@@ -17,6 +17,7 @@ import db.model as m
 
 question_file = cStringIO.StringIO('this is a fake file')
 data_file = cStringIO.StringIO('this is a sample data file')
+instruction_file = cStringIO.StringIO('this is instruction')
 
 def check_result(testcase, spec, result):
 	if spec is None:
@@ -637,7 +638,7 @@ class MyTestCase(unittest.TestCase):
 
 	@get(expected_result={'selections': ('>0', {'selectionId', 'name',
 		'taskId', 'userId', 'userName', 'random', ('filters', list)})},
-		taskId=4340)
+		taskId=4476)
 	def test_get_task_utterance_selections(self):
 		# /tasks/<int:taskId>/selections/
 		raise NotImplementedError
@@ -724,6 +725,8 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>
 		raise NotImplementedError
 
+	@post(expected_result={'error': unicode}, expected_status_code=400,
+		taskId=4331, selectionId=1324)
 	def test_populate_task_utterance_selection(self):
 		# /tasks/<int:taskId>/selections/<int:selectionId>
 		raise NotImplementedError
@@ -850,16 +853,16 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/status
 		raise NotImplementedError
 
-	@put(
-		data={'informLoads': True},
-		expected_result={
-			'supervisor',
-		},
+	@put(data={'informLoads': True}, expected_result={'supervisor'},
 		taskId=999999, userId=699)
 	def test_update_task_supervisor_settings(self):
 		# /tasks/<int:taskId>/supervisors/<int:userId>
 		raise NotImplementedError
 
+	@post(data={'dataFile': (instruction_file, 'instruction.txt'),
+		'overwrite': 'true'}, content_type='multipart/form-data',
+		expected_result={'message': unicode, 'filename': unicode},
+		taskId=999992)
 	def test_upload_task_instruction_file(self):
 		# /tasks/<int:taskId>/instructions/
 		raise NotImplementedError
