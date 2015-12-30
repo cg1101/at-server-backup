@@ -488,7 +488,7 @@ class MyTestCase(unittest.TestCase):
 		raise NotImplementedError
 
 	@get(expected_result={'events': ('>0', {'subTaskId', 'selectionId',
-		'amount', 'populating', 'tProcessedAt', 'operator'})},
+		'itemCount', 'isAdding', 'tProcessedAt', 'operator'})},
 		subTaskId=2728)
 	def test_get_sub_task_rework_load_records(self):
 		# /subtasks/<int:subTaskId>/loads/

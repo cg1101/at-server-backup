@@ -706,6 +706,14 @@ class RawPieceSchema(Schema):
 		fields = ('rawPieceId', 'taskId', 'rawText', 'assemblyContext', 'allocationContext', 'hypothesis', 'words')
 		ordered = True
 
+# SelectionCacheEntry
+class SelectionCacheEntry(Base):
+	__table__ = t_utteranceselectioncache
+
+class SelectionCacheEntrySchema(Schema):
+	class Meta:
+		fields = ('selectionId', 'rawPieceId')
+
 # SelectionFilter
 class SelectionFilter(Base):
 	__table__ = t_utteranceselectionfilters
@@ -758,10 +766,12 @@ class SubTaskSchema(Schema):
 # SubTaskContentEvent
 class SubTaskContentEvent(Base):
 	__table__ = t_reworkcontenthistory
+	amount = synonym('itemCount')
+	populating = synonym('isAdding')
 
 class SubTaskContentEventSchema(Schema):
 	class Meta:
-		fields = ('subTaskId', 'selectionId', 'amount', 'populating', 'tProcessedAt', 'operator')
+		fields = ('subTaskId', 'selectionId', 'itemCount', 'isAdding', 'tProcessedAt', 'operator')
 		ordered = True
 
 # SubTaskMetric

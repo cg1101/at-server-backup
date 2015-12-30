@@ -221,7 +221,8 @@ def dismiss_all_batches(subTaskId):
 
 	# add rework content event
 	content_event = m.SubTaskContentEvent(subTaskId=subTaskId,
-		populating=False, tProcessedAt=now, amount=itemCount)
+		isAdding=False, tProcessedAt=now, itemCount=itemCount,
+		operator=me.userId)
 	SS.add(content_event)
 
 	SS.flush()
