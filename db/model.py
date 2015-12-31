@@ -757,6 +757,12 @@ class SubTask(Base):
 	workType = association_proxy('_workType', 'name')
 	qaConfig = relationship('QaConfig', primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
 		uselist=False)
+	@property
+	def currentRate(self):
+		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId
+			).filter(SubTaskRate.validFrom<=func.now()
+			).order_by(SubTaskRate.validFrom.desc()
+			).first()
 
 class SubTaskSchema(Schema):
 	class Meta:
@@ -799,6 +805,8 @@ class SubTaskRate(Base):
 	__table__ = t_subtaskrates
 	rate = relationship('Rate')
 	rateName = association_proxy('rate', 'name')
+	standardValue = association_proxy('rate', 'standardValue')
+	targetAccuracy = association_proxy('rate', 'targetAccuracy')
 
 class SubTaskRateSchema(Schema):
 	class Meta:
