@@ -491,6 +491,16 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 # # PaymentType
 # # Payroll
 
+# PayableEvent
+class PayableEvent(Base):
+	__table__ = t_payableevents
+
+class PayableEventSchema(Schema):
+	class Meta:
+		fields = ('eventId', 'userId', 'taskId', 'subTaskId', 'batchId', 'pageId',
+			'rawPieceId', 'workEntryId', 'created', 'localConnection', 'ipAddress',
+			'calculatedPaymentId', 'ratio')
+
 # Project
 class Project(Base):
 	__table__ = t_projects
