@@ -23,7 +23,7 @@ def create_app(config_name):
 	from app.api import api_1_0
 	from app.webservices import webservices
 	app.register_blueprint(api_1_0, url_prefix='/api/1.0/')
-	app.register_blueprint(webservices, url_prefix='/webservices/')
+	app.register_blueprint(webservices, url_prefix='/webservices')
 
 	@app.before_request
 	def get_current_user():
