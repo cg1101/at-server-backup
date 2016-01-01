@@ -946,6 +946,9 @@ class Task(Base):
 	supervisors = relationship('TaskSupervisor')
 	taskErrorTypes = relationship('TaskErrorType')
 	subTasks = relationship('SubTask', back_populates='task')
+	@property
+	def displayName(self):
+		return '{0} - {1}'.format(self.taskId, self.name)
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
