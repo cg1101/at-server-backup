@@ -1,0 +1,9 @@
+<root>
+	{%- for entry in entries %}
+	<entry>
+		{%- for key, value in entry.iteritems() %}
+		<data name="{{key}}">{{value}}</data>
+		{%- endfor %}
+	</entry>
+	{%- endfor %}
+</root>

@@ -1,0 +1,16 @@
+<root>
+	{%- for action in actions %}
+	<action>
+		<identifier>{{ action['identifier'] }}</identifier>
+		<name>{{ action['name'] }}</name>
+		<button>{{ action['button'] }}</button>
+		<system>{{ action['system'] }}</system>
+		{%- for entry in action['data'] %}
+		<data>
+			<value>{{entry['value']}}</value>
+			<display>{{entry['display']}}</display>
+		</data>
+		{%- endfor %}
+	</action>
+	{%- endfor %}
+</root>

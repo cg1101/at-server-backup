@@ -1,0 +1,19 @@
+<root>
+	{%- for entry in entries %}
+	<entry>
+		{%- if entry.weekending %}
+		<weekending>{{entry.weekending}}</weekending>
+		{%- endif %}
+		<task>{{entry.task}}</task>
+		<details>{{entry.details}}</details>
+		<unitspending>{{entry.unitspending}}</unitspending>
+		<unitscompleted>{{entry.unitscompleted}}</unitscompleted>
+		{%- if entry.accuracy %}
+		<accuracy>
+			<calcacc></calcacc>
+		</accuracy>
+		{%- endif %}
+		<contact>{{entry.contact}}</contact>
+	</entry>
+	{%- endfor %}
+</root>

@@ -3,6 +3,8 @@ import cStringIO
 import gzip
 from collections import OrderedDict
 
+from flask import url_for
+
 from app.i18n import get_text as _
 import db.model as m
 from db.db import SS
@@ -171,3 +173,47 @@ class Warnings(dict):
 	def notes(self, message):
 		self.setdefault(self.NOTES, []).append(message)
 
+
+class Filterable(list):
+	def __init__(self, iterable=[]):
+		list.__init__(self, iterable)
+	def __or__(self, func):
+		if not callable(func):
+			raise TypeError, 'func must be callable'
+		return Filterable(filter(func, self))
+
+
+class TestManager(object):
+	@staticmethod
+	def report_eligibility(test, user, *args, **kwargs):
+		is_eligible = True
+
+		if not is_eligible:
+			return None
+
+		d = OrderedDict()
+		d['url'] = url_for('index', _external=True)
+		d['language'] = test.description
+		d['name'] = test.name
+
+		lastSheet = m.Sheet.query.filter_by(testId=test.testId
+			).filter_by(userId=user.userId
+			).order_by(m.Sheet.nTimes.desc()).first()
+
+		if lastSheet:
+			if lastSheet.status == m.Sheet.STATUS_FINISHED:
+				d['completed'] = 'at {0}'.format(
+					lastSheet.tFinishedAt.strftime('%H:%M:%S on %y-%m-%d'))
+				if lastSheet.score is None:
+					d['delayed'] = True
+					del d['url']
+				else:
+					d['marked'] = True
+					if lastSheet.score >= test.passingScore:
+						d['passed'] = True
+					else:
+						d['failed'] = True
+					d['score'] = lastSheet.score
+					if not lastSheet.moreAttempts:
+						del d['url']
+		return d

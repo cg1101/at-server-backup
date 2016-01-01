@@ -1,0 +1,21 @@
+<root>
+	{%- for filter in filters %}
+	<filter>
+		<identifier>{{filter.identifier}}</identifier>
+		<name>{{filter.name}}</name>
+		<text>{{filter.text}}</text>
+		<system>{{filter.system}}</system>
+		<complement>{{filter.complement}}</complement>
+		{%- for piece in filter.pieces %}
+		<piece type="{{piece.type}}">
+			{%- for entry in piece.data %}
+			<data>
+				<key>{{entry.key}}</key>
+				<value>{{entry.value}}</value>
+			</data>
+			{%- endfor %}
+		</piece>
+		{%- endfor %}
+	</filter>
+	{%- endfor %}
+</root>
