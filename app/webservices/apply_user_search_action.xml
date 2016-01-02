@@ -1,0 +1,6 @@
+<root>
+	<reply>
+		<message>{{reply.message}}</message>
+		{% if reply.link %}<link>{{reply.link}}</link>{%- endif %}
+	</reply>
+</root>
