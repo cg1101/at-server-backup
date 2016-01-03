@@ -261,6 +261,15 @@ class LoadSchema(Schema):
 	class Meta:
 		fields = ('loadId', 'createdBy', 'createdAt', 'taskId')
 
+# OtherPayment
+class OtherPayment(Base):
+	__table__ = t_otherpayments
+
+class OtherPaymentSchema(Schema):
+	class Meta:
+		fields = ('otherPaymentId', 'payrollId', 'identifier', 'paymentTypeId',
+			'taskId', 'userId', 'amount', 'added')
+
 # Page
 class Page(Base):
 	__table__ = t_pages
