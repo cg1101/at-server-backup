@@ -1,6 +1,7 @@
 alembic
 flask
 sqlalchemy
+lxml
 psycopg2
 pytz
 marshmallow == 2.4.2
