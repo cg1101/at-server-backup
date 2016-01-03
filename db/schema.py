@@ -258,7 +258,7 @@ Index('labelsbylabelgroupid', t_labels.c.labelGroupId, unique=False)
 
 t_payrolls =  Table('payrolls', metadata,
 	Column(u'payrollid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'payrollId', doc=''),
-	Column(u'updatedpayments', TIMESTAMP(timezone=False), key=u'updatedPayments', doc=''),
+	Column(u'updatedpayments', TIMESTAMP(timezone=False), key=u'updatedAt', doc=''),
 )
 
 
@@ -1078,8 +1078,8 @@ j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.su
 j_workentries = select([t_worktypes.c.name.label('workType'), t_worktypes.c.modifiesTranscription, t_workentries]).select_from(
 	join(t_workentries, t_worktypes)).alias('j_we')
 
-__all__ = [name for name in locals().keys() if name.startswith('t_')]
+j_payrolls = join(t_payrolls, t_ao_payrolls, t_payrolls.c.payrollId == t_ao_payrolls.c.payrollId)
+
+__all__ = [name for name in locals().keys()
+		if name.startswith('t_') or name.startswith('j_')]
 __all__.insert(0, 'metadata')
-__all__.append('j_users')
-__all__.append('j_pagemembers')
-__all__.append('j_workentries')

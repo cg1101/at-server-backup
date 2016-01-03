@@ -489,7 +489,16 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 
 # # PaymentClass
 # # PaymentType
-# # Payroll
+
+# Payroll
+class Payroll(Base):
+	__table__ = j_payrolls
+	payrollId = column_property(t_payrolls.c.payrollId, t_ao_payrolls.c.payrollId)
+
+
+class PayrollSchema(Schema):
+	class Meta:
+		fields = ('payrollId', 'updatedAt', 'startDate', 'endDate')
 
 # PayableEvent
 class PayableEvent(Base):
