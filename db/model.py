@@ -500,9 +500,9 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 
 # PaymentType
 class PaymentType(Base):
-	__table__ = t_ao_paymenttypes
+	__table__ = t_ao_payment_types
 
-class PaymentTypeSchema(Base):
+class PaymentTypeSchema(Schema):
 	class Meta:
 		fields = ('paymentTypeId', 'name', 'created')
 
