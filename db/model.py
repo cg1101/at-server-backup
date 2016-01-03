@@ -497,7 +497,14 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 		# skip_missing = True
 
 # # PaymentClass
-# # PaymentType
+
+# PaymentType
+class PaymentType(Base):
+	__table__ = t_ao_paymenttypes
+
+class PaymentTypeSchema(Base):
+	class Meta:
+		fields = ('paymentTypeId', 'name', 'created')
 
 # Payroll
 class Payroll(Base):
