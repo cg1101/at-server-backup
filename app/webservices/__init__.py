@@ -2,8 +2,9 @@
 import re
 from collections import OrderedDict
 
-from flask import Blueprint, render_template, url_for
+from flask import Blueprint, render_template, url_for, make_response
 from sqlalchemy import func
+from lxml import etree
 
 import db.model as m
 from db.db import SS
@@ -574,9 +575,155 @@ def get_recent_work_entries():
 	return render_template('recent_work.xml', entries=result)
 
 
+def check_payroll_existence(data, key, payrollId):
+	if not m.Payroll.query.get(payrollId):
+		raise ValueError(_('payroll {0} not found').format(payrollId))
+
+
+def normalize_calculated_payments(data, key, value):
+	try:
+		root = etree.fromstring(value)
+	except:
+		raise ValueError(_('failed to decode input as xml {0}'
+			).format(value))
+	result = []
+	# TODO: be more lienient, silent ignore errors
+	for payment in root.xpath('payment'):
+		d = {}
+		d['amount'] = int(payment.xpath('amount')[0].text)
+		d['calculatedPaymentId'] = int(payment.xpath('identifier')[0].text)
+		result.append(d)
+	return result
+
+
+def normalize_non_calculated_payments(data, key, value):
+	try:
+		root = etree.fromstring(value)
+	except:
+		raise ValueError(_('failed to decode input as xml {0}'
+			).format(value))
+	result = []
+	for payment in root.xpath('payment'):
+		d = {}
+		d['amount'] = int(payment.xpath('amount')[0].text)
+		d['identifier'] = payment.xpath('identifier')[0].text
+		d['taskId'] = int(payment.xpath('taskid')[0].text)
+		d['userId'] = int(payment.xpath('userid')[0].text)
+		d['paymentType'] = payment.xpath('paymenttype')[0].text
+		result.append(d)
+	return result
+
+
+def calculate_task_payment_record(taskId, payrollId):
+	cutOffTime = SS.query(func.max(m.WorkInterval.endTime
+		).filter(m.WorkInterval.workIntervalId.in_(
+			SS.query(m.CalculatedPayment.workIntervalId.distinct()
+			).filter_by(taskId=taskId
+			).filter_by(payrollId=payrollId))
+		)).first()[0] or m.Payroll.query.get(payrollId).endDate
+	itemCount, unitCount = SS.query(func.count(m.RawPiece.rawPieceId),
+		func.sum(m.RawPiece.words)).filter(m.RawPiece.rawPieceId.in_(
+			SS.query(m.WorkEntry.rawPieceId.distinct()
+				).filter_by(taskId=taskId
+				).filter(m.WorkEntry.created<=cutOffTime)
+			)).first()
+	unitCount = unitCount or 0
+	calculatedSubtotal = SS.query(func.sum(m.CalculatedPayment.amount
+		).filter(m.CalculatedPayment.taskId==taskId
+		).filter(m.CalculatedPayment.payrollId<=payrollId)
+		).first()[0] or 0
+	otherSubtotal = SS.query(func.sum(m.OtherPayment.amount
+		).filter(m.OtherPayment.taskId==taskId
+		).filter(m.OtherPayment.payrollId<=payrollId)
+		).first()[0] or 0
+
+	return m.TaskPaymentRecord(taskId=taskId, payrollId=payrollId,
+		itemCount=itemCount, unitCount=unitCount, cutOffTime=cutOffTime,
+		paymentSubtotal=calculatedSubtotal+otherSubtotal)
+
+
 @bp.route('/update_payments', methods=['GET', 'POST'])
 def update_payments():
-	return 'update_payments'
+	data = MyForm(
+		Field('payroll_id', is_mandatory=True,
+			normalizer=lambda data, key, value: int(value),
+			validators=[
+				check_payroll_existence,
+		]),
+		Field('calculated_payments', is_mandatory=True,
+			normalizer=normalize_calculated_payments,
+		),
+		Field('non_calculated_payments', is_mandatory=True,
+			normalizer=normalize_non_calculated_payments,
+		),
+	).get_data(is_json=False, copy=True)
+
+	payrollId = data['payroll_id']
+
+	updated = set()
+
+	for d in data['calculated_payments']:
+		cp = m.CalculatedPayment.query.get(d['calculatedPaymentId'])
+		if not cp or cp.payrollId != payrollId:
+			continue
+		if cp.amount != d['amount']:
+			cp.amount = d['amount']
+			updated.add(cp.taskId)
+
+	existingByReceiptId = dict([(i.identifier, i)
+		for i in m.OtherPayment.query.filter_by(payrollId=payrollId)])
+	confirmedByReceiptId = dict([(i['identifier'], i)
+		for i in data['non_calculated_payments']])
+	existing = set(existingByReceiptId)
+	confirmed = set(confirmedByReceiptId)
+	to_delete = existing - confirmed
+	to_add = confirmed - existing
+	to_update = existing & confirmed
+	for i in to_update:
+		ncp = existingByReceiptId[i]
+		d = confirmedByReceiptId[i]
+		if ncp.amount != d['amount']:
+			ncp.amount = d['amount']
+			updated.add(ncp.taskId)
+	for i in to_delete:
+		ncp = existingByReceiptId[i]
+		updated.add(ncp.taskId)
+		SS.delete(ncp)
+
+	taskIds = set([i[0] for i in SS.query(m.Task.taskId)])
+	paymentTypeByName = dict([(i.name, i.paymentTypeId)
+		for i in m.PaymentType.query])
+	for i in to_add:
+		d = confirmedByReceiptId[i]
+		if not m.User.query.get(d['userId']):
+			raise RuntimeError(_('user {0} not found').format(d['userId']))
+		if d['taskId'] not in taskIds:
+			# TODO: raise Error instead of ignoring it
+			# raise RuntimeError(_('task {0} not found').format(d['taskId']))
+			continue
+		paymentTypeId = paymentTypeByName.get(d['paymentType'])
+		if paymentTypeId is None:
+			raise RuntimeError(_('payment type \'{0}\' not found'
+				).format(d['paymentType']))
+		ncp = m.OtherPayment(payrollId=payrollId,
+			identifier=d['identifier'], paymentTypeId=paymentTypeId,
+			taskId=d['taskId'], userId=d['userId'], amount=d['amount'])
+		updated.add(d['taskId'])
+		SS.add(ncp)
+
+	# update impacted entries in t_costperutterance
+	if updated:
+		for taskId in updated:
+			existingRecord = m.TaskPaymentRecord.query.get((taskId, payrollId))
+			if existingRecord:
+				SS.delete(existingRecord)
+			newRecord = calculate_task_payment_record(taskId, payrollId)
+			SS.add(newRecord)
+
+	resp = make_response(render_template('get_user_details_CSS.xml',
+		entries=['success']))
+	resp.headers['Content-Type'] = 'text/xml'
+	return resp
 
 
 @bp.route('/user_details', methods=['GET', 'POST'])
