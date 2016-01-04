@@ -19,6 +19,7 @@ question_file = cStringIO.StringIO('this is a fake file')
 data_file = cStringIO.StringIO('this is a sample data file')
 instruction_file = cStringIO.StringIO('this is instruction')
 
+
 def check_result(testcase, spec, result):
 	if spec is None:
 		return
@@ -116,7 +117,6 @@ def run_test(method='GET', headers=None, data=None,
 for _ in ('put', 'post', 'delete', 'get'):
 	locals()[_] = partial(run_test, method=_.upper(),
 		endpoint_prefix='api_1_0.')
-
 
 
 class MyTestCase(unittest.TestCase):
@@ -880,49 +880,87 @@ class MyTestCase(unittest.TestCase):
 		# /static/<path:filename>
 		raise NotImplementedError
 
+	@run_test(method='GET', data={'identifier': 'assign_task_supervisor',
+		'option': 999999, 'users': '699,658'},
+		content_type='multipart/form-data',
+		endpoint_prefix='webservices.', expected_mimetype='text/xml')
 	def test_webservices_apply_user_search_action(self):
 		# /webservices/apply_user_search_action
 		raise NotImplementedError
 
+	@run_test(method='GET', data={}, endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_apply_user_search_filters(self):
 		# /webservices/apply_user_search_filters
 		raise NotImplementedError
 
-	def test_webservices_get_available_qualification_tests(self):
+	@run_test(method='POST', data={'u': 699, 'l1': 97},
+		endpoint_prefix='webservices.', expected_mimetype='text/xml')
+	def test_webservices_available_qualifications(self):
 		# /webservices/available_qualifications
 		raise NotImplementedError
 
-	def test_webservices_get_available_work_entries(self):
+	@run_test(method='POST', data={'userID': 699},
+		endpoint_prefix='webservices.', expected_mimetype='text/xml')
+	def test_webservices_available_work(self):
 		# /webservices/available_work
 		raise NotImplementedError
 
-	def test_webservices_get_recent_work_entries(self):
+	@run_test(method='POST', data={'userID': 699},
+		endpoint_prefix='webservices.', expected_mimetype='text/xml')
+	def test_webservices_recent_work(self):
 		# /webservices/recent_work
 		raise NotImplementedError
 
-	def test_webservices_get_user_details(self):
+	@run_test(method='GET', data={'userID': 699},
+		endpoint_prefix='webservices.', expected_mimetype='text/xml')
+	def test_webservices_user_details(self):
 		# /webservices/user_details
 		raise NotImplementedError
 
+	@run_test(method='GET', endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_get_user_details_css(self):
 		# /webservices/get_user_details_css
 		raise NotImplementedError
 
+	@run_test(method='GET', endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_get_user_details_js(self):
 		# /webservices/get_user_details_js
 		raise NotImplementedError
 
+	@run_test(method='GET', endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_get_user_search_actions(self):
 		# /webservices/get_user_search_actions
 		raise NotImplementedError
 
+	@run_test(method='GET', endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_get_user_search_filters(self):
 		# /webservices/get_user_search_filters
 		raise NotImplementedError
 
+	@run_test(method='POST', data={'payroll_id': 135,
+		'non_calculated_payments': ('<root><payment>'
+			'<identifier>345</identifier>'
+			'<amount>678</amount>'
+			'<taskid>999999</taskid>'
+			'<paymenttype>Custom</paymenttype>'
+			'<userid>699</userid>'
+			'</payment></root>'),
+		'calculated_payments': ('<root><payment>'
+			'<identifier>2342</identifier>'
+			'<amount>23</amount>'
+			'</payment></root>')},
+		content_type='multipart/form-data',
+		endpoint_prefix='webservices.',
+		expected_mimetype='text/xml')
 	def test_webservices_update_payments(self):
 		# /webservices/update_payments
 		raise NotImplementedError
+
 
 if __name__ == '__main__':
 	unittest.main()

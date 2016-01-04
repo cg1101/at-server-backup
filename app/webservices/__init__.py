@@ -11,7 +11,6 @@ webservices = Blueprint('webservices', __name__, template_folder='./xml')
 
 def ws(template_xml):
 	def rendering_customization_decorator(fn):
-		print 'name of wrapped function %s' % fn.__name__, 'template to use', template_xml
 		@wraps(fn)
 		def xml_responder(*args, **kwargs):
 			try:

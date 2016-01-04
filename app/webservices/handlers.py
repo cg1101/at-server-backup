@@ -165,7 +165,7 @@ def normalize_non_calculated_payments(data, key, value):
 
 @bp.route('/apply_user_search_action', methods=['GET', 'POST'])
 @ws('apply_user_search_action.xml')
-def apply_user_search_action():
+def webservices_apply_user_search_action():
 	data = MyForm(
 		Field('identifier', is_mandatory=True, validators=[
 			check_action_identifier,
@@ -188,7 +188,7 @@ def apply_user_search_action():
 
 @bp.route('/apply_user_search_filters', methods=['GET', 'POST'])
 @ws('get_user_details_CSS.xml')
-def apply_user_search_filters():
+def webservices_apply_user_search_filters():
 	data = MyForm(
 		Field('filters', is_mandatory=True, default=[],
 			normalizer=normalize_filters_input),
@@ -213,7 +213,7 @@ def apply_user_search_filters():
 
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
-def get_available_qualification_tests():
+def webservices_available_qualifications():
 	# TODO: get userId from incoming request
 	userId = 699
 	languageIds = [1, 2, 3, 4]
@@ -235,7 +235,7 @@ def get_available_qualification_tests():
 
 @bp.route('/available_work', methods=['GET', 'POST'])
 @ws('available_work.xml')
-def get_available_work_entries():
+def webservices_available_work():
 	# TODO: get userId from incoming request
 	userId = 699
 	user = m.User.query.get(userId)
@@ -285,35 +285,35 @@ def get_available_work_entries():
 
 @bp.route('/get_user_search_actions', methods=['GET', 'POST'])
 @ws('get_user_search_actions.xml')
-def get_user_search_actions():
+def webservices_get_user_search_actions():
 	actions = UserSearchAction.get_at_actions()
 	return dict(actions=actions)
 
 
 @bp.route('/get_user_search_filters', methods=['GET', 'POST'])
 @ws('get_user_search_filters.xml')
-def get_user_search_filters():
+def webservices_get_user_search_filters():
 	filters = UserSearchFilter.get_at_filters()
 	return dict(filters=filters)
 
 
 @bp.route('/get_user_details_CSS', methods=['GET', 'POST'])
 @ws('get_user_details_CSS.xml')
-def get_user_details_css():
+def webservices_get_user_details_css():
 	url = url_for('static', filename='css/userDetails.css', _external=True)
 	return dict(entries=[url])
 
 
 @bp.route('/get_user_details_JS', methods=['GET', 'POST'])
 @ws('get_user_details_CSS.xml')
-def get_user_details_js():
+def webservices_get_user_details_js():
 	url = url_for('static', filename='css/userDetails.js', _external=True)
 	return dict(entries=[url])
 
 
 @bp.route('/recent_work', methods=['GET', 'POST'])
 @ws('recent_work.xml')
-def get_recent_work_entries():
+def webservices_recent_work():
 	# TODO: get userId from incoming request
 	userId = 699
 	user = m.User.query.get(userId)
@@ -395,7 +395,7 @@ def get_recent_work_entries():
 
 @bp.route('/update_payments', methods=['GET', 'POST'])
 @ws('get_user_details_CSS.xml')
-def update_payments():
+def webservices_update_payments():
 	data = MyForm(
 		Field('payroll_id', is_mandatory=True,
 			normalizer=lambda data, key, value: int(value),
@@ -477,7 +477,7 @@ def update_payments():
 
 @bp.route('/user_details', methods=['GET', 'POST'])
 @ws('user_details.xml')
-def get_user_details():
+def webservices_user_details():
 	# TODO: get userId from incoming request
 	userId = 699
 	test_records = SS.query(m.Test, m.Sheet
