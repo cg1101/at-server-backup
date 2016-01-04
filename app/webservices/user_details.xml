@@ -1,0 +1,39 @@
+<root><entry>
+<div>
+	<div>
+		<h3>Qualification Tests</h3>
+		{%- if test_records %}
+		<table border="1" style="border-collapse:collapse">
+			<tr>
+				<th>Test</th>
+				<th>Description</th>
+				<th>Score</th>
+				<th>Finished At</th>
+			</tr>
+			{%- for test, sheet in test_records %}
+			<tr>
+				<td>{{test.name}}</td>
+				<td>{{test.description}}</td>
+				<td>{{'%.1f' % sheet.score}}</td>
+				<td>{{sheet.tFinishedAt.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+			</tr>
+			{%- endfor %}
+		</table>
+		{%- else %}
+		This user doesn't have any qualfication test result.
+		{%- endif %}
+	</div>
+	<div>
+		<h3>Tasks</h3>
+		{%- if assignments %}
+		<table border="1" style="border-collapse:collapse">
+			{%- for task, removed in assignments %}
+			<tr><td><a href="{{url_for('index', _anchor='/tasks/%s' % task.taskId)}}">{{task.displayName}}</a></td><td>{{not removed}}</td></tr>
+			{%- endfor %}
+		</table>
+		{%- else %}
+		This user has never worked on any task.
+		{%- endif %}
+	</div>
+</div>
+</entry></root>

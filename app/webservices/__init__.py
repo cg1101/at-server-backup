@@ -728,5 +728,23 @@ def update_payments():
 
 @bp.route('/user_details', methods=['GET', 'POST'])
 def get_user_details():
-	return 'user_details'
+	# TODO: get userId from incoming request
+	userId = 699
+	test_records = SS.query(m.Test, m.Sheet
+			).filter(m.Sheet.userId==userId
+			).filter(m.Sheet.testId==m.Test.testId
+			).filter(m.Sheet.score!=None
+			).order_by(m.Sheet.testId, m.Sheet.nTimes.desc()
+			).distinct(m.Sheet.testId).all()
+
+	assignments = SS.query(m.Task, m.TaskWorker.removed
+			).filter(m.Task.taskId==m.TaskWorker.taskId
+			).filter(m.TaskWorker.userId==userId
+			).order_by(m.TaskWorker.taskId,m.TaskWorker.removed.desc()
+			).distinct(m.TaskWorker.taskId).all()
+
+	resp = make_response(render_template('user_details.xml',
+		test_records=test_records, assignments=assignments))
+	resp.headers['Content-Type'] = 'text/xml'
+	return resp
 
