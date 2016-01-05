@@ -22,8 +22,10 @@ def create_app(config_name):
 
 	from app.api import api_1_0
 	from app.webservices import webservices
+	from app.views import views
 	app.register_blueprint(api_1_0, url_prefix='/api/1.0/')
 	app.register_blueprint(webservices, url_prefix='/webservices')
+	app.register_blueprint(views, url_prefix='')
 
 	@app.before_request
 	def get_current_user():
@@ -46,12 +48,6 @@ def create_app(config_name):
 		else:
 			SS.rollback()
 		SS.remove()
-
-	dot = os.path.dirname(__file__)
-
-	@app.route('/')
-	def index():
-		return send_file(os.path.join(dot, 'index.html'))
 
 	@app.route('/logout')
 	def logout():

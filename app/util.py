@@ -192,7 +192,8 @@ class TestManager(object):
 			return None
 
 		d = OrderedDict()
-		d['url'] = url_for('index', _external=True)
+		d['url'] = url_for('views.start_or_resume_test',
+			testId=test.testId, _external=True)
 		d['language'] = test.description
 		d['name'] = test.name
 

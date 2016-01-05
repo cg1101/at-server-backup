@@ -107,7 +107,8 @@ def format_available_work_entry(subTask):
 	task = subTask.task
 	rate = subTask.currentRate
 	d = OrderedDict()
-	d['url'] = url_for('index', _external=True)
+	d['url'] = url_for('views.get_batch_from_sub_task',
+		subTaskId=subTask.subTaskId, _external=True)
 	d['task'] = task.displayName
 	d['language'] = 'N/A'
 	d['worktype'] = subTask.workType
@@ -116,7 +117,8 @@ def format_available_work_entry(subTask):
 	d['applypaymentratio'] = False
 	d['rate'] = rate.standardValue * rate.multiplier
 	d['targetaccuracy'] = rate.targetAccuracy
-	d['rateurl'] = url_for('index', _external=True)
+	d['rateurl'] = url_for('views.sub_task_rate',
+		subTaskId=subTask.subTaskId, _external=True)
 	return d
 
 

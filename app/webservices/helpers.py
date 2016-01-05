@@ -27,7 +27,7 @@ def action_assign_task_workers(userIds, taskId):
 	message = _('Assigned the user as a worker for task {0}' if total == 1
 		else 'Assigned {1} users as workers for task {0}'
 		).format(taskId, total)
-	url = url_for('index', _external=True)
+	url = url_for('views.task_workers', taskId=taskId, _external=True)
 	return {'message': message, 'link': url}
 
 
@@ -41,7 +41,8 @@ def action_assign_task_supervisor(userIds, taskId):
 	message = _('Assigned the user as a supervisor of task {0}' if total == 1
 		else 'Assigned {1} users as supervisors of task {0}'
 		).format(taskId, len(userIds))
-	url = url_for('index', _external=True)
+	url = url_for('views.task_config', taskId=taskId,
+		_anchor='supervisors', _external=True)
 	return {'message': message, 'link': url}
 
 

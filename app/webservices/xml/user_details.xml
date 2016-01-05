@@ -28,7 +28,7 @@
 		{%- if assignments %}
 		<table border="1" style="border-collapse:collapse">
 			{%- for task, removed in assignments %}
-			<tr><td><a href="{{url_for('index', _anchor='/tasks/%s' % task.taskId)}}">{{task.displayName}}</a></td><td>{{not removed}}</td></tr>
+			<tr><td><a href="{{url_for('views.task_main', taskId=task.taskId, _anchor='/tasks/%s' % task.taskId)}}">{{task.displayName}}</a></td><td>{{not removed}}</td></tr>
 			{%- endfor %}
 		</table>
 		{%- else %}
