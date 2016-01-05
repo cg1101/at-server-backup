@@ -217,3 +217,24 @@ class TestManager(object):
 					if not lastSheet.moreAttempts:
 						del d['url']
 		return d
+
+
+class PolicyChecker(object):
+	@staticmethod
+	def check_get_policy(subTask, user):
+		if subTask.getPolicy == m.SubTask.POLICY_NO_LIMIT:
+			return None
+		elif subTask.getPolicy == m.SubTask.POLICY_ONE_ONLY:
+			# check if user has submitted any batch
+			q = SS.query(m.WorkEntry.batchId.distinct()
+				).filter(m.WorkEntry.subTaskId==subTask.subTaskId
+				).filter(m.WorkEntry.userId==user.userId
+				).filter(m.WorkEntry.batchId.notin_(
+					SS.query(m.Batch.batchId
+						).filter(m.Batch.subTaskId==subTask.subTaskId)))
+			if q.count() > 0:
+				return _('user has done work on this sub task before').format()
+		# return _('unknown policy \'{0}\' of sub task {1}'
+		# 	).format(subTask.getPolicy, subTask.subTaskId)
+		return None
+
