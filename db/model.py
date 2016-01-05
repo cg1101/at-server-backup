@@ -772,6 +772,8 @@ class SelectionFilterPieceSchema(Schema):
 
 # SubTask
 class SubTask(Base):
+	POLICY_NO_LIMIT = 'nolimit'
+	POLICY_ONE_ONLY = 'oneonly'
 	__table__ = t_subtasks
 	task = relationship('Task')
 	taskTypeId = association_proxy('task', 'taskTypeId')
