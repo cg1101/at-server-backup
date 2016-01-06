@@ -105,7 +105,8 @@ def work_on_batch(batchId):
 			'Please select another item to work on.',
 			'If you have any questions, please contact your transcription supervisor.'))
 
-	if subTask.instructionPage != None and not permit.hasReadInstructions:
+	if subTask.instructionPage != None and subTask.instructionPage.strip()\
+			and not permit.hasReadInstructions:
 		return redirect(url_for('.sub_task_guideline', subTaskId=subTaskId))
 
 	return 'you are on batch %s' % batchId
