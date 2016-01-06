@@ -14,11 +14,11 @@ def create_app(config_name):
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
 
-	# app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
-	# 	app.config['AUTHENTICATION_LOGIN_URL'],
-	# 	public_prefixes=['/static/', '/logout'],
-	# 	json_prefixes=['/api/'],
-	# )
+	app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
+		app.config['AUTHENTICATION_LOGIN_URL'],
+		public_prefixes=['/static/', 'webservices', '/logout'],
+		json_prefixes=['/api/'],
+	)
 
 	from app.api import api_1_0
 	from app.webservices import webservices
