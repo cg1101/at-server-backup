@@ -2,7 +2,7 @@
 import os
 import datetime
 
-from flask import session, redirect, url_for, send_file, current_app
+from flask import session, redirect, url_for, current_app, render_template
 import pytz
 
 import db.model as m
@@ -19,8 +19,7 @@ def index():
 	# doesn't have admin capability
 	if me.userId != 699:
 		return redirect(current_app.config['NON_ADMIN_REDIRECT_URL'])
-	dot = os.path.dirname(__file__)
-	return send_file(os.path.join(dot, '..', 'index.html'))
+	return render_template('index.html')
 
 
 @bp.route('/work/<int:subTaskId>')
