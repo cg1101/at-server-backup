@@ -46,26 +46,29 @@ def decode_cookie(cookie, secret=COOKIE_SECRET):
 		encrypted = cookie.encode('utf8')
 		ctav = base64.urlsafe_b64decode(encrypted)
 		if len(ctav) < AES.block_size:
-			raise CookieError, 'cookie currupted'
+			raise CookieError('encryption blocks too short')
 		init_vec, cipher_text = ctav[:AES.block_size], ctav[AES.block_size:]
 		if len(cipher_text) % AES.block_size:
-			raise CookieError, 'cookie currupted'
+			raise CookieError('encryption blocks of bad size')
 		key = hashlib.md5(secret).digest()
 		decryptor = AES.new(key, AES.MODE_CBC, init_vec)
 		compressed = decryptor.decrypt(cipher_text)
 		decompressed = zlib.decompress(compressed)
 		if not decompressed.startswith(COOKIE_PREFIX):
-			raise CookieError, 'cookie malformed'
+			raise CookieError('cookie malformed')
 		pickled = decompressed[len(COOKIE_PREFIX):]
 		(data, timeout) = cPickle.loads(pickled)
 		if timeout and timeout < time.time():
-			raise CookieError, 'cookie expired'
+			raise CookieError('cookie expired')
 		if not data.get('REMOTE_USER_ID'):
-			raise CookieError, 'cookie invalid'
+			raise CookieError('cookie invalid')
 		data.setdefault('CAPABILITIES', set())
+	except CookieError, exc:
+		# log this error and continue
+		data = None
 	except Exception, e:
 		# log this error and continue
-		pass
+		data = None
 	return data
 
 class MyAuthMiddleWare(object):
