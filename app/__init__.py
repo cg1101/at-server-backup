@@ -16,7 +16,7 @@ def create_app(config_name):
 
 	app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
 		app.config['AUTHENTICATION_LOGIN_URL'],
-		public_prefixes=['/static/', 'webservices', '/logout'],
+		public_prefixes=['/static/', '/webservices', '/logout'],
 		json_prefixes=['/api/'],
 	)
 
