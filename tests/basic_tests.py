@@ -5,6 +5,7 @@ import json
 import unittest
 import cStringIO
 import re
+import time
 from functools import wraps, partial
 
 from flask import url_for
@@ -14,6 +15,8 @@ sys.path.insert(0, os.path.abspath(os.path.normpath(
 
 from app import create_app
 import db.model as m
+from app.auth import encode_cookie
+
 
 question_file = cStringIO.StringIO('this is a fake file')
 data_file = cStringIO.StringIO('this is a sample data file')
@@ -91,11 +94,14 @@ def run_test(method='GET', headers=None, data=None,
 				# implemented now
 				pass
 
+			headers = {}
+			headers.update(testcase.headers)
 			with self.app.test_request_context():
 				name = fn.__name__[5:].replace('__', '.')
 				url = url_for(name, **values)
 			rv = self.client.open(url, method=method,
 				environ_overrides=environ_overrides,
+				headers=headers,
 				content_type=content_type, data=request_data)
 			testcase.assertEqual(rv.mimetype, expected_mimetype,
 				'expected mimetype {0}, got {1}'.format(expected_mimetype, rv.mimetype))
@@ -122,6 +128,45 @@ class MyTestCase(unittest.TestCase):
 		# set up stuff
 		self.app = app = create_app('testing')
 		self.client = app.test_client()
+		data = {'REMOTE_ADDR': '123.123.78.90',
+				'REMOTE_USER': 'gcheng@appen.com',
+				'CAPABILITIES': set([
+					'edit_access_roles', 'user_admin', 'view_user_payment_method',
+					'office', 'custom_user_field_config', 'messages',
+					'change_work_rights', 'automatic_jobs', 'edit_nationality',
+					'assign_restricted_roles', 'view_user_user_group',
+					'approve_custom_payments', 'roles', 'edit_contact_subjects',
+					'appen_links', 'web_timesheets', 'languages',
+					'view_user_work_in_office', 'payment_search',
+					'view_user_work_categories', 'appenleave', 'work_categories',
+					'contact_subjects', 'add_user_log_entry', 'public_holidays',
+					'view_user_payment_email_address', 'confirm_paid_status',
+					'edit_business_info', 'view_user_address',
+					'recruitment_report', 'edit_custom_fields',
+					'edit_user_details', 'assign_admin_roles',
+					'assign_timesheet_payment_users', 'uhrs_migrations',
+					'view_user_work_status', 'view_user_index_page',
+					'view_user_family_name', 'detect_duplicate_payments',
+					'payroll', 'view_user_payment_class', 'update_work_rights',
+					'generate_timesheet_payments', 'view_user_custom_fields',
+					'view_user_contract_status', 'view_user_log',
+					'view_user_payment_ratio', 'view_user_online_communication',
+					'view_user_phone', 'view_user_notes', 'defer_payments',
+					'download_payroll_reports', 'view_user_access_roles',
+					'view_user_recruitment_type', 'add_capabilities',
+					'countries', 'admin', 'edit_work_categories',
+					'change_payroll_status', 'edit_user_work_categories',
+					'add_custom_payments', 'configure_timesheet_payment_rates',
+					'remove_work_categories', 'view_user_override_payment_ratio',
+					'approve_edited_payments', 'view_user_email_address',
+					'view_user_system_login', 'edit_user_class',
+					'assign_super_users', 'edit_countries', 'edit_system_login']),
+				'REMOTE_USER_SYSTEM_LOGIN': 'gcheng',
+				'REMOTE_USER_LOG_NAME': 'Gang699',
+				'REMOTE_USER_ID': '699',
+				'LOGIN_TIME': '2016-01-06 02:40:05.511454'}
+		cookie = encode_cookie(data, timeout=time.time() + 3600 * 24)
+		self.headers = {'Cookie': 'appen={0}'.format(cookie)}
 
 	def tearDown(self):
 		# reverse all the changes here
