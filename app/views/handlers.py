@@ -2,19 +2,23 @@
 import os
 import datetime
 
-from flask import session, redirect, url_for, send_file
+from flask import session, redirect, url_for, send_file, current_app
 import pytz
 
 import db.model as m
 from db.db import SS
 from app.i18n import get_text as _
-from app.util import PolicyChecker
+from app.util import PolicyChecker, TestManager
 from app.api import InvalidUsage
 
 from . import views as bp
 
 @bp.route('/')
 def index():
+	me = session['current_user']
+	# doesn't have admin capability
+	if me.userId != 699:
+		return redirect(current_app.config['NON_ADMIN_REDIRECT_URL'])
 	dot = os.path.dirname(__file__)
 	return send_file(os.path.join(dot, '..', 'index.html'))
 
@@ -135,7 +139,42 @@ def sub_task_rate(subTaskId):
 
 @bp.route('/tests/<int:testId>/start')
 def start_or_resume_test(testId):
-	return 'start test %s' % testId
+	test = m.Test.query.get(testId)
+	if not test:
+		raise InvalidUsage(_('test {0} not found').format(testId))
+	if not test.isEnabled:
+		raise InvalidUsage(_('test {0} is not enabled').format(testId))
+
+	me = session['current_user']
+	# TODO: need to find out ids of languages current user speaks
+	languageIds = [1,2, 3, 4]
+	record = TestManager.report_eligibility(test, me, languageIds)
+	if not record.get('url'):
+		raise InvalidUsage(_('user {0} is not eligible for test {1}'
+			).format(me.userId, testId))
+
+	sheets = m.Sheet.query.filter_by(testId=testId
+			).filter_by(userId=me.userId
+			).order_by(m.Sheet.nTimes.desc()
+			).all()
+	# # NOTE: uncomment this block if nTimes needs to be fixed automatically
+	# for i, sheet in enumerate(sheets):
+	# 	if sheet.nTimes != i:
+	# 		sheet.nTimes = i
+	if sheets and sheets[-1].status == m.Sheet.STATUS_ACTIVE:
+		return redirect(url_for('.work_on_sheet', sheetId=sheets[-1].sheetId))
+
+	now = datetime.datetime.utcnow().replace(tzinfo=pytz.info)
+	sheet = m.Sheet(userId=me.userId, testId=testId, nTimes=len(sheets),
+		tStartedAt=now, tExpiresBy=(now+test.timeLimit))
+	SS.add(sheet)
+	SS.flush()
+	for i, question in enumerate(TestManager.generate_questions(test)):
+		entry = m.SheetEntry(sheetId=sheet.sheetId, index=i,
+			questionId=question.questionId)
+		sheet.entries.append(sheet)
+
+	return redirect(url_for('.work_on_sheet', sheetId=sheet.sheetId))
 
 
 @bp.route('/sheets/<int:sheetId>')

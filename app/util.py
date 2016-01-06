@@ -1,6 +1,7 @@
 
 import cStringIO
 import gzip
+import random
 from collections import OrderedDict
 
 from flask import url_for
@@ -218,6 +219,15 @@ class TestManager(object):
 					if not lastSheet.moreAttempts:
 						del d['url']
 		return d
+	@staticmethod
+	def generate_questions(test):
+		pool = m.Pool.questions.get(test.poolId)
+		if test.testType == 'static':
+			questions = pool.questions[:]
+		else:
+			# dynamic
+			questions = random.sample(pool.questions, test.size)
+		return questions
 
 
 class PolicyChecker(object):
