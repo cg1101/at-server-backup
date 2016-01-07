@@ -148,10 +148,3 @@ def start_or_resume_test(testId):
 
 	return jsonify(sheetId=sheet.sheetId)
 
-
-@bp.route(_name + '/sheets/<int:sheetId>')
-def work_on_sheet(sheetId):
-	me = session['current_user']
-	sheet = m.Sheet.query.get(sheetId)
-	return jsonify(sheet=m.Sheet.dump(sheet))
-
