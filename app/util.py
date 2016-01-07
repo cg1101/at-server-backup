@@ -221,7 +221,7 @@ class TestManager(object):
 		return d
 	@staticmethod
 	def generate_questions(test):
-		pool = m.Pool.questions.get(test.poolId)
+		pool = m.Pool.query.get(test.poolId)
 		if test.testType == 'static':
 			questions = pool.questions[:]
 		else:
