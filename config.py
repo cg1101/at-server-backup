@@ -19,7 +19,7 @@ class DevelopmentConfig(Config):
 	SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
 		'postgresql://localhost/atdb'
 	NON_ADMIN_REDIRECT_URL = 'http://appenonline.appen.com.au'
-	AUTHENTICATION_LOGIN_URL = 'http://localhost:8080'
+	AUTHENTICATION_LOGIN_URL = 'http://127.0.0.1:1080'
 	AUTHENTICATION_LOGOUT_URL = 'http://localhost:8080/logout'
 
 class TestingConfig(Config):
