@@ -2,11 +2,13 @@
 
 import os
 
-from flask import Flask, session, request, send_file, after_this_request, redirect, jsonify
+from flask import Flask, session, request, send_file, after_this_request,\
+		redirect, jsonify, make_response
 
 from config import config
 from db.model import User
 from db.db import SS
+from .i18n import get_text as _
 from .auth import MyAuthMiddleWare
 
 def create_app(config_name):
@@ -69,6 +71,11 @@ def create_app(config_name):
 
 	@app.errorhandler(404)
 	def default_hander(exc):
+		if request.path.startswith('/static'):
+			return make_response(
+				_('Sorry, the resource you have requested for is not found'),
+				404)
+		# TODO: only redirect valid urls
 		return redirect('/#%s' % request.path)
 
 	return app

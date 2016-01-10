@@ -2,7 +2,7 @@
 import os
 import datetime
 
-from flask import session, redirect, url_for, current_app, send_file, request
+from flask import session, redirect, url_for, current_app, send_file, request, abort
 
 import db.model as m
 from db.db import SS
@@ -46,6 +46,17 @@ def task_workers(taskId):
 def sub_task_rate(subTaskId):
 	return redirect('/#' + request.path)
 
+
+@bp.route('/subtasks/<int:subTaskId>/guideline')
+def sub_task_guideline(subTaskId):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask:
+		abort(404)
+	if not subTask.instructionPage or not subTask.instructionPage.strip():
+		abort(404)
+	path = os.path.join('docs', 'tasks', str(subTask.taskId),
+		os.path.basename(subTask.instructionPage))
+	return redirect(url_for('static', filename=path))
 
 @bp.route('/tests/<int:testId>/start')
 def start_or_resume_test(testId):
