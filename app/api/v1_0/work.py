@@ -56,6 +56,7 @@ def get_batch_from_sub_task(subTaskId):
 	batch = m.Batch.query.filter_by(subTaskId=subTaskId
 		).filter(m.Batch.onHold==False
 		).filter(m.Batch.userId==None
+		).filter(m.Batch.notUserId!=me.userId
 		).order_by(m.Batch.priority.desc(), m.Batch.batchId
 		).first()
 	if not batch:

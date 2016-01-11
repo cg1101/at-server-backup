@@ -277,6 +277,7 @@ def webservices_available_work():
 		if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
 				).filter(m.Batch.userId==None
 				).filter(m.Batch.onHold==False
+				).filter(m.Batch.notUserId!=userId
 				).order_by(m.Batch.priority.desc()
 				).first():
 			continue
