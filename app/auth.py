@@ -1,4 +1,5 @@
 
+import os
 import base64
 import hashlib
 import zlib
@@ -13,8 +14,9 @@ from flask import redirect, Response, Request
 
 from i18n import get_text as _
 
-COOKIE_SECRET = '01342dfa/12340af/afds'
-COOKIE_PREFIX = 'Cookie'
+COOKIE_SECRET = os.environ.get('APP_COOKIE_SECRET')
+COOKIE_PREFIX = os.environ.get('APP_COOKIE_PREFIX')
+COOKIE_NAME = os.environ.get('APP_COOKIE_NAME')
 
 class CookieError(Exception):
 	def __init__(self, message):

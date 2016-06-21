@@ -4,17 +4,20 @@
 from __future__ import print_function
 import os
 
-from app import create_app
 from flask.ext.script import Manager
+from flask.ext.migrate import Migrate, MigrateCommand
 
-app = create_app(os.getenv('FLASK_CONFIG') or 'default')
+from application import application as app
+from db import database as db
+
 manager = Manager(app)
-# migrate = Migrate(app, db)
+migrate = Migrate(app, db)
+
+manager.add_command('db', MigrateCommand)
 
 # def make_shell_context():
 # 	return dict(app=app, db=db, User=User, Role=Role)
 # manager.add_command('shell', Shell(make_context=make_shell_context))
-# manager.add_command('db', MigrateCommand)
 
 @manager.command
 def list():
@@ -22,5 +25,5 @@ def list():
 		print(str(rule), 'methods:', ','.join(rule.methods), '->', rule.endpoint)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 	manager.run()
