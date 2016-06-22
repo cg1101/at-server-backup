@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-_names = set(locals().keys())
-
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -9,52 +7,43 @@ from sqlalchemy.orm import relationship, backref, synonym, deferred, column_prop
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
 
-from db import SS
+from . import database
 from schema import *
 
-class MyBase(object):
-	_schema_class = None
-	@classmethod
-	def set_schema(cls, schema_class):
-		if not issubclass(schema_class, Schema):
-			raise TypeError, 'schema class must be subclass of {}'.format(
-				Schema.__name__)
-		cls._schema_class = schema_class
-	@classmethod
-	def dump(cls, obj, extra=None, only=(), exclude=(), prefix=u'',
-			strict=False, context=None, load_only=(), **kwargs):
-		if cls._schema_class is None:
-			raise RuntimeError, 'schema class not found for {0}'.format(cls.__name__)
-		s = cls._schema_class(extra=extra, only=only, exclude=exclude,
-				prefix=prefix, strict=strict, context=context)
-		if isinstance(obj, list):
-			many = True
-		else:
-			many = False
-		marshal_result = s.dump(obj, many=many, **kwargs)
-		return marshal_result.data
+def set_schema(cls, schema_class):
+	if not issubclass(schema_class, Schema):
+		raise TypeError('schema must be subclass of Schema')
+	cls._schema_class = schema_class
 
 
-def _(**kwargs):
-	return kwargs
+def dump(cls, obj, extra=None, only=(), exclude=(), prefix=u'',
+		strict=False, context=None, load_only=(), **kwargs):
+	if cls._schema_class is None:
+		raise RuntimeError('schema class not found for {0}'\
+			.format(cls.__name__))
+	s = cls._schema_class(extra=extra, only=only, exclude=exclude,
+			prefix=prefix, strict=strict, context=context)
+	if isinstance(obj, list):
+		many = True
+	else:
+		many = False
+	marshal_result = s.dump(obj, many=many, **kwargs)
+	return marshal_result.data
 
-def _make_model(input):
-	modelClassName, bases, modelClassDict, schemaClassDict = input
-	modelClass = type(modelClassName, bases, modelClassDict)
-	globals()[modelClassName] = modelClass
-	__all__.append(modelClassName)
-	schemaClassName = modelClassName + 'Schema'
-	schemaClass = type(schemaClassName, (Schema,), schemaClassDict)
-	globals()[schemaClassName] = schemaClass
-	__all__.append(schemaClassName)
 
-def _meta(**kwargs):
-	return type('Meta', (), kwargs)
+Base = database.Model
+Base._schema_class = None
+Base.set_schema = classmethod(set_schema)
+Base.dump = classmethod(dump)
 
-_names = set(locals().keys()) - _names
 
-Base = declarative_base(cls=MyBase, metadata=metadata)
-Base.query = SS.query_property()
+_names = set(locals().keys()) | {'_names'}
+
+
+#
+# Define model class and its schema (if needed) below
+#
+##########################################################################
 
 
 # PdbProject
@@ -1170,6 +1159,12 @@ class WorkIntervalSchema(Schema):
 	class Meta:
 		fields = ('workIntervalId', 'taskId', 'subTaskId', 'status', 'startTime', 'endTime')
 		ordered = True
+
+
+##########################################################################
+#
+# Define model class and its schema (if needed) above
+#
 
 __all__ = list(set(locals().keys()) - _names)
 
