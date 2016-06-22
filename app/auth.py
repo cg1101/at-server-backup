@@ -93,7 +93,7 @@ class MyAuthMiddleWare(object):
 			if i.match(request.path):
 				return self.app(environ, start_response)
 
-		user_dict = decode_cookie(request.cookies.get('appen', ''))
+		user_dict = decode_cookie(request.cookies.get(COOKIE_NAME, ''))
 		if user_dict:
 			environ['myauthmiddleware'] = user_dict
 			return self.app(environ, start_response)
