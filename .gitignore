@@ -2,6 +2,7 @@ venv*
 *.pyc
 .*
 app/static
+setenv.sh
 doc
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
