@@ -1,4 +1,9 @@
-venv
+venv*
 *.pyc
+.*
 app/static
 doc
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

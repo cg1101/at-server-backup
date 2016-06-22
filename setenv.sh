@@ -1,11 +1,15 @@
 #!/bin/bash
 
-APP_COOKIE_SECRET=""
-APP_COOKIE_PREFIX=""
-APP_COOKIE_NAME=""
-SECRET_KEY="something hard to guess"
+export APP_COOKIE_SECRET="..."
+export APP_COOKIE_PREFIX="..."
+export APP_COOKIE_NAME="..."
 
-DATABASE_URI="postgresql://localhost/atdb"
-NON_ADMIN_REDIRECT_URL="http://appenonline.appen.com.au"
-AUTHENTICATION_LOGIN_URL="http://appenonline.appen.com.au"
-AUTHENTICATION_LOGOUT_URL="http://appenonline.appen.com.au/logout"
+export SECRET_KEY="something hard to guess"
+export DATABASE_URI="postgresql://localhost/atdb"
+export NON_ADMIN_REDIRECT_URL="http://appenonline.appen.com.au"
+export AUTHENTICATION_LOGIN_URL="http://appenonline.appen.com.au"
+export AUTHENTICATION_LOGOUT_URL="http://appenonline.appen.com.au/logout"
+
+export PDB_API_URL="..."
+export PDB_API_KEY="..."
+export PDB_API_SECRET="..."
