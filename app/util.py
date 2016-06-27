@@ -1,6 +1,7 @@
 
 import cStringIO
 import gzip
+import json
 import random
 from collections import OrderedDict
 
@@ -93,16 +94,39 @@ class Batcher(object):
 class Loader(object):
 	@staticmethod
 	def load(handler, task, dataFile, **options):
-		# TODO: implement this
+		try:
+			dataFileHandler = HANDLERS[handler.name]
+		except KeyError:
+			raise RuntimeError(_('unsupported file handler {0}'
+				).format(handler.name))
+		return dataFileHandler.process(task, dataFile, **options)
+
+
+class DataFileHandler(object):
+	@staticmethod
+	def process(task, dataFile, **options):
+		raise NotImplementedError
+
+
+class UttDataFileHandler(DataFileHandler):
+	@staticmethod
+	def process(task, dataFile, **options):
+		jsonDict = json.loads(dataFile)
+		utts = jsonDict["utterances"]
 		rawPieces = []
-		for i in range(10):
-			rawPiece = m.RawPiece()
-			rawPiece.rawText = 'raw text #' + str(i)
-			rawPiece.words = i
-			rawPiece.hypothesis = 'this is hypothesis of ' + str(i)
-			rawPiece.meta = None
+		for utt in utts:
+			rawPiece = m.RawPiece(rawText='', hypothesis=utt["hypothesis"], assemblyContext=utt["url"])
+			meta = {}
+			for key in ("filePath", "audioSpec", "audioDataLocation"):
+				meta[key] = utt[key]
+			rawPiece.meta = json.dumps(meta)
 			rawPieces.append(rawPiece)
 		return rawPieces
+
+
+HANDLERS = {
+	"utts": UttDataFileHandler,
+}
 
 
 class Selector(object):
