@@ -25,18 +25,28 @@ _name = __file__.split('/')[-1].split('.')[0]
 @api
 @caps()
 def get_tasks():
-	q = m.Task.query
-	if request.args:
-		if 'projectId' in request.args:
-			try:
-				projectId = int(request.args['projectId'])
-			except:
-				pass
-			else:
-				q = q.filter_by(projectId=projectId)
-	tasks = q.all()
+	if request.args.get('t', '') == 'candidate':
+		# TODO: check for capability
+		if True:
+			tasks = m.PdbTask.query.filter(m.PdbTask.taskId.notin_(
+				SS.query(m.Task.taskId))).all()
+		else:
+			tasks = []
+		rs = m.PdbTask.dump(tasks)
+	else:
+		q = m.Task.query
+		if request.args:
+			if 'projectId' in request.args:
+				try:
+					projectId = int(request.args['projectId'])
+				except:
+					pass
+				else:
+					q = q.filter_by(projectId=projectId)
+		tasks = q.all()
+		rs = m.Task.dump(tasks)
 	return jsonify({
-		'tasks': m.Task.dump(tasks),
+		'tasks': rs,
 	})
 
 
