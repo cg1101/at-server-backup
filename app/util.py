@@ -111,7 +111,9 @@ class DataFileHandler(object):
 class UttDataFileHandler(DataFileHandler):
 	@staticmethod
 	def process(task, dataFile, **options):
-		jsonDict = json.loads(dataFile)
+		jsonDict = json.loads(dataFile.read())
+		if task.taskId != jsonDict["taskId"]:
+			raise ValueError("Expecting task {0}, got {1}".format(task.taskId, jsonDict["taskId"]))
 		utts = jsonDict["utterances"]
 		rawPieces = []
 		for utt in utts:

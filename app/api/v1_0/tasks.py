@@ -413,6 +413,10 @@ def create_task_load(taskId):
 	).get_data(is_json=False)
 	data['options'] = {}
 	try:
+		data['dataFile'] = data['dataFile'].file
+	except:
+		raise InvalidUsage('invalid data file submitted')
+	try:
 		rawPieces = Loader.load(handler, task,
 				data['dataFile'], **data['options'])
 	except Exception, e:
