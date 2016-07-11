@@ -6,6 +6,7 @@ import re
 import json
 
 from flask import request, session, jsonify, make_response, url_for
+from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
@@ -402,6 +403,40 @@ def get_task_loads(taskId):
 	loads = m.Load.query.filter_by(taskId=taskId).all()
 	return jsonify({
 		'loads': m.Load.dump(loads),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/labelsets/', methods=['POST'])
+@api
+@caps()
+def create_task_label_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	labelSet = m.LabelSet()
+	task.labelSet = labelSet
+	SS.flush()
+	return jsonify({
+		'labelSet': m.LabelSet.dump(labelSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/labelsets/<int:labelSetId>', methods=['PUT'])
+@api
+@caps()
+def share_task_label_set(taskId, labelSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	labelSet = m.LabelSet.query.get(labelSetId)
+	if not labelSet:
+		raise InvalidUsage(_('label set {0} not found').format(labelSetId))
+	task.labelSet = labelSet
+	SS.flush()
+	tasks = m.Task.query.filter_by(labelSetId=labelSetId).all()
+	return jsonify({
+		'labelSet': m.LabelSet.dump(labelSet),
+		'tasks': m.Task.dump(tasks)
 	})
 
 
@@ -1046,6 +1081,63 @@ def remove_task_supervisor(taskId, userId):
 	SS.delete(supervisor)
 	return jsonify({
 		'message': _('removed supervisor {0} from task {1}').format(supervisor.userName, taskId),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/tagsets/', methods=['POST'])
+@api
+@caps()
+def create_task_tag_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	tagSet = m.TagSet()
+	task.tagSet = tagSet
+	SS.flush()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/tagsets/<int:tagSetId>', methods=['POST'])
+@api
+@caps()
+def copy_task_tag_set(taskId, tagSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	srcTagSet = m.TagSet.query.get(tagSetId)
+	if not srcTagSet:
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+	tagSet = m.TagSet()
+	for t in srcTagSet.tags:
+		SS.expunge(t)
+		make_transient(t)
+		t.tagId = None
+		tagSet.tags.append(t)
+	task.tagSet = tagSet
+	SS.flush()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/tagsets/<int:tagSetId>', methods=['PUT'])
+@api
+@caps()
+def share_task_tag_set(taskId, tagSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	tagSet = m.TagSet.query.get(tagSetId)
+	if not tagSet:
+		raise InvalidUsage(_('tagSet {0} not found').format(tagSetId))
+	task.tagSet = tagSet
+	SS.flush()
+	tasks = m.Task.query.filter_by(tagSetId=tagSetId).all()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+		'tasks': m.Task.dump(tasks)
 	})
 
 

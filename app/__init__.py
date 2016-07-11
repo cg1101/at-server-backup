@@ -79,6 +79,8 @@ def create_app(config_name):
 			return make_response(
 				_('Sorry, the resource you have requested for is not found'),
 				404)
+		if request.path.startswith('/api/'):
+			return make_response(jsonify(error='requested url not found'), 404, {})
 		# TODO: only redirect valid urls
 		return redirect('/#%s' % request.path)
 
