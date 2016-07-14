@@ -893,7 +893,8 @@ class SpanBTag(Tag):
 	}
 
 class SpanBTagSchema(TagSchema):
-	pass
+	class Meta:
+		additional = ('color', 'isForeground')
 
 class SubstitutionTag(Tag):
 	__mapper_args__ = {
