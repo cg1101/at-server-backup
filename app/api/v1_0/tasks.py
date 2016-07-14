@@ -106,7 +106,7 @@ def migrate_task(taskId):
 
 	rs = {'task': m.Task.dump(task)}
 	if migrate_project:
-		rs['message'] = _('migrated project {0} and task {0} successfully')\
+		rs['message'] = _('migrated project {0} and task {1} successfully')\
 			.format(task.projectId, taskId)
 		rs['project'] = m.Project.dump(project)
 	else:
