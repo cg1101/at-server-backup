@@ -820,11 +820,21 @@ class SubTaskMetricSchema(Schema):
 class SubTaskRate(Base):
 	__table__ = t_subtaskrates
 	rate = relationship('Rate')
+	_updatedByUser = relationship('User',
+		primaryjoin='SubTaskRate.updatedBy == User.userId',
+		foreign_keys='User.userId',
+		uselist=False,
+	)
 	rateName = association_proxy('rate', 'name')
 	standardValue = association_proxy('rate', 'standardValue')
 	targetAccuracy = association_proxy('rate', 'targetAccuracy')
 
 class SubTaskRateSchema(Schema):
+	updatedBy = fields.Method('get_updated_by')
+	def get_updated_by(self, obj):
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj._updatedByUser).data
+
 	class Meta:
 		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'validFrom', 'multiplier', 'updatedBy', 'updatedAt')
 		ordered = True
