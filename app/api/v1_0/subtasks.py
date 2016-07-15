@@ -475,7 +475,7 @@ def create_sub_task_rate_record(subTaskId):
 		Field('multiplier', is_mandatory=True,
 			normalizer=lambda data, key, value: float(value),
 			validators=[
-				(validators.is_number, (), dict(min_value=1)),
+				(validators.is_number, (), dict(min_value=0)),
 			]),
 	).get_data()
 
