@@ -87,9 +87,13 @@ class Batch(Base):
 	subTask = relationship('SubTask')
 
 class BatchSchema(Schema):
+	user = fields.Method('get_user')
+	def get_user(self, obj):
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Nested('PageSchema', many=True)
 	class Meta:
-		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
 		# ordered = True
 
 # BathchingMode
