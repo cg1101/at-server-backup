@@ -537,7 +537,7 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/loads/
 		raise NotImplementedError
 
-	@get(expected_result={'batchCount'}, subTaskId=2148)
+	@get(expected_result={'stats'}, subTaskId=2148)
 	def test_api_1_0__get_sub_task_statistics(self):
 		# /subtasks/<int:subTaskId>/stats/
 		raise NotImplementedError

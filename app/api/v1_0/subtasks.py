@@ -502,12 +502,19 @@ def get_sub_task_statistics(subTaskId):
 
 	batches = m.Batch.query.filter_by(subTaskId=subTaskId).all()
 	return jsonify({
-		'batchCount': len(batches),
-		'offlineCount': len([b for b in batches if b.checkedOut]),
-		'itemCount': sum([len(p.members) for b in batches
-			for p in b.pages]),
-		'unitCount': sum([i.rawPiece.words for b in batches
-			for p in b.pages for i in p.members]),
+		'stats': {
+			'batchCount': len(batches),
+			'offlineBatchCount': len([b for b in batches if b.checkedOut]),
+			'itemCount': sum([len(p.members) for b in batches
+				for p in b.pages]),
+			'unitCount': sum([i.rawPiece.words for b in batches
+				for p in b.pages for i in p.members]),
+			'meanAmount': subTask.meanAmount,
+			'maxAmount': subTask.maxAmount,
+			'accuray': subTask.accuracy,
+			'medianWorkRate': subTask.medianWorkRate,
+			'maxWorkRate': subTask.maxWorkRate,
+		}
 	})
 
 
