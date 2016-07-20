@@ -1171,10 +1171,10 @@ def delete_custom_utterance_group(taskId, groupId):
 	})
 
 
-@bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/words', methods=['GET'])
+@bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/stats', methods=['GET'])
 @api
 @caps()
-def get_utterance_group_word_count(taskId, groupId):
+def get_task_utterance_group_stats(taskId, groupId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
@@ -1184,8 +1184,10 @@ def get_utterance_group_word_count(taskId, groupId):
 
 	words = sum([i.words for i in group.rawPieces])
 	return jsonify({
-		'words': words,
-		'totalItems': len(group.rawPieces),
+		'stats': {
+			'unitCount': words,
+			'itemCount': len(group.rawPieces),
+		}
 	})
 
 

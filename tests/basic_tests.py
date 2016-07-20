@@ -746,8 +746,8 @@ class MyTestCase(unittest.TestCase):
 		# /tests/
 		raise NotImplementedError
 
-	@get(expected_result={'words': int}, taskId=999999, groupId=814)
-	def test_api_1_0__get_utterance_group_word_count(self):
+	@get(expected_result={'stats': {'itemCount', 'unitCount'}}, taskId=999999, groupId=814)
+	def test_api_1_0__get_task_utterance_group_stats(self):
 		# /tasks/<int:taskId>/uttgroups/<int:groupId>/words
 		raise NotImplementedError
 
