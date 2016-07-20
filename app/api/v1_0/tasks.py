@@ -246,7 +246,7 @@ def normalize_utterance_group_ids(data, key, groupIds):
 	except:
 		raise ValueError(_('invalid groupIds input: {0}').format(groupIds))
 	for groupId in groupIds:
-		group = m.CustomUtteranceGroup.get(groupId)
+		group = m.CustomUtteranceGroup.query.get(groupId)
 		if not group:
 			raise ValueError(_('custom utterance group {0} not found').format(groupId))
 		if group.taskId != taskId:
