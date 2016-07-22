@@ -629,8 +629,8 @@ def normalize_utterance_selection_filters(data, key, value):
 						).format(filterIndex, i, field))
 				elif i == 1:
 					if value not in ('true', 'false'):
-						raise ValueError(_('filter {0}: {1}: {2} must be \'true\' or \'false\''
-							).format(filterIndex, i, field))
+						raise ValueError(_('filter {0}: {1}: {2} must be \'true\' or \'false\', got \'{3}\''
+							).format(filterIndex, i, field, value))
 					else:
 						value = (value == 'true')
 				elif i == 2 and value not in Selector.FILTER_TYPES.values():
@@ -682,23 +682,27 @@ def create_task_utterance_selection(taskId):
 	if not rs:
 		raise InvalidUsage(_('no result found'))
 
-	# SS.add(selection)
-	# SS.flush()
+	SS.add(selection)
+	SS.flush()
+	for rawPieceId in rs:
+		entry = m.SelectionCacheEntry(selectionId=selection.selectionId,
+				rawPieceId=rawPieceId)
+		SS.add(entry)
 
-	# summary = dict(
-	# 	identifier=selection.selectionId,
-	# 	number=len(selection.cached),
-	# 	timestamp=
-	# 	action=selection.action,
-	# 	value=selection.value,
-	# 	user=
-	# 	link=
-	# )
+	summary = dict(
+		identifier=selection.selectionId,
+		number=len(rs),
+		timestamp=selection.selected,
+		action=selection.action,
+		value=selection.subTaskId if selection.action == 'batch' else selection.name,
+		user=m.User.dump(selection.user),
+		link='???'
+	)
 	return jsonify({
 		'message': _('created utterance selection {0} successfully'
 			).format(selection.selectionId),
 		'selection': m.UtteranceSelection.dump(selection),
-		# 'summary': summary,
+		'summary': summary,
 	})
 
 
@@ -766,8 +770,8 @@ def populate_task_utterance_selection(taskId, selectionId):
 		SS.add(group)
 		SS.flush()
 
-		resp = dict(message=_('created custom utterance group {0} with {1} items'
-			).format(group.groupId, itemCount))
+		resp = dict(message=_('created custom utterance group \'{0}\' (#{1}) with {2} items'
+			).format(group.name, group.groupId, itemCount))
 	else:
 		raise InvalidUsage(_('unsupported action {0}').format(selection.action))
 

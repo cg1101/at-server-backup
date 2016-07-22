@@ -137,7 +137,12 @@ class Selector(object):
 		taskId = getattr(selection, 'taskId')
 		if taskId is None:
 			raise ValueError('must specify taskId')
-		return [1,2,3]
+		limit = min(selection.limit, 5)
+		rs = [r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
+			).filter_by(taskId=taskId
+			).order_by(m.RawPiece.rawPieceId
+			).all()[:limit]]
+		return rs
 for key, value in Selector.FILTER_TYPES.iteritems():
 	setattr(Selector, key, value)
 del key, value
