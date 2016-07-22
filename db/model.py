@@ -7,7 +7,8 @@ from sqlalchemy.orm import relationship, backref, synonym, deferred, column_prop
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
 
-from . import database
+from . import database, mode
+from .db import SS
 from schema import *
 
 def set_schema(cls, schema_class):
@@ -30,8 +31,14 @@ def dump(cls, obj, extra=None, only=(), exclude=(), prefix=u'',
 	marshal_result = s.dump(obj, many=many, **kwargs)
 	return marshal_result.data
 
+if mode == 'app':
+	Base = database.Model
+else:
+	class MyBase(object):
+		pass
+	Base = declarative_base(cls=MyBase, metadata=metadata)
+	Base.query = SS.query_property()
 
-Base = database.Model
 Base._schema_class = None
 Base.set_schema = classmethod(set_schema)
 Base.dump = classmethod(dump)
