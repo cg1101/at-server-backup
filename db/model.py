@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import logging
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -7,8 +9,11 @@ from sqlalchemy.orm import relationship, backref, synonym, deferred, column_prop
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
 
-from . import database
+from . import database as db
 from schema import *
+
+log = logging.getLogger(__name__)
+
 
 def set_schema(cls, schema_class):
 	if not issubclass(schema_class, Schema):
@@ -31,7 +36,7 @@ def dump(cls, obj, extra=None, only=(), exclude=(), prefix=u'',
 	return marshal_result.data
 
 
-Base = database.Model
+Base = db.Model
 Base._schema_class = None
 Base.set_schema = classmethod(set_schema)
 Base.dump = classmethod(dump)
@@ -85,6 +90,46 @@ class Batch(Base):
 	pages = relationship('Page', order_by='Page.pageIndex')
 	task = relationship('Task')
 	subTask = relationship('SubTask')
+
+	def expire(self):
+		"""
+		Expires the lease on the batch.
+		"""
+		if self.userId:
+			log.debug("revoking batch {0}, owned by {1}".format(self.batchId, self.userId))
+			self.log_event("revoked")
+			self.reset_ownership()
+			self.increase_priority()
+
+		else:
+			log.debug("batch {0} is not owned by anyone".format(self.batchId))
+
+	def reset_ownership(self):
+		"""
+		Resets the ownership of the batch.
+		"""
+		self.userId = None
+		self.leaseGranted = None
+		self.leaseExpires = None
+		self.checkedOut = False
+
+	def increase_priority(self, increase_by=1):
+		"""
+		Increases the batch priority.
+		"""
+		self.priority += increase_by
+
+	def log_event(self, event):
+		"""
+		Adds an event to the batch log.
+		"""
+		query = t_batchhistory.insert({
+			"batchId": self.batchId,
+			"userId": self.userId,
+			"event": event,
+		})
+		db.session.execute(query)
+
 
 class BatchSchema(Schema):
 	pages = fields.Nested('PageSchema', many=True)
