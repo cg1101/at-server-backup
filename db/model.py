@@ -126,7 +126,7 @@ class CalculatedPayment(Base):
 
 class CalculatedPaymentSchema(Schema):
 	class Meta:
-		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'items', 'units', 'qaedItems', 'qaedUnits', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
+		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'itemCount', 'unitCount', 'qaedItemCount', 'qaedUnitCount', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
 		ordered = True
 		# skip_missing = True
 
