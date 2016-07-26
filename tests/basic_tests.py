@@ -574,6 +574,12 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/workers/
 		raise NotImplementedError
 
+	@put(expected_result={'worker': {'hasReadInstructions', 'removed',
+		'taskId', 'subTaskId', 'userId', 'paymentFactor', 'isNew'}}, subTaskId=1935, userId=699)
+	def test_api_1_0__update_sub_task_worker_settings(self):
+		# /subtasks/<int:subTaskId>/workers/<int:userId>
+		raise NotImplementedError
+
 	@get(expected_result={'tagSet': {'tagSetId': int,
 		'lastUpdated': None, 'created': None,
 		'tags': ('>0', {'tagId', 'tagType', 'tagSetId', 'extractStart'})}},

@@ -566,3 +566,44 @@ def get_sub_task_workers(subTaskId):
 		'workers': m.TaskWorker.dump(workers),
 	})
 
+
+@bp.route(_name + '/<int:subTaskId>/workers/<int:userId>', methods=['PUT'])
+@api
+@caps()
+def update_sub_task_worker_settings(subTaskId, userId):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask:
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
+	user = m.User.query.get(userId)
+	if not user:
+		raise InvalidUsage(_('user {0} not found').format(userId), 404)
+
+	data = MyForm(
+		Field('hasReadInstructions', validators=[
+			validators.is_bool,
+		]),
+		Field('isNew', validators=[
+			validators.is_bool,
+		]),
+		Field('paymentFactor', normalizer=lambda data, key, value: float(value),
+			validators=[
+				(validators.is_number, (), dict(min_value=0)),
+			]),
+		Field('removed', validators=[
+			validators.is_bool,
+		]),
+	).get_data()
+
+	worker = m.TaskWorker.query.get((userId, subTask.taskId, subTaskId))
+	if not worker:
+		worker = m.TaskWorker(taskId=subTask.taskId, **data)
+		SS.add(worker)
+	else:
+		for key in data:
+			setattr(worker, key, data[key])
+	SS.flush()
+
+	return jsonify({
+		'worker': m.TaskWorker.dump(worker),
+	})
+
