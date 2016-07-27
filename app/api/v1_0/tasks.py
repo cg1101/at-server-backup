@@ -104,7 +104,8 @@ def migrate_task(taskId):
 		_migratedByUser=me)
 	SS.add(task)
 
-	rs = {'task': m.Task.dump(task)}
+	# reload task to make sure missing attributes are populated
+	rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
 	if migrate_project:
 		rs['message'] = _('migrated project {0} and task {1} successfully')\
 			.format(task.projectId, taskId)
