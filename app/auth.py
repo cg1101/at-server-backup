@@ -76,7 +76,7 @@ def decode_cookie(cookie, secret=COOKIE_SECRET):
 class MyAuthMiddleWare(object):
 
 	def __init__(self, app, authentication_url, public_prefixes=[],
-			json_prefixes=[]): 
+			json_prefixes=[]):
 		self.app = app
 		self.authentication_url = authentication_url
 		self.public_prefixes = []
