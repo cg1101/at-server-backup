@@ -8,7 +8,7 @@ from types import NoneType, BooleanType, IntType, StringType, DictType
 
 from flask import Response, request, make_response, jsonify, current_app, session
 from werkzeug.exceptions import HTTPException
-from werkzeug.datastructures import CombinedMultiDict
+from werkzeug.datastructures import CombinedMultiDict, FileStorage
 
 from app.i18n import get_text as _
 from db.db import SS
@@ -155,6 +155,11 @@ class validators:
 				# value not in (False, True)
 				# won't work because 1 == True is always True
 				raise ValueError, _('value must be a boolean')
+	@classmethod
+	def is_file(cls, data, key, value):
+		if value is not None:
+			if not isinstance(value, FileStorage):
+				raise ValueError, _('value must be of type FileStorage')
 
 
 class Field(object):

@@ -640,6 +640,11 @@ class MyTestCase(unittest.TestCase):
 		# /tasks/<int:taskId>/loads/
 		raise NotImplementedError
 
+	@get(expected_result={'stat': {'itemCount', 'unitCount'}}, taskId=999999, loadId=1312)
+	def test_api_1_0__get_task_load_stats(self):
+		# /tasks/<int:taskId>/loads/<int:loadId>/stats
+		raise NotImplementedError
+
 	@get(expected_result={'paymentRecords': ('>0', {'taskId', 'payrollId',
 		'cutOffTime', 'itemCount', 'unitCount', 'paymentSubtotal'})},
 		taskId=300419)
