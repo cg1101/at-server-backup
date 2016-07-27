@@ -110,7 +110,7 @@ def migrate_task(taskId):
 			.format(task.projectId, taskId)
 		rs['project'] = m.Project.dump(project)
 	else:
-		rs['message'] = _('migrated task {0} successfully').format(taskId),
+		rs['message'] = _('migrated task {0} successfully').format(taskId)
 	return jsonify(rs)
 
 
