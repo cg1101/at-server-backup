@@ -9,7 +9,7 @@ from flask import url_for
 from app.i18n import get_text as _
 import db.model as m
 from db.db import SS
-
+from .filehandler import get_handler
 
 def split_by_size(seq, size):
 	if not size >= 1:
@@ -93,15 +93,10 @@ class Batcher(object):
 class Loader(object):
 	@staticmethod
 	def load(handler, task, dataFile, **options):
-		# TODO: implement this
-		rawPieces = []
-		for i in range(10):
-			rawPiece = m.RawPiece()
-			rawPiece.rawText = 'raw text #' + str(i)
-			rawPiece.words = i
-			rawPiece.hypothesis = 'this is hypothesis of ' + str(i)
-			rawPiece.meta = None
-			rawPieces.append(rawPiece)
+		fileHandler = get_handler(handler.name)
+		itemDicts = fileHandler.load_data(dataFile, **options)
+		rawPieces = [m.RawPiece(**d) for d in itemDicts]
+		# TODO: (optional) save input data file somewhere for future reference
 		return rawPieces
 
 
