@@ -823,8 +823,8 @@ class SubTaskMetric(Base):
 
 class SubTaskMetricSchema(Schema):
 	class Meta:
-		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'amount',
-			'words', 'workRate', 'accuracy', 'lastUpdated')
+		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'itemCount',
+			'unitCount', 'workRate', 'accuracy', 'lastUpdated')
 		ordered = True
 
 # SubTaskRate
