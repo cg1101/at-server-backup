@@ -6,6 +6,7 @@ import re
 import json
 
 from flask import request, session, jsonify, make_response, url_for
+from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
@@ -25,18 +26,28 @@ _name = __file__.split('/')[-1].split('.')[0]
 @api
 @caps()
 def get_tasks():
-	q = m.Task.query
-	if request.args:
-		if 'projectId' in request.args:
-			try:
-				projectId = int(request.args['projectId'])
-			except:
-				pass
-			else:
-				q = q.filter_by(projectId=projectId)
-	tasks = q.all()
+	if request.args.get('t', '') == 'candidate':
+		# TODO: check for capability
+		if True:
+			tasks = m.PdbTask.query.filter(m.PdbTask.taskId.notin_(
+				SS.query(m.Task.taskId))).all()
+		else:
+			tasks = []
+		rs = m.PdbTask.dump(tasks)
+	else:
+		q = m.Task.query
+		if request.args:
+			if 'projectId' in request.args:
+				try:
+					projectId = int(request.args['projectId'])
+				except:
+					pass
+				else:
+					q = q.filter_by(projectId=projectId)
+		tasks = q.all()
+		rs = m.Task.dump(tasks)
 	return jsonify({
-		'tasks': m.Task.dump(tasks),
+		'tasks': rs,
 	})
 
 
@@ -93,13 +104,14 @@ def migrate_task(taskId):
 		_migratedByUser=me)
 	SS.add(task)
 
-	rs = {'task': m.Task.dump(task)}
+	# reload task to make sure missing attributes are populated
+	rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
 	if migrate_project:
-		rs['message'] = _('migrated project {0} and task {0} successfully')\
+		rs['message'] = _('migrated project {0} and task {1} successfully')\
 			.format(task.projectId, taskId)
 		rs['project'] = m.Project.dump(project)
 	else:
-		rs['message'] = _('migrated task {0} successfully').format(taskId),
+		rs['message'] = _('migrated task {0} successfully').format(taskId)
 	return jsonify(rs)
 
 
@@ -235,7 +247,7 @@ def normalize_utterance_group_ids(data, key, groupIds):
 	except:
 		raise ValueError(_('invalid groupIds input: {0}').format(groupIds))
 	for groupId in groupIds:
-		group = m.CustomUtteranceGroup.get(groupId)
+		group = m.CustomUtteranceGroup.query.get(groupId)
 		if not group:
 			raise ValueError(_('custom utterance group {0} not found').format(groupId))
 		if group.taskId != taskId:
@@ -395,6 +407,68 @@ def get_task_loads(taskId):
 	})
 
 
+@bp.route(_name + '/<int:taskId>/loads/<int:loadId>/stats', methods=['GET'])
+@api
+@caps()
+def get_task_load_stats(taskId, loadId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	load = m.Load.query.get(loadId)
+	if not load or load.taskId != taskId:
+		raise InvalidUsage(_('load {0} not found in task {1}').format(loadId, taskId), 404)
+
+	words = sum([i.words for i in load.rawPieces])
+	return jsonify({
+		'stats': {
+			'unitCount': words,
+			'itemCount': len(load.rawPieces),
+		}
+	})
+
+
+@bp.route(_name + '/<int:taskId>/labelsets/', methods=['POST'])
+@api
+@caps()
+def create_task_label_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	labelSet = m.LabelSet()
+	task.labelSet = labelSet
+	SS.flush()
+	return jsonify({
+		'labelSet': m.LabelSet.dump(labelSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/labelsets/<int:labelSetId>', methods=['PUT'])
+@api
+@caps()
+def share_task_label_set(taskId, labelSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	labelSet = m.LabelSet.query.get(labelSetId)
+	if not labelSet:
+		raise InvalidUsage(_('label set {0} not found').format(labelSetId))
+	task.labelSet = labelSet
+	SS.flush()
+	tasks = m.Task.query.filter_by(labelSetId=labelSetId).all()
+	return jsonify({
+		'labelSet': m.LabelSet.dump(labelSet),
+		'tasks': m.Task.dump(tasks)
+	})
+
+
+def normalize_file_handler_options(data, key, value):
+	try:
+		options = json.loads(value)
+	except ValueError:
+		raise ValueError(_('invalid json value for options: {0}').format(value))
+	return options
+
+
 @bp.route(_name + '/<int:taskId>/loads/', methods=['POST'])
 @api
 @caps()
@@ -402,29 +476,45 @@ def create_task_load(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId))
-	handler = (None if task.handlerId is None else
-			m.FileHandler.query.get(task.handlerId))
-	if not handler:
-		raise InvalidUsage(_('no handler configured for task {0}').format(taskId))
-	# TODO: add validation
 	data = MyForm(
-		Field('options'),
-		Field('dataFile')
+		Field('handlerId', is_mandatory=True, default=task.handlerId,
+			validators=[
+				validators.is_number,
+				check_file_handler_existence,
+			]),
+		Field('options', is_mandatory=True, default='{}',
+			normalizer=normalize_file_handler_options),
+		Field('dataFile', is_mandatory=True,
+			validators=[
+				validators.is_file,
+			]),
+		Field('validation', default='false',
+			normalizer=normalize_bool_literal,
+			validators=[
+				validators.is_bool,
+			]),
 	).get_data(is_json=False)
-	data['options'] = {}
-	try:
-		data['dataFile'] = data['dataFile'].file
-	except:
-		raise InvalidUsage('invalid data file submitted')
+	handler = m.FileHandler.query.get(data['handlerId'])
 	try:
 		rawPieces = Loader.load(handler, task,
 				data['dataFile'], **data['options'])
 	except Exception, e:
 		raise InvalidUsage(_('failed to load file: {0}').format(str(e)))
+	if not rawPieces:
+		raise InvalidUsage(_('file is empty'))
+
+	if data['validation']:
+		return jsonify({
+			'message': 'data file validated'
+		})
+
 	me = session['current_user']
 	load = m.Load(taskId=taskId, createdBy=me.userId)
 	SS.add(load)
+	# flush to generate loadId in order to populate attributes if needed
 	SS.flush()
+
+	unitCount = 0
 	for i, rawPiece in enumerate(rawPieces):
 		# no need to populate: rawPieceId, isNew, groupId
 		# inferred from context: taskId
@@ -437,11 +527,16 @@ def create_task_load(taskId):
 			rawPiece.allocationContext = 'L%05d' % load.loadId
 		if getattr(rawPiece, 'assemblyContext') is None:
 			rawPiece.assemblyContext = 'L%05d_%05d' % (load.loadId, i)
+		# use 'or 0' to prevent unwanted error message here
+		# ultimate, null value of words will cause a 5xx error
+		unitCount += (rawPiece.words or 0)
 		load.rawPieces.append(rawPiece)
+	SS.flush()
 	return jsonify({
 		'message': _('loaded {0} raw pieces into task {0} successfully'
 			).format(len(rawPieces), taskId),
 		'load': m.Load.dump(load),
+		'stats': dict(itemCount=len(rawPieces), unitCount=unitCount)
 	})
 
 
@@ -588,8 +683,8 @@ def normalize_utterance_selection_filters(data, key, value):
 						).format(filterIndex, i, field))
 				elif i == 1:
 					if value not in ('true', 'false'):
-						raise ValueError(_('filter {0}: {1}: {2} must be \'true\' or \'false\''
-							).format(filterIndex, i, field))
+						raise ValueError(_('filter {0}: {1}: {2} must be \'true\' or \'false\', got \'{3}\''
+							).format(filterIndex, i, field, value))
 					else:
 						value = (value == 'true')
 				elif i == 2 and value not in Selector.FILTER_TYPES.values():
@@ -641,23 +736,27 @@ def create_task_utterance_selection(taskId):
 	if not rs:
 		raise InvalidUsage(_('no result found'))
 
-	# SS.add(selection)
-	# SS.flush()
+	SS.add(selection)
+	SS.flush()
+	for rawPieceId in rs:
+		entry = m.SelectionCacheEntry(selectionId=selection.selectionId,
+				rawPieceId=rawPieceId)
+		SS.add(entry)
 
-	# summary = dict(
-	# 	identifier=selection.selectionId,
-	# 	number=len(selection.cached),
-	# 	timestamp=
-	# 	action=selection.action,
-	# 	value=selection.value,
-	# 	user=
-	# 	link=
-	# )
+	summary = dict(
+		identifier=selection.selectionId,
+		number=len(rs),
+		timestamp=selection.selected,
+		action=selection.action,
+		value=selection.subTaskId if selection.action == 'batch' else selection.name,
+		user=m.User.dump(selection.user),
+		link='???'
+	)
 	return jsonify({
 		'message': _('created utterance selection {0} successfully'
 			).format(selection.selectionId),
 		'selection': m.UtteranceSelection.dump(selection),
-		# 'summary': summary,
+		'summary': summary,
 	})
 
 
@@ -725,8 +824,8 @@ def populate_task_utterance_selection(taskId, selectionId):
 		SS.add(group)
 		SS.flush()
 
-		resp = dict(message=_('created custom utterance group {0} with {1} items'
-			).format(group.groupId, itemCount))
+		resp = dict(message=_('created custom utterance group \'{0}\' (#{1}) with {2} items'
+			).format(group.name, group.groupId, itemCount))
 	else:
 		raise InvalidUsage(_('unsupported action {0}').format(selection.action))
 
@@ -1043,6 +1142,63 @@ def remove_task_supervisor(taskId, userId):
 	})
 
 
+@bp.route(_name + '/<int:taskId>/tagsets/', methods=['POST'])
+@api
+@caps()
+def create_task_tag_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	tagSet = m.TagSet()
+	task.tagSet = tagSet
+	SS.flush()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/tagsets/<int:tagSetId>', methods=['POST'])
+@api
+@caps()
+def copy_task_tag_set(taskId, tagSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	srcTagSet = m.TagSet.query.get(tagSetId)
+	if not srcTagSet:
+		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
+	tagSet = m.TagSet()
+	for t in srcTagSet.tags:
+		SS.expunge(t)
+		make_transient(t)
+		t.tagId = None
+		tagSet.tags.append(t)
+	task.tagSet = tagSet
+	SS.flush()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+	})
+
+
+@bp.route(_name + '/<int:taskId>/tagsets/<int:tagSetId>', methods=['PUT'])
+@api
+@caps()
+def share_task_tag_set(taskId, tagSetId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId))
+	tagSet = m.TagSet.query.get(tagSetId)
+	if not tagSet:
+		raise InvalidUsage(_('tagSet {0} not found').format(tagSetId))
+	task.tagSet = tagSet
+	SS.flush()
+	tasks = m.Task.query.filter_by(tagSetId=tagSetId).all()
+	return jsonify({
+		'tagSet': m.TagSet.dump(tagSet),
+		'tasks': m.Task.dump(tasks)
+	})
+
+
 @bp.route(_name + '/<int:taskId>/uttgroups/', methods=['GET'])
 @api
 @caps()
@@ -1073,10 +1229,10 @@ def delete_custom_utterance_group(taskId, groupId):
 	})
 
 
-@bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/words', methods=['GET'])
+@bp.route(_name + '/<int:taskId>/uttgroups/<int:groupId>/stats', methods=['GET'])
 @api
 @caps()
-def get_utterance_group_word_count(taskId, groupId):
+def get_task_utterance_group_stats(taskId, groupId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
@@ -1086,8 +1242,10 @@ def get_utterance_group_word_count(taskId, groupId):
 
 	words = sum([i.words for i in group.rawPieces])
 	return jsonify({
-		'words': words,
-		'totalItems': len(group.rawPieces),
+		'stats': {
+			'unitCount': words,
+			'itemCount': len(group.rawPieces),
+		}
 	})
 
 

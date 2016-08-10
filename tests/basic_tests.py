@@ -537,7 +537,7 @@ class MyTestCase(unittest.TestCase):
 		# /subtasks/<int:subTaskId>/loads/
 		raise NotImplementedError
 
-	@get(expected_result={'batchCount'}, subTaskId=2148)
+	@get(expected_result={'stats'}, subTaskId=2148)
 	def test_api_1_0__get_sub_task_statistics(self):
 		# /subtasks/<int:subTaskId>/stats/
 		raise NotImplementedError
@@ -572,6 +572,12 @@ class MyTestCase(unittest.TestCase):
 		'hasReadInstructions'})}, subTaskId=179)
 	def test_api_1_0__get_sub_task_workers(self):
 		# /subtasks/<int:subTaskId>/workers/
+		raise NotImplementedError
+
+	@put(expected_result={'worker': {'hasReadInstructions', 'removed',
+		'taskId', 'subTaskId', 'userId', 'paymentFactor', 'isNew'}}, subTaskId=1935, userId=699)
+	def test_api_1_0__update_sub_task_worker_settings(self):
+		# /subtasks/<int:subTaskId>/workers/<int:userId>
 		raise NotImplementedError
 
 	@get(expected_result={'tagSet': {'tagSetId': int,
@@ -632,6 +638,11 @@ class MyTestCase(unittest.TestCase):
 		('createdBy', dict)})}, taskId=999999)
 	def test_api_1_0__get_task_loads(self):
 		# /tasks/<int:taskId>/loads/
+		raise NotImplementedError
+
+	@get(expected_result={'stat': {'itemCount', 'unitCount'}}, taskId=999999, loadId=1312)
+	def test_api_1_0__get_task_load_stats(self):
+		# /tasks/<int:taskId>/loads/<int:loadId>/stats
 		raise NotImplementedError
 
 	@get(expected_result={'paymentRecords': ('>0', {'taskId', 'payrollId',
@@ -746,8 +757,8 @@ class MyTestCase(unittest.TestCase):
 		# /tests/
 		raise NotImplementedError
 
-	@get(expected_result={'words': int}, taskId=999999, groupId=814)
-	def test_api_1_0__get_utterance_group_word_count(self):
+	@get(expected_result={'stats': {'itemCount', 'unitCount'}}, taskId=999999, groupId=814)
+	def test_api_1_0__get_task_utterance_group_stats(self):
 		# /tasks/<int:taskId>/uttgroups/<int:groupId>/words
 		raise NotImplementedError
 

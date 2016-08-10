@@ -71,9 +71,11 @@ def assign_batch_to_user(batchId, userId):
 	batch.leaseGranted = datetime.now()
 	batch.leaseExpires = batch.leaseGranted + batch.subTask.defaultLeaseLife
 	batch.user = user
+	SS.flush()
 	return jsonify({
 		'message': _('batch {0} has been assigned to user {1}, expires at {2}'
 			).format(batchId, user.userName, batch.leaseExpires),
+		'batch': m.Batch.dump(batch),
 	})
 
 
@@ -93,7 +95,9 @@ def unassign_batch(batchId):
 		message = _('batch {0} has been un-assigned').format(batchId)
 	else:
 		message = _('batch {0} is not assigned to anyone').format(batchId)
+	SS.flush()
 	return jsonify({
 		'message': message,
+		'batch': m.Batch.dump(batch),
 	})
 

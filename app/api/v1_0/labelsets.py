@@ -218,7 +218,7 @@ def update_label_group(labelSetId, labelGroupId):
 	data = MyForm(
 		Field('name', validators=[
 			validators.is_string,
-			(check_label_group_name_uniqueness, (labelSetId, None)),
+			(check_label_group_name_uniqueness, (labelSetId, labelGroupId)),
 		]),
 		Field('dropDownDisplay', validators=[validators.is_bool,]),
 		Field('isMandatory', validators=[validators.is_bool,]),

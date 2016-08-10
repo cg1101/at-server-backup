@@ -1,7 +1,6 @@
 
 import cStringIO
 import gzip
-import json
 import random
 from collections import OrderedDict
 
@@ -10,7 +9,7 @@ from flask import url_for
 from app.i18n import get_text as _
 import db.model as m
 from db.db import SS
-
+from .filehandler import get_handler
 
 def split_by_size(seq, size):
 	if not size >= 1:
@@ -94,41 +93,11 @@ class Batcher(object):
 class Loader(object):
 	@staticmethod
 	def load(handler, task, dataFile, **options):
-		try:
-			dataFileHandler = HANDLERS[handler.name]
-		except KeyError:
-			raise RuntimeError(_('unsupported file handler {0}'
-				).format(handler.name))
-		return dataFileHandler.process(task, dataFile, **options)
-
-
-class DataFileHandler(object):
-	@staticmethod
-	def process(task, dataFile, **options):
-		raise NotImplementedError
-
-
-class UttDataFileHandler(DataFileHandler):
-	@staticmethod
-	def process(task, dataFile, **options):
-		jsonDict = json.loads(dataFile.read())
-		if task.taskId != jsonDict["taskId"]:
-			raise ValueError("Expecting task {0}, got {1}".format(task.taskId, jsonDict["taskId"]))
-		utts = jsonDict["utterances"]
-		rawPieces = []
-		for utt in utts:
-			rawPiece = m.RawPiece(rawText='', hypothesis=utt["hypothesis"], assemblyContext=utt["url"])
-			meta = {}
-			for key in ("filePath", "audioSpec", "audioDataLocation"):
-				meta[key] = utt[key]
-			rawPiece.meta = json.dumps(meta)
-			rawPieces.append(rawPiece)
+		fileHandler = get_handler(handler.name)
+		itemDicts = fileHandler.load_data(dataFile, **options)
+		rawPieces = [m.RawPiece(**d) for d in itemDicts]
+		# TODO: (optional) save input data file somewhere for future reference
 		return rawPieces
-
-
-HANDLERS = {
-	"utts": UttDataFileHandler,
-}
 
 
 class Selector(object):
@@ -163,7 +132,12 @@ class Selector(object):
 		taskId = getattr(selection, 'taskId')
 		if taskId is None:
 			raise ValueError('must specify taskId')
-		return [1,2,3]
+		limit = min(selection.limit, 5)
+		rs = [r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
+			).filter_by(taskId=taskId
+			).order_by(m.RawPiece.rawPieceId
+			).all()[:limit]]
+		return rs
 for key, value in Selector.FILTER_TYPES.iteritems():
 	setattr(Selector, key, value)
 del key, value

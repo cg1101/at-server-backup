@@ -9,7 +9,8 @@ from sqlalchemy.orm import relationship, backref, synonym, deferred, column_prop
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
 
-from . import database as db
+from . import database, mode
+from .db import SS
 from schema import *
 
 log = logging.getLogger(__name__)
@@ -35,8 +36,14 @@ def dump(cls, obj, extra=None, only=(), exclude=(), prefix=u'',
 	marshal_result = s.dump(obj, many=many, **kwargs)
 	return marshal_result.data
 
+if mode == 'app':
+	Base = database.Model
+else:
+	class MyBase(object):
+		pass
+	Base = declarative_base(cls=MyBase, metadata=metadata)
+	Base.query = SS.query_property()
 
-Base = db.Model
 Base._schema_class = None
 Base.set_schema = classmethod(set_schema)
 Base.dump = classmethod(dump)
@@ -132,9 +139,13 @@ class Batch(Base):
 
 
 class BatchSchema(Schema):
+	user = fields.Method('get_user')
+	def get_user(self, obj):
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Nested('PageSchema', many=True)
 	class Meta:
-		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
 		# ordered = True
 
 # BathchingMode
@@ -160,7 +171,7 @@ class CalculatedPayment(Base):
 
 class CalculatedPaymentSchema(Schema):
 	class Meta:
-		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'items', 'units', 'qaedItems', 'qaedUnits', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
+		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'itemCount', 'unitCount', 'qaedItemCount', 'qaedUnitCount', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
 		ordered = True
 		# skip_missing = True
 
@@ -174,7 +185,7 @@ class CustomUtteranceGroup(Base):
 class CustomUtteranceGroupSchema(Schema):
 	rawPieces = fields.Nested('RawPieceSchema', many=True)
 	class Meta:
-		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId', 'rawPieces')
+		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId')
 		ordered = True
 
 # CustomUtteranceGroupMember
@@ -857,21 +868,31 @@ class SubTaskMetric(Base):
 
 class SubTaskMetricSchema(Schema):
 	class Meta:
-		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'amount',
-			'words', 'workRate', 'accuracy', 'lastUpdated')
+		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'itemCount',
+			'unitCount', 'workRate', 'accuracy', 'lastUpdated')
 		ordered = True
 
 # SubTaskRate
 class SubTaskRate(Base):
 	__table__ = t_subtaskrates
 	rate = relationship('Rate')
+	_updatedByUser = relationship('User',
+		primaryjoin='SubTaskRate.updatedBy == User.userId',
+		foreign_keys='User.userId',
+		uselist=False,
+	)
 	rateName = association_proxy('rate', 'name')
 	standardValue = association_proxy('rate', 'standardValue')
 	targetAccuracy = association_proxy('rate', 'targetAccuracy')
 
 class SubTaskRateSchema(Schema):
+	updatedBy = fields.Method('get_updated_by')
+	def get_updated_by(self, obj):
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj._updatedByUser).data
+
 	class Meta:
-		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'validFrom', 'multiplier', 'updatedBy', 'updatedAt')
+		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'standardValue', 'targetAccuracy', 'validFrom', 'multiplier', 'updatedBy', 'updatedAt')
 		ordered = True
 
 # TagImage:
@@ -938,7 +959,8 @@ class SpanBTag(Tag):
 	}
 
 class SpanBTagSchema(TagSchema):
-	pass
+	class Meta:
+		additional = ('color', 'isForeground')
 
 class SubstitutionTag(Tag):
 	__mapper_args__ = {

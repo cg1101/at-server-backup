@@ -4,6 +4,7 @@ import os
 
 from flask import Flask, session, request, send_file, after_this_request,\
 		redirect, jsonify, make_response
+from flask.ext.cors import CORS
 
 from config import config
 from db.model import User
@@ -17,12 +18,13 @@ def create_app(config_name):
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
 	db.init_app(app)
+	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
-	#app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
-	#	app.config['AUTHENTICATION_LOGIN_URL'],
-	#	public_prefixes=['/static/', '/webservices', '/logout'],
-	#	json_prefixes=['/api/'],
-	#)
+	# app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
+	# 	app.config['AUTHENTICATION_LOGIN_URL'],
+	# 	public_prefixes=['/static/', '/webservices', '/logout'],
+	# 	json_prefixes=['/api/'],
+	# )
 
 	from app.api import api_1_0
 	# from app.webservices import webservices
@@ -77,6 +79,8 @@ def create_app(config_name):
 			return make_response(
 				_('Sorry, the resource you have requested for is not found'),
 				404)
+		if request.path.startswith('/api/'):
+			return make_response(jsonify(error='requested url not found'), 404, {})
 		# TODO: only redirect valid urls
 		return redirect('/#%s' % request.path)
 
