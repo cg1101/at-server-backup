@@ -25,7 +25,8 @@ def upgrade():
     sa.Column('defaultseverity', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.Column('isstandard', sa.BOOLEAN(), server_default=sa.text(u'true'), nullable=False),
     sa.ForeignKeyConstraint(['errorclassid'], [u'errorclasses.errorclassid'], name=u'errortypes_errorclassid_fkey'),
-    sa.PrimaryKeyConstraint(u'errortypeid', name=op.f('pk_errortypes'))
+    sa.PrimaryKeyConstraint(u'errortypeid', name=op.f('pk_errortypes')),
+    sa.CheckConstraint('defaultseverity >= 0 AND defaultseverity <= 1'),
     )
     op.create_index(op.f('ix_errortypes_name'), 'errortypes', ['name'], unique=True)
     op.create_table('filehandleroptions',
@@ -55,9 +56,9 @@ def upgrade():
     sa.Column('centsperutt', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.Column('accuracy', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.ForeignKeyConstraint(['rateid'], [u'rates.rateid'], name=u'ratedetails_rateid_fkey'),
-    sa.PrimaryKeyConstraint(u'rateid', u'accuracy', name=op.f('pk_ratedetails'))
-    )
-    op.create_index(op.f('ix_ratedetails_rateid'), 'ratedetails', ['rateid', 'accuracy'], unique=True)
+    sa.PrimaryKeyConstraint(u'rateid', u'accuracy', name=op.f('pk_ratedetails')),
+    sa.CheckConstraint('accuracy>=0 AND accuracy<=1'),
+    ) 
     op.create_table('tags',
     sa.Column('tagid', sa.INTEGER(), nullable=False),
     sa.Column('name', sa.TEXT(), nullable=False),
@@ -77,7 +78,8 @@ def upgrade():
     sa.Column('description', sa.TEXT(), nullable=True),
     sa.Column('isdynamic', sa.BOOLEAN(), server_default=sa.text(u'false'), nullable=False),
     sa.ForeignKeyConstraint(['tagsetid'], [u'tagsets.tagsetid'], name=u'tags_tagsetid_fkey'),
-    sa.PrimaryKeyConstraint(u'tagid', name=op.f('pk_tags'))
+    sa.PrimaryKeyConstraint(u'tagid', name=op.f('pk_tags')),
+    sa.CheckConstraint("shortcutkey IS NULL OR shortcutkey <> ' '"),
     )
     op.create_index(op.f('ix_tags_colour'), 'tags', ['colour', 'isforeground', 'tagsetid'], unique=True)
     op.create_index(op.f('ix_tags_tagsetid'), 'tags', ['tagsetid', 'name'], unique=True)
@@ -89,7 +91,6 @@ def downgrade():
     op.drop_index(op.f('ix_tags_tagsetid'), table_name='tags')
     op.drop_index(op.f('ix_tags_colour'), table_name='tags')
     op.drop_table('tags')
-    op.drop_index(op.f('ix_ratedetails_rateid'), table_name='ratedetails')
     op.drop_table('ratedetails')
     op.drop_index('labelgroups_labelsetid_key', table_name='labelgroups')
     op.drop_table('labelgroups')

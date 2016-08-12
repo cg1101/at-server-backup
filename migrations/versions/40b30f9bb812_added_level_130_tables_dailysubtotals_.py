@@ -45,7 +45,11 @@ def upgrade():
     sa.Column('updatedby', sa.INTEGER(), nullable=False),
     sa.ForeignKeyConstraint(['qasubtaskid'], [u'subtasks.subtaskid'], name=u'defaultqaconfiguration_qasubtaskid_fkey'),
     sa.ForeignKeyConstraint(['worksubtaskid'], [u'subtasks.subtaskid'], name=u'defaultqaconfiguration_worksubtaskid_fkey'),
-    sa.PrimaryKeyConstraint(u'worksubtaskid', name=op.f('pk_defaultqaconfiguration'))
+    sa.PrimaryKeyConstraint(u'worksubtaskid', name=op.f('pk_defaultqaconfiguration')),
+    sa.CheckConstraint('accuracythreshold <= defaultexpectedaccuracy AND accuracythreshold > 0 AND accuracythreshold < 1'),
+    sa.CheckConstraint('confidenceinterval >= 0.9 AND confidenceinterval < 1'),
+    sa.CheckConstraint('defaultexpectedaccuracy > 0 AND defaultexpectedaccuracy < 1'),
+    sa.CheckConstraint('samplingerror > 0 AND samplingerror <= 0.1'),
     )
     op.create_table('qaconfigurationentries',
     sa.Column('entryid', sa.INTEGER(), nullable=False),
@@ -57,7 +61,11 @@ def upgrade():
     sa.Column('confidenceinterval', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.ForeignKeyConstraint(['qasubtaskid'], [u'subtasks.subtaskid'], name=u'qaconfigurationentries_qasubtaskid_fkey'),
     sa.ForeignKeyConstraint(['worksubtaskid'], [u'subtasks.subtaskid'], name=u'qaconfigurationentries_worksubtaskid_fkey'),
-    sa.PrimaryKeyConstraint(u'entryid', name=op.f('pk_qaconfigurationentries'))
+    sa.PrimaryKeyConstraint(u'entryid', name=op.f('pk_qaconfigurationentries')),
+    sa.CheckConstraint('confidenceinterval >= 0.9 AND confidenceinterval < 1'),
+    sa.CheckConstraint('defaultexpectedaccuracy > 0 AND defaultexpectedaccuracy < 1'),
+    sa.CheckConstraint('orderindex>=0'),
+    sa.CheckConstraint('samplingerror > 0 AND samplingerror <= 0.1'),
     )
     op.create_index('qaconfigurationentries_worksubtaskid_key', 'qaconfigurationentries', ['worksubtaskid', 'orderindex'], unique=True)
     op.create_table('subtaskrates',
@@ -113,7 +121,8 @@ def upgrade():
     sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'workintervals_subtaskid_fkey'),
     sa.ForeignKeyConstraint(['taskid', 'subtaskid'], [u'subtasks.taskid', u'subtasks.subtaskid'], name=u'workintervals_taskid_fkey1'),
     sa.ForeignKeyConstraint(['taskid'], [u'tasks.taskid'], name=u'workintervals_taskid_fkey'),
-    sa.PrimaryKeyConstraint(u'workintervalid', name=op.f('pk_workintervals'))
+    sa.PrimaryKeyConstraint(u'workintervalid', name=op.f('pk_workintervals')),
+    sa.CheckConstraint("intervalstatus=ANY(ARRAY['current','addingfinalchecks','checking','finished'])"),
     )
     ### end Alembic commands ###
 

@@ -33,6 +33,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'batches_subtaskid_fkey'),
     sa.ForeignKeyConstraint(['taskid'], [u'tasks.taskid'], name=u'batches_taskid_fkey'),
     sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'batches_userid_fkey'),
+    sa.ForeignKeyConstraint(['notuserid'], [u'users.userid'], name=u'batches_notuserid_fkey'),
     sa.PrimaryKeyConstraint(u'batchid', name=op.f('pk_batches'))
     )
     op.create_index('batchesbysubtaskid', 'batches', ['subtaskid'], unique=False)
@@ -87,6 +88,7 @@ def upgrade():
     )
     op.create_index('postprocessingutterancegroups_taskid_key', 'postprocessingutterancegroups', ['taskid', 'name'], unique=True)
     op.create_table('reworkcontenthistory',
+    sa.Column('eventid', sa.INTEGER(), nullable=False),
     sa.Column('subtaskid', sa.INTEGER(), nullable=False),
     sa.Column('selectionid', sa.INTEGER(), nullable=True),
     sa.Column('amount', sa.INTEGER(), nullable=False),
@@ -94,8 +96,10 @@ def upgrade():
     sa.Column('t_processed_at', postgresql.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('operator', sa.INTEGER(), nullable=True),
     sa.ForeignKeyConstraint(['selectionid'], [u'utteranceselections.selectionid'], name=u'reworkcontenthistory_selectionid_fkey'),
-    sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'reworkcontenthistory_subtaskid_fkey')
+    sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'reworkcontenthistory_subtaskid_fkey'),
+    sa.CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
     )
+    op.create_index('reworkcontenthistorybysubtaskid', 'reworkcontenthistory', ['subtaskid'], unique=False)
     op.create_table('subtaskmetrics',
     sa.Column('metricid', sa.INTEGER(), nullable=False),
     sa.Column('userid', sa.INTEGER(), nullable=False),
@@ -109,7 +113,8 @@ def upgrade():
     sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'subtaskmetrics_subtaskid_fkey'),
     sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'subtaskmetrics_userid_fkey'),
     sa.ForeignKeyConstraint(['workintervalid'], [u'workintervals.workintervalid'], name=u'subtaskmetrics_workintervalid_fkey'),
-    sa.PrimaryKeyConstraint(u'metricid', name=op.f('pk_subtaskmetrics'))
+    sa.PrimaryKeyConstraint(u'metricid', name=op.f('pk_subtaskmetrics')),
+    sa.CheckConstraint('workintervalid IS NOT NULL AND subtaskid IS NULL OR workintervalid IS NULL AND subtaskid IS NOT NULL'),
     )
     op.create_index('subtaskmetricsbysubtaskid', 'subtaskmetrics', ['subtaskid'], unique=False)
     op.create_index('subtaskmetricsbyuserid', 'subtaskmetrics', ['userid'], unique=False)
@@ -148,6 +153,7 @@ def downgrade():
     op.drop_index('subtaskmetricsbyuserid', table_name='subtaskmetrics')
     op.drop_index('subtaskmetricsbysubtaskid', table_name='subtaskmetrics')
     op.drop_table('subtaskmetrics')
+    op.drop_index('reworkcontenthistorybysubtaskid', table_name='reworkcontenthistory')
     op.drop_table('reworkcontenthistory')
     op.drop_index('postprocessingutterancegroups_taskid_key', table_name='postprocessingutterancegroups')
     op.drop_table('postprocessingutterancegroups')

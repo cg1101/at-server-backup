@@ -56,7 +56,9 @@ def upgrade():
     sa.ForeignKeyConstraint(['projectid'], [u'projects.projectid'], name=u'tasks_projectid_fkey'),
     sa.ForeignKeyConstraint(['tagsetid'], [u'tagsets.tagsetid'], name=u'tasks_tagsetid_fkey'),
     sa.ForeignKeyConstraint(['tasktypeid'], [u'tasktypes.tasktypeid'], name=u'tasks_tasktypeid_fkey'),
-    sa.PrimaryKeyConstraint(u'taskid', name=op.f('pk_tasks'))
+    sa.PrimaryKeyConstraint(u'taskid', name=op.f('pk_tasks')),
+    sa.CheckConstraint("src_dir=ANY(ARRAY['ltr','rtl'])"),
+    sa.CheckConstraint("status=ANY(ARRAY['active','disabled','finished','closed','archived'])"),
     )
     op.create_index(op.f('ix_tasks_migratedby'), 'tasks', ['migratedby'], unique=False)
     ### end Alembic commands ###

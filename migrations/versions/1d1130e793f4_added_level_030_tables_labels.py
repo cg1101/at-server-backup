@@ -28,7 +28,8 @@ def upgrade():
     sa.Column('labelsetid', sa.INTEGER(), nullable=False),
     sa.ForeignKeyConstraint(['labelgroupid'], [u'labelgroups.labelgroupid'], name=u'labels_labelgroupid_fkey'),
     sa.ForeignKeyConstraint(['labelsetid'], [u'labelsets.labelsetid'], name=u'labels_labelsetid_fkey'),
-    sa.PrimaryKeyConstraint(u'labelid', name=op.f('pk_labels'))
+    sa.PrimaryKeyConstraint(u'labelid', name=op.f('pk_labels')),
+    sa.CheckConstraint("hotkey<>' '"),
     )
     op.create_index(op.f('ix_labels_labelgroupid'), 'labels', ['labelgroupid'], unique=False)
     op.create_index('ix_labels_labelsetid_key', 'labels', ['labelsetid', 'extract'], unique=True)
