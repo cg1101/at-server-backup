@@ -54,7 +54,8 @@ def upgrade():
     sa.ForeignKeyConstraint(['pageid'], [u'pages.pageid'], name=u'pagemembers_pageid_fkey'),
     sa.ForeignKeyConstraint(['rawpieceid'], [u'rawpieces.rawpieceid'], name=u'pagemembers_rawpieceid_fkey'),
     sa.ForeignKeyConstraint(['workentryid'], [u'workentries.entryid'], name=u'pagemembers_workentryid_fkey'),
-    sa.PrimaryKeyConstraint(u'pageid', u'memberindex', name=op.f('pk_pagemembers'))
+    sa.PrimaryKeyConstraint(u'pageid', u'memberindex', name=op.f('pk_pagemembers')),
+    sa.CheckConstraint('rawpieceid IS NOT NULL AND workentryid IS NULL OR rawpieceid IS NULL AND workentryid IS NOT NULL'),
     )
     op.create_index('pagememberbyrawpiecid', 'pagemembers', ['rawpieceid'], unique=False)
     op.create_table('workentryerrors',
@@ -63,7 +64,8 @@ def upgrade():
     sa.Column('severity', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.ForeignKeyConstraint(['entryid'], [u'workentries.entryid'], name=u'workentryerrors_entryid_fkey'),
     sa.ForeignKeyConstraint(['errortypeid'], [u'errortypes.errortypeid'], name=u'workentryerrors_errortypeid_fkey'),
-    sa.PrimaryKeyConstraint(u'entryid', u'errortypeid', name=op.f('pk_workentryerrors'))
+    sa.PrimaryKeyConstraint(u'entryid', u'errortypeid', name=op.f('pk_workentryerrors')),
+    sa.CheckConstraint('severity>=0 AND severity<=1'),
     )
     op.create_index('workentryerrorsbyentryid', 'workentryerrors', ['entryid'], unique=False)
     op.create_table('workentrylabels',

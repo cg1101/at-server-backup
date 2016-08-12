@@ -96,7 +96,8 @@ def upgrade():
     sa.Column('t_processed_at', postgresql.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('operator', sa.INTEGER(), nullable=True),
     sa.ForeignKeyConstraint(['selectionid'], [u'utteranceselections.selectionid'], name=u'reworkcontenthistory_selectionid_fkey'),
-    sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'reworkcontenthistory_subtaskid_fkey')
+    sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'reworkcontenthistory_subtaskid_fkey'),
+    sa.CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
     )
     op.create_index('reworkcontenthistorybysubtaskid', 'reworkcontenthistory', ['subtaskid'], unique=False)
     op.create_table('subtaskmetrics',
@@ -112,7 +113,8 @@ def upgrade():
     sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'subtaskmetrics_subtaskid_fkey'),
     sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'subtaskmetrics_userid_fkey'),
     sa.ForeignKeyConstraint(['workintervalid'], [u'workintervals.workintervalid'], name=u'subtaskmetrics_workintervalid_fkey'),
-    sa.PrimaryKeyConstraint(u'metricid', name=op.f('pk_subtaskmetrics'))
+    sa.PrimaryKeyConstraint(u'metricid', name=op.f('pk_subtaskmetrics')),
+    sa.CheckConstraint('workintervalid IS NOT NULL AND subtaskid IS NULL OR workintervalid IS NULL AND subtaskid IS NOT NULL'),
     )
     op.create_index('subtaskmetricsbysubtaskid', 'subtaskmetrics', ['subtaskid'], unique=False)
     op.create_index('subtaskmetricsbyuserid', 'subtaskmetrics', ['userid'], unique=False)

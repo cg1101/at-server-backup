@@ -129,7 +129,9 @@ def upgrade():
     sa.ForeignKeyConstraint(['modeid'], [u'batchingmodes.modeid'], name=u'subtasks_modeid_fkey'),
     sa.ForeignKeyConstraint(['taskid'], [u'tasks.taskid'], name=u'subtasks_taskid_fkey'),
     sa.ForeignKeyConstraint(['worktypeid'], [u'worktypes.worktypeid'], name=u'subtasks_worktypeid_fkey'),
-    sa.PrimaryKeyConstraint(u'subtaskid', name=op.f('pk_subtasks'))
+    sa.PrimaryKeyConstraint(u'subtaskid', name=op.f('pk_subtasks')),
+    sa.CheckConstraint("dst_dir=ANY(ARRAY['ltr','rtl'])"),
+    sa.CheckConstraint("getpolicy=ANY(ARRAY['nolimit','oneonly'])"),
     )
     op.create_index('ix_subtasks_taskid', 'subtasks', ['taskid'], unique=False)
     op.create_index(op.f('ix_subtasks_taskid_worktypeid_name'), 'subtasks', ['taskid', 'worktypeid', 'name'], unique=True)
@@ -141,7 +143,8 @@ def upgrade():
     sa.Column('disabled', sa.BOOLEAN(), server_default=sa.text(u'false'), nullable=False),
     sa.ForeignKeyConstraint(['errortypeid'], [u'errortypes.errortypeid'], name=u'taskerrortypes_errortypeid_fkey'),
     sa.ForeignKeyConstraint(['taskid'], [u'tasks.taskid'], name=u'taskerrortypes_taskid_fkey'),
-    sa.PrimaryKeyConstraint(u'taskid', u'errortypeid', name=op.f('pk_taskerrortypes'))
+    sa.PrimaryKeyConstraint(u'taskid', u'errortypeid', name=op.f('pk_taskerrortypes')),
+    sa.CheckConstraint('severity>=0 AND severity<=1'),
     )
     op.create_table('taskreports',
     sa.Column('taskreportid', sa.INTEGER(), nullable=False),

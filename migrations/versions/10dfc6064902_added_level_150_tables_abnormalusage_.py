@@ -23,7 +23,8 @@ def upgrade():
     sa.Column('userid', sa.INTEGER(), nullable=False),
     sa.Column('event', sa.TEXT(), nullable=False),
     sa.Column('when', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
-    sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'batchhistory_userid_fkey')
+    sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'batchhistory_userid_fkey'),
+    sa.CheckConstraint("event=ANY(ARRAY['assigned','abandoned','submitted','revoked'])"),
     )
     op.create_index('batchhistorybyuserid', 'batchhistory', ['userid'], unique=False)
     op.create_table('pages',
@@ -31,7 +32,8 @@ def upgrade():
     sa.Column('batchid', sa.INTEGER(), nullable=False),
     sa.Column('pageindex', sa.INTEGER(), nullable=False),
     sa.ForeignKeyConstraint(['batchid'], [u'batches.batchid'], name=u'pages_batchid_fkey'),
-    sa.PrimaryKeyConstraint(u'pageid', name=op.f('pk_pages'))
+    sa.PrimaryKeyConstraint(u'pageid', name=op.f('pk_pages')),
+    sa.CheckConstraint('pageindex>=0'),
     )
     op.create_index('pages_batchid_key', 'pages', ['batchid', 'pageindex'], unique=True)
     op.create_index('pagesbybatchid', 'pages', ['batchid'], unique=False)
@@ -42,7 +44,9 @@ def upgrade():
     sa.Column('degree', sa.INTEGER(), nullable=False),
     sa.ForeignKeyConstraint(['labelid'], [u'labels.labelid'], name=u'abnormalusage_labelid_fkey'),
     sa.ForeignKeyConstraint(['metricid'], [u'subtaskmetrics.metricid'], name=u'abnormalusage_metricid_fkey'),
-    sa.ForeignKeyConstraint(['tagid'], [u'tags.tagid'], name=u'abnormalusage_tagid_fkey')
+    sa.ForeignKeyConstraint(['tagid'], [u'tags.tagid'], name=u'abnormalusage_tagid_fkey'),
+    sa.CheckConstraint('tagid IS NOT NULL AND labelid IS NULL OR tagid IS NULL AND labelid IS NOT NULL'),
+    sa.CheckConstraint('degree <> 0'),
     )
     op.create_index('abnormalusagebymetricid', 'abnormalusage', ['metricid'], unique=False)
     op.create_table('rawpieces',

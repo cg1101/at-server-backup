@@ -61,7 +61,8 @@ def upgrade():
     sa.Column('centsperutt', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.Column('maxcentsperutt', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.Column('targetaccuracy', postgresql.DOUBLE_PRECISION(), nullable=False),
-    sa.PrimaryKeyConstraint(u'rateid', name=op.f('pk_rates'))
+    sa.PrimaryKeyConstraint(u'rateid', name=op.f('pk_rates')),
+    sa.CheckConstraint('targetaccuracy>=0 AND targetaccuracy<=1'),
     )
     op.create_index(op.f('ix_rates_name'), 'rates', ['name'], unique=True)
     op.create_table('tagimagepreviews',
