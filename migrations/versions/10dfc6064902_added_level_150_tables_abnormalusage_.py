@@ -63,6 +63,9 @@ def upgrade():
     sa.PrimaryKeyConstraint(u'rawpieceid', name=op.f('pk_rawpieces'))
     )
     op.create_index(op.f('ix_rawpieces_taskid'), 'rawpieces', ['taskid', 'assemblycontext'], unique=True)
+    op.create_index('rawpieces_groupid', 'rawpieces', ['groupid'], unique=False)
+    op.create_index('rawpieces_loadid', 'rawpieces', ['loadid'], unique=False)
+    op.create_index('rawpieces_taskid', 'rawpieces', ['taskid'], unique=False)
     op.create_table('subtaskmetricerrors',
     sa.Column('metricid', sa.INTEGER(), nullable=False),
     sa.Column('errortypeid', sa.INTEGER(), nullable=False),
@@ -97,6 +100,9 @@ def downgrade():
     op.drop_table('utteranceselectionfilterpieces')
     op.drop_index('subtaskmetricerrorsbymetricid', table_name='subtaskmetricerrors')
     op.drop_table('subtaskmetricerrors')
+    op.drop_index('rawpieces_taskid', table_name='rawpieces')
+    op.drop_index('rawpieces_loadid', table_name='rawpieces')
+    op.drop_index('rawpieces_groupid', table_name='rawpieces')
     op.drop_index(op.f('ix_rawpieces_taskid'), table_name='rawpieces')
     op.drop_table('rawpieces')
     op.drop_index('abnormalusagebymetricid', table_name='abnormalusage')

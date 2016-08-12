@@ -34,6 +34,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['selectionid'], [u'utteranceselections.selectionid'], name=u'utteranceselectioncache_selectionid_fkey'),
     sa.PrimaryKeyConstraint(u'selectionid', u'rawpieceid', name=op.f('pk_utteranceselectioncache'))
     )
+    op.create_index('idx_utteranceselectioncache_rawpieceid', 'utteranceselectioncache', ['rawpieceid'], unique=False)
     op.create_table('workentries',
     sa.Column('entryid', sa.INTEGER(), nullable=False),
     sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
@@ -79,6 +80,7 @@ def downgrade():
     op.drop_index('workentriesbypageid', table_name='workentries')
     op.drop_index('workentriesbybatchid', table_name='workentries')
     op.drop_table('workentries')
+    op.drop_index('idx_utteranceselectioncache_rawpieceid', table_name='utteranceselectioncache')
     op.drop_table('utteranceselectioncache')
     op.drop_index('checkindatabyrawpiecehid', table_name='batchcheckincache')
     op.drop_index('checkindatabybatchid', table_name='batchcheckincache')

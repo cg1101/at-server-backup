@@ -76,23 +76,26 @@ t_ao_users = Table('ao_users', metadata,
 
 t_batchingmodes =  Table('batchingmodes', metadata,
 	Column(u'modeid', INTEGER, primary_key=True, nullable=False, key=u'modeId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'requirescontext', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'requiresContext', doc=''),
 )
+Index('batchingmodes_name_key', t_batchingmodes.c.name, unique=True)
 
 
 t_errorclasses =  Table('errorclasses', metadata,
 	Column(u'errorclassid', INTEGER, primary_key=True, nullable=False, key=u'errorClassId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 )
+Index('ix_errorclasses_name', t_errorclasses.c.name, unique=True)
 
 
 t_filehandlers =  Table('filehandlers', metadata,
 	Column(u'handlerid', INTEGER, primary_key=True, nullable=False, key=u'handlerId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 )
+Index('ix_filehandlers_name', t_filehandlers.c.name, unique=True)
 
 
 t_jobs =  Table('jobs', metadata,
@@ -115,12 +118,14 @@ t_labelsets =  Table('labelsets', metadata,
 
 t_rates =  Table('rates', metadata,
 	Column(u'rateid', INTEGER, primary_key=True, nullable=False, key=u'rateId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, #unique=True,
+			key=u'name', doc=''),
 	Column(u'centsperutt', DOUBLE_PRECISION, nullable=False, key=u'standardValue', doc=''),
 	Column(u'maxcentsperutt', DOUBLE_PRECISION, nullable=False, key=u'maxValue', doc=''),
 	Column(u'targetaccuracy', DOUBLE_PRECISION, nullable=False, key=u'targetAccuracy', doc=''),
 	CheckConstraint('targetaccuracy>=0 AND targetaccuracy<=1'),
 )
+Index('ix_rates_name', t_rates.c.name, unique=True)
 
 
 t_tagimagepreviews =  Table('tagimagepreviews', metadata,
@@ -146,31 +151,36 @@ t_tasktypes =  Table('tasktypes', metadata,
 
 t_taskreporttypes =  Table('taskreporttypes', metadata,
 	Column(u'reporttypeid', INTEGER, primary_key=True, nullable=False, key=u'reportTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, #unique=True,
+			key=u'name', doc=''),
 	Column(u'isstandard', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isStandard', doc=''),
 	Column(u'restrictusersallowed', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'restrictUsersAllowed', doc=''),
 )
+Index('taskreporttypes_name_key', t_taskreporttypes.c.name, unique=True)
 
 
 t_worktypes =  Table('worktypes', metadata,
 	Column(u'worktypeid', INTEGER, primary_key=True, nullable=False, key=u'workTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False,# unique=True,
+			key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'modifiestranscription', BOOLEAN, nullable=False, key=u'modifiesTranscription', doc=''),
 )
+Index('ix_worktypes_name', t_worktypes.c.name, unique=True)
 
 
 # Level 020
 
 t_errortypes =  Table('errortypes', metadata,
 	Column(u'errortypeid', INTEGER, primary_key=True, nullable=False, key=u'errorTypeId', doc=''),
-	Column(u'name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
+	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'errorclassid', INTEGER, nullable=False, key=u'errorClassId', doc=''),
 	Column(u'defaultseverity', DOUBLE_PRECISION, nullable=False, key=u'defaultSeverity', doc=''),
 	Column(u'isstandard', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'isStandard', doc=''),
 	ForeignKeyConstraint([u'errorClassId'], [u'errorclasses.errorClassId']),
 	CheckConstraint('defaultseverity >= 0 AND defaultseverity <= 1'),
 )
+Index('ix_errortypes_name', t_errortypes.c.name, unique=True)
 
 
 t_filehandleroptions =  Table('filehandleroptions', metadata,
@@ -181,9 +191,10 @@ t_filehandleroptions =  Table('filehandleroptions', metadata,
 	Column(u'datatype', TEXT, nullable=False, key=u'dataType', doc=''),
 	Column(u'widgettype', TEXT, key=u'widgetType', doc=''),
  	Column(u'params', MutableDict.as_mutable(JsonString), key=u'params', doc=''),
- 	UniqueConstraint(u'name', u'handlerId'),
+ 	# UniqueConstraint(u'name', u'handlerId'),
 	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId']),
 )
+Index('ix_filehandleroptions_name', t_filehandleroptions.c.name, t_filehandleroptions.c.handlerId, unique=True)
 
 
 t_labelgroups =  Table('labelgroups', metadata,
@@ -192,17 +203,18 @@ t_labelgroups =  Table('labelgroups', metadata,
 	Column(u'ismandatory', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isMandatory', doc=''),
 	Column(u'labelsetid', INTEGER, nullable=False, key=u'labelSetId', doc=''),
 	Column(u'dropdowndisplay', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'dropDownDisplay', doc=''),
-	UniqueConstraint(u'labelSetId', u'name'),
+	# UniqueConstraint(u'labelSetId', u'name'),
 	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 )
+Index('labelgroups_labelsetid_key', t_labelgroups.c.labelSetId, t_labelgroups.c.name, unique=True)
 
 
 t_ratedetails =  Table('ratedetails', metadata,
-	Column(u'rateid', INTEGER, nullable=False, key=u'rateId', doc=''),
+	Column(u'rateid', INTEGER, primary_key=True, nullable=False, key=u'rateId', doc=''),
 	Column(u'centsperutt', DOUBLE_PRECISION, nullable=False, key=u'value', doc=''),
-	Column(u'accuracy', DOUBLE_PRECISION, nullable=False, key=u'accuracy', doc=''),
-	UniqueConstraint(u'rateId', u'accuracy'),
-	PrimaryKeyConstraint(u'rateId', u'accuracy'),
+	Column(u'accuracy', DOUBLE_PRECISION, primary_key=True, nullable=False, key=u'accuracy', doc=''),
+	# UniqueConstraint(u'rateId', u'accuracy'),
+	# PrimaryKeyConstraint(u'rateId', u'accuracy'),
 	ForeignKeyConstraint([u'rateId'], [u'rates.rateId']),
 	CheckConstraint('accuracy>=0 AND accuracy<=1'),
 )
@@ -226,11 +238,13 @@ t_tags =  Table('tags', metadata,
 	Column(u'tooltip', TEXT, key=u'tooltip', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'isdynamic', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'isDynamic', doc=''),
-	UniqueConstraint(u'tagSetId', u'name'),
-	UniqueConstraint(u'color', u'isForeground', u'tagSetId'),
+	# UniqueConstraint(u'tagSetId', u'name'),
+	# UniqueConstraint(u'color', u'isForeground', u'tagSetId'),
 	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
 	CheckConstraint("shortcutkey IS NULL OR shortcutkey <> ' '"),
 )
+Index('ix_tags_tagsetid', t_tags.c.tagSetId, t_tags.c.name, unique=True)
+Index('ix_tags_colour', t_tags.c.tagSetId, t_tags.c.color, t_tags.c.isForeground, unique=True)
 
 
 # Level 030
@@ -244,14 +258,17 @@ t_labels =  Table('labels', metadata,
 	Column(u'extract', TEXT, nullable=False, key=u'extract', doc=''),
 	Column(u'labelgroupid', INTEGER, key=u'labelGroupId', doc=''),
 	Column(u'labelsetid', INTEGER, nullable=False, key=u'labelSetId', doc=''),
-	UniqueConstraint(u'labelSetId', u'extract'),
-	UniqueConstraint(u'labelSetId', u'name'),
-	UniqueConstraint(u'labelSetId', u'shortcutKey'),
+	# UniqueConstraint(u'labelSetId', u'extract'),
+	# UniqueConstraint(u'labelSetId', u'name'),
+	# UniqueConstraint(u'labelSetId', u'shortcutKey'),
 	ForeignKeyConstraint([u'labelGroupId'], [u'labelgroups.labelGroupId']),
 	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 	CheckConstraint("hotkey<>' '"),
 )
-Index('labelsbylabelgroupid', t_labels.c.labelGroupId, unique=False)
+Index('ix_labels_labelsetid_key', t_labels.c.labelSetId, t_labels.c.extract, unique=True)
+Index('ix_labels_labelsetid_key1', t_labels.c.labelSetId, t_labels.c.name, unique=True)
+Index('ix_labels_labelsetid_key2', t_labels.c.labelSetId, t_labels.c.shortcutKey, unique=True)
+Index('ix_labels_labelgroupid', t_labels.c.labelGroupId, unique=False)
 
 
 # Level 100
@@ -324,7 +341,7 @@ t_tasks =  Table('tasks', metadata,
 	CheckConstraint("src_dir=ANY(ARRAY['ltr','rtl'])"),
 	CheckConstraint("status=ANY(ARRAY['active','disabled','finished','closed','archived'])"),
 )
-Index('projectsmigratedby', t_tasks.c.migratedBy, unique=False)
+Index('ix_tasks_migratedby', t_tasks.c.migratedBy, unique=False)
 
 
 t_tracking_events =  Table('tracking_events', metadata,
@@ -358,16 +375,18 @@ t_loads =  Table('loads', metadata,
 	Column(u'createdby', INTEGER, nullable=False, key=u'createdBy', doc=''),
 	Column(u'createdat', TIMESTAMP(timezone=True), nullable=False, server_default=text(u'now()'), key=u'createdAt', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
-	UniqueConstraint(u'loadId', u'taskId'),
+	# UniqueConstraint(u'loadId', u'taskId'),
 	ForeignKeyConstraint([u'createdBy'], [u'users.userId']),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
+Index('ix_loads_taskid_loadid', t_loads.c.loadId, t_loads.c.taskId, unique=True)
 
 
 t_otherpayments =  Table('otherpayments', metadata,
 	Column(u'otherpaymentid', INTEGER, primary_key=True, nullable=False, key=u'otherPaymentId', doc=''),
 	Column(u'payrollid', INTEGER, nullable=False, key=u'payrollId', doc=''),
-	Column(u'identifier', TEXT, nullable=False, unique=True, key=u'identifier', doc=''),
+	Column(u'identifier', TEXT, nullable=False, # unique=True,
+			key=u'identifier', doc=''),
 	Column(u'paymenttypeid', INTEGER, nullable=False, key=u'paymentTypeId', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
@@ -378,6 +397,7 @@ t_otherpayments =  Table('otherpayments', metadata,
 	ForeignKeyConstraint([u'payrollId'], [u'payrolls.payrollId']),
 	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
+Index('otherpayments_identifier_key', t_otherpayments.c.identifier, unique=True)
 Index('otherpaymentsbypayrollid', t_otherpayments.c.payrollId, unique=False)
 Index('otherpaymentsbytaskid', t_otherpayments.c.taskId, unique=False)
 
@@ -421,9 +441,10 @@ t_streams =  Table('streams', metadata,
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'open', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'open', doc=''),
-	UniqueConstraint(u'taskId', u'name'),
+	# UniqueConstraint(u'taskId', u'name'),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
+Index('streams_taskid_key', t_streams.c.taskId, t_streams.c.name, unique=True)
 
 
 t_subtasks =  Table('subtasks', metadata,
@@ -455,15 +476,17 @@ t_subtasks =  Table('subtasks', metadata,
 	Column(u'medianworkrate', DOUBLE_PRECISION, key=u'medianWorkRate', doc=''),
 	Column(u'hidelabels', BOOLEAN, server_default=text(u'false'), key=u'hideLabels', doc=''),
 	Column(u'validators', TEXT, key=u'validators', doc=''),
-	UniqueConstraint(u'taskId', u'workTypeId', u'name'),
-	UniqueConstraint(u'taskId', u'subTaskId'),
+	# UniqueConstraint(u'taskId', u'workTypeId', u'name'),
+	# UniqueConstraint(u'taskId', u'subTaskId'),
 	ForeignKeyConstraint([u'workTypeId'], [u'worktypes.workTypeId']),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 	ForeignKeyConstraint([u'modeId'], [u'batchingmodes.modeId']),
 	CheckConstraint("dst_dir=ANY(ARRAY['ltr','rtl'])"),
 	CheckConstraint("getpolicy=ANY(ARRAY['nolimit','oneonly'])"),
 )
-Index('subtasksbytaskid', t_subtasks.c.taskId, unique=False)
+Index('ix_subtasks_taskid_worktypeid_name', t_subtasks.c.taskId, t_subtasks.c.workTypeId, t_subtasks.c.name, unique=True)
+Index('ix_subtasks_taskid_subtaskid', t_subtasks.c.taskId, t_subtasks.c.subTaskId, unique=True)
+Index('ix_subtasks_taskid', t_subtasks.c.taskId, unique=False)
 
 
 t_taskerrortypes =  Table('taskerrortypes', metadata,
@@ -509,14 +532,14 @@ t_dailysubtasktotals =  Table('dailysubtasktotals', metadata,
 	Column(u'userid', INTEGER, nullable=False, key=u'userId', doc=''),
 	Column(u'amount', INTEGER, nullable=False, key=u'amount', doc=''),
 	Column(u'words', INTEGER, key=u'words', doc=''),
-	UniqueConstraint(u'totalDate', u'subTaskId', u'userId'),
+	# UniqueConstraint(u'totalDate', u'subTaskId', u'userId', name='dailysubtasktotals_totaldate_key'),
 	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 )
 Index('dailysubtasktotalsbysubtaskid', t_dailysubtasktotals.c.subTaskId, unique=False)
 Index('dailysubtasktotalsbyuserid', t_dailysubtasktotals.c.userId, unique=False)
 Index('dailysubtasktotalsbytotaldate', t_dailysubtasktotals.c.totalDate, unique=False)
-
+Index('dailysubtasktotals_totaldate_key', t_dailysubtasktotals.c.totalDate, t_dailysubtasktotals.c.subTaskId, t_dailysubtasktotals.c.userId, unique=True)
 
 t_defaultqaconfiguration =  Table('defaultqaconfiguration', metadata,
 	Column(u'worksubtaskid', INTEGER, primary_key=True, nullable=False, key=u'workSubTaskId', doc=''),
@@ -545,7 +568,7 @@ t_qaconfigurationentries =  Table('qaconfigurationentries', metadata,
 	Column(u'samplingerror', DOUBLE_PRECISION, nullable=False, key=u'samplingError', doc=''),
 	Column(u'defaultexpectedaccuracy', DOUBLE_PRECISION, nullable=False, key=u'defaultExpectedAccuracy', doc=''),
 	Column(u'confidenceinterval', DOUBLE_PRECISION, nullable=False, key=u'confidenceInterval', doc=''),
-	UniqueConstraint('workSubTaskId', u'orderIndex'),
+	# UniqueConstraint('workSubTaskId', u'orderIndex'),
 	ForeignKeyConstraint([u'qaSubTaskId'], [u'subtasks.subTaskId']),
 	ForeignKeyConstraint([u'workSubTaskId'], [u'subtasks.subTaskId']),
 	CheckConstraint('confidenceinterval >= 0.9 AND confidenceinterval < 1'),
@@ -553,6 +576,7 @@ t_qaconfigurationentries =  Table('qaconfigurationentries', metadata,
 	CheckConstraint('orderindex>=0'),
 	CheckConstraint('samplingerror > 0 AND samplingerror <= 0.1'),
 )
+Index('qaconfigurationentries_worksubtaskid_key', t_qaconfigurationentries.c.workSubTaskId, t_qaconfigurationentries.c.orderIndex, unique=True)
 
 
 t_subtaskrates =  Table('subtaskrates', metadata,
@@ -670,10 +694,11 @@ t_customutterancegroups =  Table('customutterancegroups', metadata,
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'utterances', INTEGER, nullable=False, key=u'utterances', doc=''),
 	Column(u'selectionid', INTEGER, nullable=False, key=u'selectionId', doc=''),
-	UniqueConstraint(u'taskId', u'name'),
+	# UniqueConstraint(u'taskId', u'name'),
 	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
+Index('customutterancegroups_taskid_key', t_customutterancegroups.c.taskId, t_customutterancegroups.c.name, unique=True)
 
 
 t_postprocessingutterancegroups =  Table('postprocessingutterancegroups', metadata,
@@ -684,10 +709,11 @@ t_postprocessingutterancegroups =  Table('postprocessingutterancegroups', metada
 	Column(u'created', TIMESTAMP(timezone=False), nullable=False, server_default=text(u'now()'), key=u'created', doc=''),
 	Column(u'utterances', INTEGER, nullable=False, key=u'utterances', doc=''),
 	Column(u'selectionid', INTEGER, nullable=False, key=u'selectionId', doc=''),
-	UniqueConstraint(u'taskId', u'name'),
+	# UniqueConstraint(u'taskId', u'name'),
 	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
+Index('postprocessingutterancegroups_taskid_key', t_postprocessingutterancegroups.c.taskId, t_postprocessingutterancegroups.c.name, unique=True)
 
 
 t_reworkcontenthistory =  Table('reworkcontenthistory', metadata,
@@ -793,10 +819,11 @@ t_pages =  Table('pages', metadata,
 	Column(u'pageid', INTEGER, primary_key=True, nullable=False, key=u'pageId', doc=''),
 	Column(u'batchid', INTEGER, nullable=False, key=u'batchId', doc=''),
 	Column(u'pageindex', INTEGER, nullable=False, key=u'pageIndex', doc=''),
-	UniqueConstraint(u'batchId', u'pageIndex'),
+	# UniqueConstraint(u'batchId', u'pageIndex'),
 	ForeignKeyConstraint([u'batchId'], [u'batches.batchId']),
 	CheckConstraint('pageindex>=0'),
 )
+Index('pages_batchid_key', t_pages.c.batchId, t_pages.c.pageIndex, unique=True)
 Index('pagesbybatchid', t_pages.c.batchId, unique=False)
 
 
@@ -812,11 +839,12 @@ t_rawpieces =  Table('rawpieces', metadata,
 	Column(u'words', INTEGER, server_default=text(u'0'), key=u'words', doc=''),
 	Column(u'groupid', INTEGER, key=u'groupId', doc=''),
 	Column(u'loadid', INTEGER, nullable=False, key=u'loadId', doc=''),
-	UniqueConstraint(u'taskId', u'assemblyContext'),
+	# UniqueConstraint(u'taskId', u'assemblyContext'),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 	ForeignKeyConstraint([u'groupId'], [u'postprocessingutterancegroups.groupId']),
 	ForeignKeyConstraint([u'taskId', u'loadId'], [u'loads.taskId', u'loads.loadId']),
 )
+Index('ix_rawpieces_taskid', t_rawpieces.c.taskId, t_rawpieces.c.assemblyContext, unique=True)
 Index('rawpieces_taskid', t_rawpieces.c.taskId, unique=False)
 Index('rawpieces_loadid', t_rawpieces.c.loadId, unique=False)
 Index('rawpieces_groupid', t_rawpieces.c.groupId, unique=False)
@@ -848,11 +876,11 @@ t_batchcheckincache =  Table('batchcheckincache', metadata,
 	Column(u'rawpieceid', INTEGER, nullable=False, key=u'rawPieceId', doc=''),
 	Column(u'result', TEXT, nullable=False, key=u'result', doc=''),
 	Column(u'pageid', INTEGER, nullable=False, key=u'pageId', doc=''),
-	UniqueConstraint(u'batchId', u'rawPieceId'),
+	# UniqueConstraint(u'batchId', u'rawPieceId', name='batchcheckincache_batchid_key'),
 )
+Index('batchcheckincache_batchid_key', t_batchcheckincache.c.batchId, t_batchcheckincache.c.rawPieceId, unique=True)
 Index('checkindatabybatchid', t_batchcheckincache.c.batchId, unique=False)
 Index('checkindatabyrawpiecehid', t_batchcheckincache.c.rawPieceId, unique=False)
-
 
 t_utteranceselectioncache =  Table('utteranceselectioncache', metadata,
 	Column(u'selectionid', INTEGER, primary_key=True, nullable=False, key=u'selectionId', doc=''),

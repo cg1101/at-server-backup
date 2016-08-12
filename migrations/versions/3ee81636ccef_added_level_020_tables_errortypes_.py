@@ -56,8 +56,7 @@ def upgrade():
     sa.Column('accuracy', postgresql.DOUBLE_PRECISION(), nullable=False),
     sa.ForeignKeyConstraint(['rateid'], [u'rates.rateid'], name=u'ratedetails_rateid_fkey'),
     sa.PrimaryKeyConstraint(u'rateid', u'accuracy', name=op.f('pk_ratedetails'))
-    )
-    op.create_index(op.f('ix_ratedetails_rateid'), 'ratedetails', ['rateid', 'accuracy'], unique=True)
+    ) 
     op.create_table('tags',
     sa.Column('tagid', sa.INTEGER(), nullable=False),
     sa.Column('name', sa.TEXT(), nullable=False),
@@ -89,7 +88,6 @@ def downgrade():
     op.drop_index(op.f('ix_tags_tagsetid'), table_name='tags')
     op.drop_index(op.f('ix_tags_colour'), table_name='tags')
     op.drop_table('tags')
-    op.drop_index(op.f('ix_ratedetails_rateid'), table_name='ratedetails')
     op.drop_table('ratedetails')
     op.drop_index('labelgroups_labelsetid_key', table_name='labelgroups')
     op.drop_table('labelgroups')
