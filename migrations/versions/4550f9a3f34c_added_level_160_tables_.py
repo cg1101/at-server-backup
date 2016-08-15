@@ -37,7 +37,7 @@ def upgrade():
     op.create_index('idx_utteranceselectioncache_rawpieceid', 'utteranceselectioncache', ['rawpieceid'], unique=False)
     op.create_table('workentries',
     sa.Column('entryid', sa.INTEGER(), nullable=False),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.Column('result', sa.TEXT(), nullable=True),
     sa.Column('rawpieceid', sa.INTEGER(), nullable=False),
     sa.Column('batchid', sa.INTEGER(), nullable=False),

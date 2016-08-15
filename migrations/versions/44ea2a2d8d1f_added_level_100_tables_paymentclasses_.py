@@ -27,7 +27,7 @@ def upgrade():
     )
     op.create_table('payrolls',
     sa.Column('payrollid', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('updatedpayments', postgresql.TIMESTAMP(), nullable=True),
+    sa.Column('updatedpayments', postgresql.TIMESTAMP(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint(u'payrollid', name=op.f('pk_payrolls'))
     )
     op.create_table('users',
@@ -38,7 +38,7 @@ def upgrade():
     sa.Column('projectid', sa.INTEGER(), autoincrement=False, nullable=False),
     sa.Column('name', sa.TEXT(), nullable=False),
     sa.Column('description', sa.TEXT(), nullable=True),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.Column('migratedby', sa.INTEGER(), nullable=False),
     sa.ForeignKeyConstraint(['migratedby'], [u'users.userid'], name=u'projects_migratedby_fkey'),
     sa.PrimaryKeyConstraint(u'projectid', name=op.f('pk_projects'))

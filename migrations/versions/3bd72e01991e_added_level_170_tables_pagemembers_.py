@@ -23,7 +23,7 @@ def upgrade():
     sa.Column('userid', sa.INTEGER(), nullable=False),
     sa.Column('taskid', sa.INTEGER(), nullable=False),
     sa.Column('subtaskid', sa.INTEGER(), nullable=False),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.Column('batchid', sa.INTEGER(), nullable=False),
     sa.Column('pageid', sa.INTEGER(), nullable=False),
     sa.Column('rawpieceid', sa.INTEGER(), nullable=True),

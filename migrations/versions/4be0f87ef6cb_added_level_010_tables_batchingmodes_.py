@@ -41,9 +41,9 @@ def upgrade():
     op.create_index(op.f('ix_filehandlers_name'), 'filehandlers', ['name'], unique=True)
     op.create_table('jobs',
     sa.Column('jobid', sa.INTEGER(), nullable=False),
-    sa.Column('added', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
-    sa.Column('started', postgresql.TIMESTAMP(), nullable=True),
-    sa.Column('completed', postgresql.TIMESTAMP(), nullable=True),
+    sa.Column('added', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('started', postgresql.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('completed', postgresql.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('failed', sa.BOOLEAN(), server_default=sa.text(u'false'), nullable=False),
     sa.Column('isnew', sa.BOOLEAN(), server_default=sa.text(u'true'), nullable=False),
     sa.Column('name', sa.TEXT(), nullable=False),
@@ -52,7 +52,7 @@ def upgrade():
     )
     op.create_table('labelsets',
     sa.Column('labelsetid', sa.INTEGER(), nullable=False),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.PrimaryKeyConstraint(u'labelsetid', name=op.f('pk_labelsets'))
     )
     op.create_table('rates',
@@ -68,13 +68,13 @@ def upgrade():
     op.create_table('tagimagepreviews',
     sa.Column('previewid', sa.INTEGER(), nullable=False),
     sa.Column('image', sa.LargeBinary(), nullable=False),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.PrimaryKeyConstraint(u'previewid', name=op.f('pk_tagimagepreviews'))
     )
     op.create_table('tagsets',
     sa.Column('tagsetid', sa.INTEGER(), nullable=False),
-    sa.Column('created', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
-    sa.Column('lastupdated', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('created', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('lastupdated', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.PrimaryKeyConstraint(u'tagsetid', name=op.f('pk_tagsets'))
     )
     op.create_table('taskreporttypes',
