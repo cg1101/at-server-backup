@@ -11,11 +11,13 @@ def handle_invalid_usage(error):
 	response.status_code = error.status_code
 	return response
 
+import audio_collections
 import batches
 import errorclasses
 import errortypes
 import filehandlers
 import labelsets
+import misc
 import pools
 import projects
 import rates

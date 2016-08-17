@@ -11,9 +11,95 @@ from marshmallow import Schema, fields
 
 from . import database, mode
 from .db import SS
+from lib import DurationField, utcnow
+from lib.metadata_validation import process_received_metadata, resolve_new_metadata
 from schema import *
 
 log = logging.getLogger(__name__)
+
+
+# model mixin classes
+
+class ImportMixin:
+	"""
+	Adds extra functionality for models created
+	during audio import.
+	"""
+
+	@classmethod
+	def from_import(cls, data, *args, **kwargs):
+		"""
+		Parses the validated import data and returns
+		the created model.
+		"""
+		raise NotImplementedError
+
+
+class MetaCategoryMixin:
+	"""
+	Adds extra functionality for metadata categories.
+	"""
+
+	@property
+	def meta_category_id(self):
+		"""
+		An alias for the category ID.
+		"""
+		raise NotImplementedError
+
+
+class MetaEntityMixin:
+	"""
+	Adds extra functionality for models that store metadata.
+	"""
+
+	# the corresponding meta value model class
+	MetaValueModel = None
+	
+	@property
+	def meta_values(self):
+		"""
+		An SQLAlchemy relationship to the meta values.
+		"""
+		raise NotImplementedError	
+	
+	def add_meta_value(self, meta_category, new_value):
+		"""
+		Adds a new meta value.
+		"""
+		if self.MetaValueModel is None:
+			raise RuntimeError("MetaValueModel not set")
+
+		self.meta_values.append(self.MetaValueModel(
+			meta_category=meta_category,
+			value=new_value
+		))
+
+	def add_meta_change_request(self, meta_category, new_value):
+		"""
+		Adds a new meta value change request.
+		"""
+		raise NotImplementedError
+
+
+class MetaValueMixin:
+	"""
+	Adds extra functionality for metadata values.
+	"""
+
+	@property
+	def meta_entity(self):
+		"""
+		An SQLAlchemy relationship to the meta entity.
+		"""
+		raise NotImplementedError
+
+	@property
+	def meta_category(self):
+		"""
+		An SQLAlchemy relationship to the meta category.
+		"""
+		raise NotImplementedError
 
 
 def set_schema(cls, schema_class):
@@ -1227,8 +1313,479 @@ class WorkIntervalSchema(Schema):
 		fields = ('workIntervalId', 'taskId', 'subTaskId', 'status', 'startTime', 'endTime')
 		ordered = True
 
+# RecordingPlatformType
+class RecordingPlatformType(Base):
+	__table__ = t_recording_platform_types
 
-##########################################################################
+	# constants
+	UNSPECIFIED = "Unspecified"
+	SONY_MOBILE_RECORDER = "Sony Mobile Recorder"
+	APPEN_MOBILE_RECORDER = "Appen Mobile Recorder"
+
+	# column synonyms
+	recording_platform_id = synonym("recordingPlatformId")
+
+
+class RecordingPlatformTypeSerialiser(Schema):
+	class Meta:
+		fields = ("recordingPlatformTypeId", "name")
+
+
+# RecordingPlatform
+class RecordingPlatform(Base):
+	__table__ = t_recording_platforms
+
+	# relationships
+	audio_collection = relationship("AudioCollection", backref="recording_platforms")
+	audio_importer = relationship("AudioImporter")
+
+	# synonyms
+	recording_platform_id = synonym("recordingPlatformId")
+	audio_collection_id = synonym("audioCollectionId")
+	audio_importer_id = synonym("audioImporterId")
+	recording_platform_id = synonym("recordingPlatformId")
+	storage_location = synonym("storageLocation")
+
+	@property
+	def importable_performance_meta_categories(self):
+		"""
+		Meta categories that are populated during audio import.
+		"""
+		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
+
+
+class RecordingPlatformSchema(Schema):
+	audioImporter = fields.Nested("AudioImporterSchema", attribute="audio_importer")
+	class Meta:
+		additional = ("recordingPlatformId", "storageLocation", "index", "name", "masterHypothesisFile", "masterScriptFile", "config")
+
+# AudioCollectionStatusLog
+class AudioCollectionStatusLog(Base):
+	__table__ = t_audio_collection_status_log
+
+	# column synonyms
+	log_entry_id = synonym("logEntryId")
+	audio_collection_id = synonym("audioCollectionId")
+	from_audio_collection_status_id = synonym("fromAudioCollectionStatusId")
+	to_audio_collection_status_id = synonym("toAudioCollectionStatusId")
+	changed_by = synonym("changedBy")
+	changed_at = synonym("changedAt")
+
+
+class AudioCollectionStatusLogSchema(Schema):
+	class Meta:
+		fields = ("logEntryId", "audioCollectionId", "fromAudioCollectionStatusId", "toAudioCollectionStatusId", "changedBy", "changedAt")
+
+# AudioCollectionStatus
+class AudioCollectionStatus(Base):
+	__table__ = t_audio_collection_statuses
+
+	# constants
+	OPEN = "Open"
+	CLOSED = "Closed"
+	ARCHIVED = "Archived"
+
+	# synonyms
+	audio_collection_status_id = synonym("audioCollectionStatusId")
+
+
+class AudioCollectionStatusSchema(Schema):
+	class Meta:
+		fields = ("audioCollectionStatusId", "name")
+
+# AudioCollectionSupervisor
+class AudioCollectionSupervisor(Base):
+	__table__ = t_audio_collection_supervisors
+
+	# column synonyms
+	audio_collection_id = synonym("audioCollectionId")
+	user_id = synonym("userId")
+
+
+class AudioCollectionSupervisorSchema(Schema):
+	class Meta:
+		fields = ("audioCollectionId", "userId")
+
+# AudioCollection
+class AudioCollection(Base):
+	__table__ = t_audio_collections
+
+	# relationships
+	project = relationship("Project", backref="audio_collections")
+
+	# synonyms
+	audio_collection_id = synonym("audioCollectionId")
+	project_id = synonym("projectId")
+	audio_collection_status_id = synonym("audioCollectionStatusId")
+	archive_file = synonym("archiveFile")
+
+	@property
+	def importable(self):
+		return bool(self.importable_recording_platforms)
+
+	@property
+	def importable_recording_platforms(self):
+		return [rp for rp in self.recording_platforms if rp.audio_importer]
+
+
+class AudioCollectionSchema(Schema):
+	class Meta:
+		fields = ("audioCollectionId", "projectId", "name", "key", "config", "audioCollectionStatusId", "defaultAudioSpec", "masterScriptFile", "masterHypothesisFile", "archiveFile")
+
+# AudioFile
+class AudioFile(Base, ImportMixin):
+	__table__ = t_audio_files
+
+	# relationships
+	recording = relationship("Recording", backref="audio_files")
+	channel = relationship("Channel")
+	audio_collection = relationship("AudioCollection", backref="audio_files")
+	recording_platform = relationship("RecordingPlatform", backref="audio_files")
+
+	# synonyms
+	audio_file_id = synonym("audioFileId")
+	recording_id = synonym("recordingId")
+	audio_collection_id = synonym("audioCollectionId")
+	recording_platform_id = synonym("recordingPlatformId")
+	channel_id = synonym("channelId")
+	file_path = synonym("filePath")
+	audio_spec = synonym("audioSpec")
+	audio_data_location = synonym("audioDataLocation")
+
+	@classmethod
+	def from_import(cls, data, recording):
+		channel = Channel.query.get(data["channelId"])
+
+		if channel.recording_platform != recording.recording_platform:
+			raise ValueError("Channel {0} does not belong to recording platform {1}".format(channel.channel_id, recording.recording_platform.recording_platform_id))
+
+		audio_file = AudioFile(
+			recording=recording,
+			audio_collection=recording.audio_collection,
+			recording_platform=recording.recording_platform,
+			channel=channel,
+			file_path=data["filePath"],
+			audio_spec=data["audioSpec"],
+			audio_data_location=data["audioDataLocation"],
+			duration=DurationField().deserialize(data["duration"]),
+			stats=data["stats"]
+		)
+
+		return audio_file
+
+
+class AudioFileSchema(Schema):
+	class Meta:
+		fields = ("audioFileId", "recordingId", "channelId", "filePath", "audioSpec", "audioDataLocation", "duration", "stats")
+
+# AudioImporter
+class AudioImporter(Base):
+	__table__ = t_audio_importers
+
+	# constants
+	UNSTRUCTURED = "Unstructured"
+	STANDARD = "Standard"
+	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
+	AMR_CONVERSATIONAL = "Appen Mobile Recorder - Conversational"
+	APPEN_TELEPHONY_SCRIPTED = "Appen Telephony - Scripted"
+	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
+
+	# synonyms
+	audio_importer_id = synonym("audioImporterId")
+	all_performances_incomplete = synonym("allPerformancesIncomplete")
+
+
+class AudioImporterSchema(Schema):
+	class Meta:
+		fields = ("audioImporterId", "name")
+
+# SpeakerMetaCategory
+class SpeakerMetaCategory(Base):
+	__table__ = t_speaker_meta_categories
+
+	# column synonyms
+	speaker_meta_category_id = synonym("speakerMetaCategoryId")
+	audio_collection_id = synonym("audioCollectionId")
+
+
+class SpeakerMetaCategorySchema(Schema):
+	class Meta:
+		fields = ("speakerMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+
+# SpeakerMetaValue
+class SpeakerMetaValue(Base):
+	__table__ = t_speaker_meta_values
+
+	# column synonyms
+	speaker_meta_value_id = synonym("speakerMetaValueId")
+	speaker_meta_category_id = synonym("speakerMetaCategoryId")
+	speaker_id = synonym("speakerId")
+
+
+class SpeakerMetaValueSchema(Schema):
+	class Meta:
+		fields = ("speakerMetaValueId", "speakerMetaCategoryId", "speakerId", "value")
+
+# Speaker
+class Speaker(Base):
+	__table__ = t_speakers
+
+	# synonyms
+	speaker_id = synonym("speakerId")
+	audio_collection_id = synonym("audioCollectionId")
+
+
+class SpeakerSchema(Schema):
+	class Meta:
+		fields = ("speakerId", "audioCollectionId", "identifier")
+
+# AlbumMetaCategory
+class AlbumMetaCategory(Base):
+	__table__ = t_album_meta_categories
+
+	# column synonyms
+	album_meta_category_id = synonym("albumMetaCategoryId")
+	audio_collection_id = synonym("audioCollectionId")
+
+
+class AlbumMetaCategorySchema(Schema):
+	class Meta:
+		fields = ("albumMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+
+# AlbumMetaValue
+class AlbumMetaValue(Base):
+	__table__ = t_album_meta_values
+
+	# column synonyms
+	album_meta_value_id = synonym("albumMetaValueId")
+	album_meta_category_id = synonym("albumMetaCategoryId")
+	album_id = synonym("albumId")
+
+
+class AlbumMetaValueSchema(Schema):
+	class Meta:
+		fields = ("albumMetaValueId", "albumMetaCategoryId", "albumId", "value")
+
+# Album
+class Album(Base):
+	__table__ = t_albums
+
+	# synonyms
+	album_id = synonym("albumId")
+	audio_collection_id = synonym("audioCollectionId")
+	speaker_id = synonym("speakerId")
+
+
+class AlbumSchema(Schema):
+	class Meta:
+		fields = ("albumId", "audioCollectionId", "speakerId")
+
+# PerformanceMetaCategory
+class PerformanceMetaCategory(Base, MetaCategoryMixin):
+	__table__ = t_performance_meta_categories
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="performance_meta_categories")
+
+	# synonyms
+	performance_meta_category_id = synonym("performanceMetaCategoryId")
+	audio_collection_id = synonym("audioCollectionId")
+
+	@property
+	def meta_category_id(self):
+		return self.performance_meta_category_id
+
+
+class PerformanceMetaCategorySchema(Schema):
+	class Meta:
+		fields = ("performanceMetaCategoryId", "name", "extractor", "validator")
+
+# PerformanceMetaValue
+class PerformanceMetaValue(Base, MetaValueMixin):
+	__table__ = t_performance_meta_values
+
+	# relationships
+	meta_entity = relationship("Performance", backref="meta_values")
+	meta_category = relationship("PerformanceMetaCategory")
+
+	# synonyms
+	performance_meta_value_id = synonym("performanceMetaValueId")
+	performance_meta_category_id = synonym("performanceMetaCategoryId")
+	performance_id = synonym("performanceId")
+
+
+class PerformanceMetaValueSchema(Schema):
+	class Meta:
+		fields = ("performanceMetaValueId", "performanceMetaCategoryId", "performanceId", "value")
+
+# Performance
+class Performance(Base, ImportMixin, MetaEntityMixin):
+	__table__ = t_performances
+
+	# relationships
+	album = relationship("Album", backref="performances")
+	audio_collection = relationship("AudioCollection", backref="performances")
+	recording_platform = relationship("RecordingPlatform", backref="performances")
+
+	# synonyms
+	performance_id = synonym("performanceId")
+	audio_collection_id = synonym("audioCollectionId")
+	album_id = synonym("albumId")
+	recording_platform_id = synonym("recordingPlatformId")
+	script_id = synonym("scriptId")
+	imported_at = synonym("importedAt")
+
+	MetaValueModel = PerformanceMetaValue
+
+	@property
+	def incomplete(self):
+		"""
+		Placeholder for audio importing. To be
+		replaced when queue functionality and 
+		incomplete performance importing is 
+		added.
+		"""
+		return False  # FIXME
+
+	@classmethod
+	def from_import(cls, data, recording_platform):
+
+		# if adding new data to an existing performance
+		if data["performanceId"]:
+			performance = cls.query.get(data["performanceId"])
+
+			if performance.recording_platform != recording_platform:
+				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.performance_id, recording_platform.record_platform_id))
+
+		# adding a new performance
+		else:
+			performance = cls(
+				audio_collection=recording_platform.audio_collection,
+				recording_platform=recording_platform,
+				name=data["name"],
+				script_id=data["scriptId"],
+				imported_at=utcnow()
+			)
+
+			meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
+			resolve_new_metadata(performance, meta_values)
+
+		# add new recordings
+		for recording_data in data["recordings"]:
+			recording = Recording.from_import(recording_data, performance)
+			performance.recordings.append(recording)
+		
+		return performance
+
+
+class PerformanceSchema(Schema):
+	class Meta:
+		fields = ("performanceId", "audioCollectionId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
+
+# RecordingMetaCategory
+class RecordingMetaCategory(Base):
+	__table__ = t_recording_meta_categories
+
+	# column synonyms
+	recording_meta_category_id = synonym("recordingMetaCategoryId")
+	audio_collection_id = synonym("audioCollectionId")
+
+
+class RecordingMetaCategorySchema(Schema):
+	class Meta:
+		fields = ("recordingMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+
+# RecordingMetaValue
+class RecordingMetaValue(Base):
+	__table__ = t_recording_meta_values
+
+	# column synonyms
+	recording_meta_value_id = synonym("recordingMetaValueId")
+	recording_meta_category_id = synonym("recordingMetaCategoryId")
+	recording_id = synonym("recordingId")
+
+
+class RecordingMetaValueSchema(Schema):
+	class Meta:
+		fields = ("recordingMetaValueId", "recordingMetaCategoryId", "recordingId", "value")
+
+# Recording
+class Recording(Base, ImportMixin):
+	__table__ = t_recordings
+
+	# relationships
+	audio_collection = relationship("AudioCollection", backref="recordings")
+	recording_platform = relationship("RecordingPlatform", backref="recordings")
+	performance = relationship("Performance", backref="recordings")
+	corpus_code = relationship("CorpusCode", backref="recordings")
+
+	# synonyms
+	recording_id = synonym("recordingId")
+	audio_collection_id = synonym("audioCollectionId")
+	performance_id = synonym("performanceId")
+	corpus_code_id = synonym("corpusCodeId")
+
+	@classmethod
+	def from_import(cls, data, performance):
+		corpus_code = CorpusCode.query.get(data["corpusCodeId"])
+
+		if corpus_code.recording_platform != performance.recording_platform:
+			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(corpus_code.corpus_code_id, performance.recording_platform.record_platform_id))
+
+		recording = cls(
+			audio_collection=performance.audio_collection,
+			recording_platform=performance.recording_platform,
+			performance=performance,
+			corpus_code=corpus_code,
+			prompt=data["prompt"],
+			hypothesis=data["hypothesis"]
+		)
+		
+		for audio_file_data in data["audioFiles"]:
+			audio_file = AudioFile.from_import(audio_file_data, recording)
+			recording.audio_files.append(audio_file)
+		
+		return recording
+
+
+class RecordingSchema(Schema):
+	class Meta:
+		fields = ("recordingId", "audioCollectionId", "performanceId", "corpusCodeId", "prompt", "hypothesis")
+
+# CorpusCode
+class CorpusCode(Base):
+	__table__ = t_corpus_codes
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="corpus_codes")
+
+	# synonyms
+	corpus_code_id = synonym("corpusCodeId")
+	audio_collection_id = synonym("audioCollectionId")
+	requires_cutup = synonym("requiresCutup")
+	corpus_code_group_id = synonym("corpusCodeGroupId")
+
+class CorpusCodeSchema(Schema):
+	class Meta:
+		fields = ("corpusCodeId", "code", "requiresCutup", "included", "regex")
+
+# Channel
+class Channel(Base):
+	__table__ = t_channels
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="channels")
+
+	# synonyms
+	channel_id = synonym("channelId")
+	recording_platform_id = synonym("recordingPlatformId")
+	channel_index = synonym("channelIndex")
+
+class ChannelSchema(Schema):
+	class Meta:
+		fields = ("channelId", "name", "channelIndex")
+
+
 #
 # Define model class and its schema (if needed) above
 #
