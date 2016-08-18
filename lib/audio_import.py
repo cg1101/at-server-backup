@@ -2,7 +2,7 @@ import jsonschema
 import os
 
 from marshmallow import Schema, fields
-from db.model import ChannelSchema, CorpusCodeSchema, PerformanceMetaCategorySchema, ProjectSchema
+from db.model import TrackSchema, CorpusCodeSchema, PerformanceMetaCategorySchema, ProjectSchema
 
 
 AUDIO_IMPORT_SCHEMA = {
@@ -45,12 +45,12 @@ AUDIO_IMPORT_SCHEMA = {
 						"minItems": 1,
 						"items": {
 							"type": "object",
-							"required": ["filePath", "channelId", "audioSpec", "audioDataLocation", "duration", "stats"],
+							"required": ["filePath", "trackId", "audioSpec", "audioDataLocation", "duration", "stats"],
 							"properties": {
 								"filePath" : {
 									"type": "string"
 								},
-								"channelId": {
+								"trackId": {
 									"type": "integer"
 								},
 								"audioSpec": {
@@ -91,10 +91,10 @@ class ImportConfigRecordingPlatform(Schema):
 	config = fields.Dict()
 	completedPerformances = fields.Method("get_completed_performances")
 	incompletePerformances = fields.Method("get_incomplete_performances")
-	channels = fields.Nested(
-		ChannelSchema,
+	tracks = fields.Nested(
+		TrackSchema,
 		many=True,
-		only=("channelId", "name", "channelIndex")
+		only=("trackId", "name", "trackIndex")
 	)
 	corpusCodes = fields.Nested(
 		CorpusCodeSchema,

@@ -1,18 +1,17 @@
 """empty message
 
-Revision ID: 5a0df4942c06
+Revision ID: 711072834313
 Revises: 3b7b9c83e00d
-Create Date: 2016-08-17 15:16:29.488650
+Create Date: 2016-08-19 09:21:14.870833
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '5a0df4942c06'
+revision = '711072834313'
 down_revision = '3b7b9c83e00d'
 branch_labels = None
 depends_on = None
 
-import db
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -51,7 +50,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('recording_platform_type_id'),
     sa.UniqueConstraint('name')
     )
-
     op.create_table('audio_collections',
     sa.Column('audio_collection_id', sa.INTEGER(), nullable=False),
     sa.Column('project_id', sa.INTEGER(), nullable=False),
@@ -65,7 +63,6 @@ def upgrade():
     sa.UniqueConstraint('project_id', 'name')
     )
     op.create_index('audio_collections_by_project_id', 'audio_collections', ['project_id'], unique=False)
-
     op.create_table('album_meta_categories',
     sa.Column('album_meta_category_id', sa.INTEGER(), nullable=False),
     sa.Column('audio_collection_id', sa.INTEGER(), nullable=False),
@@ -170,17 +167,6 @@ def upgrade():
     )
     op.create_index('albums_by_audio_collection_id', 'albums', ['audio_collection_id'], unique=False)
     op.create_index('albums_by_speaker_id', 'albums', ['speaker_id'], unique=False)
-    op.create_table('channels',
-    sa.Column('channel_id', sa.INTEGER(), nullable=False),
-    sa.Column('recording_platform_id', sa.INTEGER(), nullable=False),
-    sa.Column('name', sa.TEXT(), nullable=False),
-    sa.Column('channel_index', sa.INTEGER(), nullable=False),
-    sa.ForeignKeyConstraint(['recording_platform_id'], ['recording_platforms.recording_platform_id'], ),
-    sa.PrimaryKeyConstraint('channel_id'),
-    sa.UniqueConstraint('recording_platform_id', 'channel_index'),
-    sa.UniqueConstraint('recording_platform_id', 'name')
-    )
-    op.create_index('channels_by_recording_platform_id', 'channels', ['recording_platform_id'], unique=False)
     op.create_table('corpus_codes',
     sa.Column('corpus_code_id', sa.INTEGER(), nullable=False),
     sa.Column('audio_collection_id', sa.INTEGER(), nullable=False),
@@ -232,6 +218,17 @@ def upgrade():
     )
     op.create_index('speaker_meta_values_by_speaker_id', 'speaker_meta_values', ['speaker_id'], unique=False)
     op.create_index('speaker_meta_values_by_speaker_meta_category_id', 'speaker_meta_values', ['speaker_meta_category_id'], unique=False)
+    op.create_table('tracks',
+    sa.Column('track_id', sa.INTEGER(), nullable=False),
+    sa.Column('recording_platform_id', sa.INTEGER(), nullable=False),
+    sa.Column('name', sa.TEXT(), nullable=False),
+    sa.Column('track_index', sa.INTEGER(), nullable=False),
+    sa.ForeignKeyConstraint(['recording_platform_id'], ['recording_platforms.recording_platform_id'], ),
+    sa.PrimaryKeyConstraint('track_id'),
+    sa.UniqueConstraint('recording_platform_id', 'name'),
+    sa.UniqueConstraint('recording_platform_id', 'track_index')
+    )
+    op.create_index('tracks_by_recording_platform_id', 'tracks', ['recording_platform_id'], unique=False)
     op.create_table('album_meta_values',
     sa.Column('album_meta_value_id', sa.INTEGER(), nullable=False),
     sa.Column('album_meta_category_id', sa.INTEGER(), nullable=False),
@@ -295,16 +292,16 @@ def upgrade():
     sa.Column('recording_id', sa.INTEGER(), nullable=False),
     sa.Column('audio_collection_id', sa.INTEGER(), nullable=False),
     sa.Column('recording_platform_id', sa.INTEGER(), nullable=False),
-    sa.Column('channel_id', sa.INTEGER(), nullable=False),
+    sa.Column('track_id', sa.INTEGER(), nullable=False),
     sa.Column('file_path', sa.TEXT(), nullable=False),
     sa.Column('audio_spec', postgresql.JSONB(), nullable=False),
     sa.Column('audio_data_location', postgresql.JSONB(), nullable=False),
     sa.Column('duration', postgresql.INTERVAL(), nullable=False),
     sa.Column('stats', postgresql.JSONB(), nullable=False),
     sa.ForeignKeyConstraint(['audio_collection_id'], ['audio_collections.audio_collection_id'], ),
-    sa.ForeignKeyConstraint(['channel_id'], ['channels.channel_id'], ),
     sa.ForeignKeyConstraint(['recording_id'], ['recordings.recording_id'], ),
     sa.ForeignKeyConstraint(['recording_platform_id'], ['recording_platforms.recording_platform_id'], ),
+    sa.ForeignKeyConstraint(['track_id'], ['tracks.track_id'], ),
     sa.PrimaryKeyConstraint('audio_file_id'),
     sa.UniqueConstraint('file_path')
     )
@@ -321,7 +318,6 @@ def upgrade():
     )
     op.create_index('recording_meta_values_by_recording_id', 'recording_meta_values', ['recording_id'], unique=False)
     op.create_index('recording_meta_values_by_recording_meta_category_id', 'recording_meta_values', ['recording_meta_category_id'], unique=False)
-
     ### end Alembic commands ###
 
 
@@ -345,6 +341,8 @@ def downgrade():
     op.drop_index('album_meta_values_by_album_meta_category_id', table_name='album_meta_values')
     op.drop_index('album_meta_values_by_album_id', table_name='album_meta_values')
     op.drop_table('album_meta_values')
+    op.drop_index('tracks_by_recording_platform_id', table_name='tracks')
+    op.drop_table('tracks')
     op.drop_index('speaker_meta_values_by_speaker_meta_category_id', table_name='speaker_meta_values')
     op.drop_index('speaker_meta_values_by_speaker_id', table_name='speaker_meta_values')
     op.drop_table('speaker_meta_values')
@@ -354,8 +352,6 @@ def downgrade():
     op.drop_table('performance_meta_categories')
     op.drop_index('corpus_codes_by_audio_collection_id', table_name='corpus_codes')
     op.drop_table('corpus_codes')
-    op.drop_index('channels_by_recording_platform_id', table_name='channels')
-    op.drop_table('channels')
     op.drop_index('albums_by_speaker_id', table_name='albums')
     op.drop_index('albums_by_audio_collection_id', table_name='albums')
     op.drop_table('albums')

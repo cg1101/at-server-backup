@@ -1438,7 +1438,7 @@ class AudioFile(Base, ImportMixin):
 
 	# relationships
 	recording = relationship("Recording", backref="audio_files")
-	channel = relationship("Channel")
+	track = relationship("Track")
 	audio_collection = relationship("AudioCollection", backref="audio_files")
 	recording_platform = relationship("RecordingPlatform", backref="audio_files")
 
@@ -1447,23 +1447,23 @@ class AudioFile(Base, ImportMixin):
 	recording_id = synonym("recordingId")
 	audio_collection_id = synonym("audioCollectionId")
 	recording_platform_id = synonym("recordingPlatformId")
-	channel_id = synonym("channelId")
+	track_id = synonym("trackId")
 	file_path = synonym("filePath")
 	audio_spec = synonym("audioSpec")
 	audio_data_location = synonym("audioDataLocation")
 
 	@classmethod
 	def from_import(cls, data, recording):
-		channel = Channel.query.get(data["channelId"])
+		track = Track.query.get(data["trackId"])
 
-		if channel.recording_platform != recording.recording_platform:
-			raise ValueError("Channel {0} does not belong to recording platform {1}".format(channel.channel_id, recording.recording_platform.recording_platform_id))
+		if track.recording_platform != recording.recording_platform:
+			raise ValueError("Track {0} does not belong to recording platform {1}".format(track.track_id, recording.recording_platform.recording_platform_id))
 
 		audio_file = AudioFile(
 			recording=recording,
 			audio_collection=recording.audio_collection,
 			recording_platform=recording.recording_platform,
-			channel=channel,
+			track=track,
 			file_path=data["filePath"],
 			audio_spec=data["audioSpec"],
 			audio_data_location=data["audioDataLocation"],
@@ -1476,7 +1476,7 @@ class AudioFile(Base, ImportMixin):
 
 class AudioFileSchema(Schema):
 	class Meta:
-		fields = ("audioFileId", "recordingId", "channelId", "filePath", "audioSpec", "audioDataLocation", "duration", "stats")
+		fields = ("audioFileId", "recordingId", "trackId", "filePath", "audioSpec", "audioDataLocation", "duration", "stats")
 
 # AudioImporter
 class AudioImporter(Base):
@@ -1769,21 +1769,21 @@ class CorpusCodeSchema(Schema):
 	class Meta:
 		fields = ("corpusCodeId", "code", "requiresCutup", "included", "regex")
 
-# Channel
-class Channel(Base):
-	__table__ = t_channels
+# Track
+class Track(Base):
+	__table__ = t_tracks
 
 	# relationships
-	recording_platform = relationship("RecordingPlatform", backref="channels")
+	recording_platform = relationship("RecordingPlatform", backref="tracks")
 
 	# synonyms
-	channel_id = synonym("channelId")
+	track_id = synonym("trackId")
 	recording_platform_id = synonym("recordingPlatformId")
-	channel_index = synonym("channelIndex")
+	track_index = synonym("trackIndex")
 
-class ChannelSchema(Schema):
+class TrackSchema(Schema):
 	class Meta:
-		fields = ("channelId", "name", "channelIndex")
+		fields = ("trackId", "name", "trackIndex")
 
 
 #

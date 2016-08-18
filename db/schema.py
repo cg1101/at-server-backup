@@ -1094,16 +1094,16 @@ t_corpus_codes = Table("corpus_codes", metadata,
 Index("corpus_codes_by_audio_collection_id", t_corpus_codes.c.audioCollectionId, unique=False)
 
 
-t_channels = Table("channels", metadata,
-	Column("channel_id", INTEGER, primary_key=True, key="channelId", doc=""),
+t_tracks = Table("tracks", metadata,
+	Column("track_id", INTEGER, primary_key=True, key="trackId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("name", TEXT, nullable=False, key="name", doc=""),
-	Column("channel_index", INTEGER, nullable=False, key="channelIndex", doc=""),
+	Column("track_index", INTEGER, nullable=False, key="trackIndex", doc=""),
 	UniqueConstraint("recordingPlatformId", "name"),
-	UniqueConstraint("recordingPlatformId", "channelIndex"),
+	UniqueConstraint("recordingPlatformId", "trackIndex"),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 )
-Index("channels_by_recording_platform_id", t_channels.c.recordingPlatformId, unique=False)
+Index("tracks_by_recording_platform_id", t_tracks.c.recordingPlatformId, unique=False)
 
 
 t_recording_platform_types = Table("recording_platform_types", metadata,
@@ -1117,7 +1117,7 @@ t_audio_files = Table("audio_files", metadata,
 	Column("recording_id", INTEGER, nullable=False, key="recordingId", doc=""),
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
-	Column("channel_id", INTEGER, nullable=False, key="channelId", doc=""),
+	Column("track_id", INTEGER, nullable=False, key="trackId", doc=""),
 	Column("file_path", TEXT, nullable=False, unique=True, key="filePath", doc=""),
 	Column("audio_spec", JSONB, nullable=False, key="audioSpec", doc=""),
 	Column("audio_data_location", JSONB, nullable=False, key="audioDataLocation", doc=""),
@@ -1126,7 +1126,7 @@ t_audio_files = Table("audio_files", metadata,
 	ForeignKeyConstraint(["recordingId"], ["recordings.recordingId"]),
 	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
-	ForeignKeyConstraint(["channelId"], ["channels.channelId"]),
+	ForeignKeyConstraint(["trackId"], ["tracks.trackId"]),
 )
 Index("audio_files_by_recording_id", t_audio_files.c.recordingId, unique=False)
 
