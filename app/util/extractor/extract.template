@@ -1,0 +1,11 @@
+{% for rawPiece, entry in items %}
+RAW_PIECE_ID: {{rawPiece.rawPieceId}}
+FILE: {{rawPiece.assemblyContext}}
+TRANSCRIPTION: {{entry | formatResult}}
+SOURCE: {{rawPiece.rawText | formatSource}}
+LABELS: {{entry | formatLabels }}
+USER: {{entry | formatUser('emailAddress') }}
+USERNAME: {{entry | formatUser('userName') }}
+QAERRORS: {{entry | formatQaErrors }}
+
+{% endfor %}

@@ -1,6 +1,4 @@
 
-import cStringIO
-import gzip
 import random
 from collections import OrderedDict
 
@@ -9,6 +7,8 @@ from flask import url_for
 from app.i18n import get_text as _
 import db.model as m
 from db.db import SS
+from .converter import Converter
+from .extractor import Extractor
 from .filehandler import get_handler
 
 def split_by_size(seq, size):
@@ -141,26 +141,6 @@ class Selector(object):
 for key, value in Selector.FILTER_TYPES.iteritems():
 	setattr(Selector, key, value)
 del key, value
-
-
-class Extractor(object):
-	EXTRACT = 'extract'
-	TABULAR = 'tabular'
-	HTML = 'html'
-	XML = 'xml'
-	TEXT = 'text'
-	@staticmethod
-	def extract(task, fileFormat=EXTRACT, sourceFormat=TEXT,
-			resultFormat=TEXT, groupIds=[], keepLineBreaks=False,
-			withQaErrors=False, compress=True):
-		# TODO: implement this
-		data = 'this is a piece of fake extract'
-		if compress:
-			sio = cStringIO.StringIO()
-			with gzip.GzipFile(None, mode='w', compresslevel=9, fileobj=sio) as f:
-				f.write(data)
-			data = sio.getvalue()
-		return data
 
 
 class Warnings(dict):

@@ -1,0 +1,9 @@
+
+{% for item in items -%}
+
+{%}
+RAW_PIECE_ID: {{ item.get('rawPieceId', None) }}
+FILE: {{ item.get('file', None) }}
+TRANSCRIPTION: {{ item.get('transcription', None) }}
+
+{% endfor -%}
