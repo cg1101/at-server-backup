@@ -53,14 +53,13 @@ class MetaValidator:
 	Validates raw metadata values.
 	"""
 	VALIDATOR_TYPE = None
-	
+
 	@staticmethod
 	def get_validator(json_dict):
 		"""
 		Returns the corresponding MetaValidator 
 		object for the given JSON definition.
 		"""
-
 		validators = [
 			IntValidator,
 			FloatValidator,
@@ -72,6 +71,8 @@ class MetaValidator:
 		# organise by type
 		validators = dict([(validator_cls.VALIDATOR_TYPE, validator_cls) for validator_cls in validators])
 
+		validators = cls.get_validator_cls_dict()
+
 		meta_type = json_dict["type"]
 
 		try:
@@ -81,6 +82,25 @@ class MetaValidator:
 	
 		return validator_cls.load(json_dict)
 
+	@classmethod
+	def from_amr_demographic_category(cls, demographic_category):
+		"""
+		Returns the corresponding MetaValidator
+		object for an AMR demographic category.
+		"""
+
+		# integer
+		if demographic_category.TYPE == "integer":
+			return IntValidator()
+
+		# select
+		elif demographic_category.TYPE == "select":
+			allowed_values = [MetaValue(id, value) for id, value in demographic_category.options]
+			return EnumValidator(allowed_values, "str")
+
+		else:
+			raise ValueError("Unhandled demographic category type: {0}".format(demographic_category.TYPE))
+		
 	@classmethod
 	def load(cls, json_dict):
 		raise NotImplementedError
@@ -194,8 +214,10 @@ class EnumValidator(MetaValidator, CastedValidatorMixin):
 	
 	def __call__(self, value):
 		value = self.cast_value(value)
+		
 		if value not in self.allowed_values:
 			raise ValueError("Unknown meta value: %s" %value)
+		
 		return self.allowed_values[value]
 	
 
