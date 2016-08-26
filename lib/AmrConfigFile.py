@@ -1,10 +1,5 @@
 #TODO move to lr_utilities when migrated to Python 3
 
-# TODO
-# name -> <title>
-# extractor -> {"key": <id>}
-# type should be mapped to validator, code to create the validator (to be saved)
-
 import logging
 
 from collections import OrderedDict
