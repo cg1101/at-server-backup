@@ -1,24 +1,26 @@
 
 import datetime
+import random
 
-from sqlalchmey import and_, select, func
+from sqlalchemy import and_, select, func
 
 from app.util import Converter
+from app.i18n import get_text as _
 from db.db import SS
 import db.model as m
 
 class MyFilter(object):
 	ON = 'on'
-	BEFORE = 'before'
 	AFTER = 'after'
+	BEFORE = 'before'
 
 	EQUALS = '='
 	NOT_EQUALS = '!='
 	GREATER_THAN = '>'
 	LESS_THAN = '<'
 
-	FIRST = 'first'
 	ANY = 'any'
+	FIRST = 'first'
 	MOST_RECENT = 'mostrecent'
 	MOST_RECENT_MODIFIED = 'mostrecentmodified'
 
@@ -28,8 +30,35 @@ class MyFilter(object):
 	TEXT = 'text'
 	REGEX = 'regex'
 
+	_allow_override = False
+	_filter_funcs = {}
+
+	@classmethod
+	def register(cls, func):
+		func_name = func.__name__
+		prefix = 'filter_'
+		if not func_name.startswith(prefix):
+			raise ValueError('filter function name must start with \'{}\''.format(prefix))
+
+		filter_type = func_name[len(prefix):].upper()
+		key = filter_type.lower().replace('_', '')
+
+		if cls._filter_funcs.has_key(key) and not cls._allow_override:
+			raise RuntimeError('filter key \'{}\' has been registered already'.format(key))
+		cls._filter_funcs[key] = func
+
+	@classmethod
+	def run(cls, filter, task):
+		func = cls._filter_funcs.get(filter.filterType, None)
+		if func is None:
+			raise RuntimeError('unsupported filter type \'{}\''.format(filter.filterType))
+		pieces = [p.data for p in filter.pieces]
+		return func(task, *pieces)
+
+
 
 # SOURCE_TAG
+@MyFilter.register
 def filter_source_tag(task, tagId):
 	if tagId == MyFilter.ANY:
 		tagId = None
@@ -38,8 +67,86 @@ def filter_source_tag(task, tagId):
 		try:
 			tagId == int(tagId)
 		except:
-			raise ValueError('invalid tag id: {}'.format(tagId))
-		cond = m.RawPiece.rawText.contains('tagid="{}"'.format(tagId))
+			raise ValueError(_('invalid tag id: {}').format(tagId))
+		cond = m.RawPiece.rawText.contains('tagid="%s"' % tagId)
+
+	q = SS.query(m.RawPiece.rawPieceId
+		).filter(m.RawPiece.taskId==task.taskId
+		).filter(cond)
+
+	return set([r.rawPieceId for r in q.all()])
+
+
+# ALLOCATION_CONTEXT
+@MyFilter.register
+def filter_allocation_context(task, text):
+	cond = m.RawPiece.allocationContext == text
+
+	q = SS.query(m.RawPiece.rawPieceId
+		).filter(m.RawPiece.taskId==task.taskId
+		).filter(cond)
+
+	return set([r.rawPieceId for r in q.all()])
+
+
+# TRANSCRIBED
+@MyFilter.register
+def filter_transcribed(task, transcribedOption):
+	if transcribedOption == MyFilter.TRUE:
+		cond = m.RawPiece.isNew.isnot(True)
+	elif transcribedOption == MyFilter.FALSE:
+		cond = m.RawPiece.isNew.is_(True)
+	else:
+		raise ValueError(_('invalid value of transcribed option {}').format(transcribedOption))
+
+	q = SS.query(m.RawPiece.rawPieceId
+		).filter(m.RawPiece.taskId==task.taskId
+		).filter(cond)
+
+	return set([r.rawPieceId for r in q.all()])
+
+
+# LOAD
+@MyFilter.register
+def filter_load(task, loadOption, loadId):
+	try:
+		loadId = int(loadId)
+	except:
+		raise ValueError(_('invalid load id: {}').format(loadId))
+
+	if loadOption == MyFilter.EQUALS:
+		cond = m.RawPiece.loadId==loadId
+	elif loadOption == MyFilter.NOT_EQUALS:
+		cond = m.RawPiece.loadId!=loadId
+	elif loadOption == MyFilter.LESS_THAN:
+		cond = m.RawPiece.loadId<loadId
+	elif loadOption == MyFilter.GREATER_THAN:
+		cond = m.RawPiece.loadId>loadId
+	else:
+		raise ValueError(_('invalid load option: {}').format(loadOption))
+
+	q = SS.query(m.RawPiece.rawPieceId
+		).filter(m.RawPiece.taskId==task.taskId
+		).filter(cond)
+
+	return set([r.rawPieceId for r in q.all()])
+
+
+# SOURCE_WORD_COUNT
+@MyFilter.register
+def filter_source_word_count(task, wordCountOption, words):
+	try:
+		words = int(words)
+	except:
+		raise ValueError(_('invalid word count: {}').format(words))
+	if wordCountOption == MyFilter.EQUALS:
+		cond = m.RawPiece.words == words
+	elif wordCountOption == MyFilter.GREATER_THAN:
+		cond = m.RawPiece.words > words
+	elif wordCountOption == MyFilter.LESS_THAN:
+		cond = m.RawPiece.words < words
+	else:
+		raise ValueError(_('invalid word count option: {}').format(words))
 
 	q = SS.query(m.RawPiece.rawPieceId
 		).filter(m.RawPiece.taskId==task.taskId
@@ -49,18 +156,18 @@ def filter_source_tag(task, tagId):
 
 
 # RAW_TEXT
+@MyFilter.register
 def filter_raw_text(task, text, searchType=MyFilter.TEXT):
-
 	if searchType == MyFilter.TEXT:
 		func_ok = lambda (s): s.find(text) >= 0
 	elif searchType == MyFilter.REGEX:
 		try:
 			pattern = re.compile(text)
 		except:
-			raise ValueError('invalid regular expression: {}'.format(text))
+			raise ValueError(_('invalid regular expression: {}').format(text))
 		func_ok = lambda (s): pattern.search(s)
 	else:
-		raise ValueError('invalid search type: {}'.format(searchType))
+		raise ValueError(_('invalid search type: {}').format(searchType))
 
 	def check(t):
 		try:
@@ -75,249 +182,84 @@ def filter_raw_text(task, text, searchType=MyFilter.TEXT):
 	return set([r.rawPieceId for r in q.all() if check(r.rawText)])
 
 
-# ALLOCATION_CONTEXT
-def filter_allocation_context(task, text):
-	cond = m.RawPiece.allocationContext == text
-
-	q = SS.query(m.RawPiece.rawPieceId
-		).filter(m.RawPiece.taskId==task.taskId
-		).filter(cond)
-
-	return set([r.rawPieceId for r in q.all()])
-
-
-# TRANSCRIBED
-def filter_transcribed(task, transcribedOption):
-	if transcribedOption == MyFilter.TRUE:
-		cond = m.RawPiece.isNew.isnot(True)
-	elif transcribedOption == MyFilter.FALSE:
-		cond = m.RawPiece.isNew.is_(True)
-
-	q = SS.query(m.RawPiece.rawPieceId
-		).filter(m.RawPiece.taskId==task.taskId
-		).filter(cond)
-
-	return set([r.rawPieceId for r in q.all()])
-
-
-# LOAD
-def filter_load(task, loadOption, loadId):
-	try:
-		loadId = int(loadId)
-	except:
-		raise ValueError('invalid load id: {}'.format(loadId))
-
-	if loadOption == MyFilter.EQUALS:
-		cond = m.RawPiece.loadId==loadId
-	elif loadOption == MyFilter.NOT_EQUALS:
-		cond = m.RawPiece.loadId!=loadId
-	elif loadOption == MyFilter.LESS_THAN:
-		cond = m.RawPiece.loadId<loadId
-	elif loadOption == MyFilter.GREATER_THAN:
-		cond = m.RawPiece.loadId>loadId
-	else:
-		raise ValueError('invalid load option: {}'.format(loadOption))
-
-	q = SS.query(m.RawPiece.rawPieceId
-		).filter(m.RawPiece.taskId==task.taskId
-		).filter(cond)
-
-	return set([r.rawPieceId for r in q.all()])
-
-
-# SOURCE_WORD_COUNT
-def filter_word_count(task, wordCountOption, words):
-	try:
-		words = int(words)
-	except:
-		raise ValueError('invalid word count: {}'.format(words))
-	if wordCountOption == MyFilter.EQUALS:
-		cond = m.RawPiece.words == words
-	elif wordCountOption == MyFilter.GREATER_THAN:
-		cond = m.RawPiece.words > words
-	elif wordCountOption == MyFilter.LESS_THAN:
-		cond = m.RawPiece.words < words
-	else:
-		raise ValueError('invalid word count option: {}'.format(words))
-
-	q = SS.query(m.RawPiece.rawPieceId
-		).filter(m.RawPiece.taskId==task.taskId
-		).filter(cond)
-
-	return set([r.rawPieceId for r in q.all()])
-
-
-
 # DATE_SINGLE
+@MyFilter.register
 def filter_date_single(task, workOption, dateOption, date):
 	try:
 		date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
 	except ValueError, e:
-		raise ValueError('invalid date value: {}'.format(date))
-
+		raise ValueError(_('invalid date value: {}').format(date))
 	# TODO: use tz should be used
-	startTime = datetime.datetime(date.year, d.month, d.day)
+	startTime = datetime.datetime(date.year, date.month, date.day)
 	endTime = startTime + datetime.timedelta(days=1)
-
-	if dateOption == MyFilter.ON:
-		cond = and_(m.WorkEntry.created >= startTime, m.WorkEntry.created < endTime)
-	elif dateOption == MyFilter.BEFORE:
-		cond = m.WorkEntry.created < startTime
-	elif dateOption == MyFilter.AFTER:
-		cond = m.WorkEntry.created >= endTime
-	else:
-		raise ValueError('invalid date option: {}'.format(dateOption))
-	
-	q = SS.query(m.WorkEntry.rawPieceId
+	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.entryId, m.WorkEntry.created
 		).distinct(m.WorkEntry.rawPieceId
-		).filter(m.WorkEntry.taskId==task.taskId
-		).filter(cond)
-
-	# utterances first worked on
-	if workOption == MyFilter.FIRST:
-		q = q.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created)
-
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawPieceId, created ASC) h
-		# 	WHERE %s
-		# ''' %(taskID, ' AND '.join(constraints)))
-
-	# utterances worked on at any point
-	elif workOption == MyFilter.ANY:
+		).filter(m.WorkEntry.taskId==task.taskId)
+	if workOption == MyFilter.ANY:
 		pass
-		# constraints.append('taskID = %s' %taskID)
-		# cursor.execute('''
-		# 	SELECT DISTINCT rawPieceId
-		# 	FROM workentries
-		# 	WHERE %s
-		# ''' %' AND '.join(constraints))
-
-	# utterances worked on most recently
+	elif workOption == MyFilter.FIRST:
+		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created)
 	elif workOption == MyFilter.MOST_RECENT:
-		q = q.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM 
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawPieceId, created DESC) h
-		# 	WHERE %s
-		# ''' %(taskID, ' AND '.join(constraints)))
-
-	# utterances modified most recently
+		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
 	elif workOption == MyFilter.MOST_RECENT_MODIFIED:
-		q = q.filter_by(m.WorkEntry.modifiesTranscription
+		inner = inner.filter_by(m.WorkEntry.modifiesTranscription
 			).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE
-		# 			taskID = %s AND
-		# 			workTypeID IN (SELECT workTypeID FROM workTypes WHERE modifiesTranscription)
-		# 		ORDER BY rawPieceId, created DESC) h
-		# 	WHERE %s 
-		# ''' %(taskID, ' AND '.join(constraints)))
-	
 	else:
-		raise ValueError('invalid work option: {}'.format(workOption))
-
+		raise ValueError(_('invalid work option: {}').format(workOption))
+	sub_q = inner.subquery('sub_q')
+	if dateOption == MyFilter.ON:
+		cond = and_(sub_q.c.created >= startTime, sub_q.c.created < endTime)
+	elif dateOption == MyFilter.BEFORE:
+		cond = sub_q.c.created < startTime
+	elif dateOption == MyFilter.AFTER:
+		cond = sub_q.c.created >= endTime
+	else:
+		raise ValueError(_('invalid date option: {}').format(dateOption))
+	q = SS.query(sub_q.c.rawPieceId
+		).distinct(sub_q.c.rawPieceId
+		).filter(cond)
 	return set([r.rawPieceId for r in q.all()])
 
 
 # DATE_INTERVAL
+@MyFilter.register
 def filter_date_interval(task, workOption, startDate, endDate):
 	try:
 		startDate = datetime.datetime.strptime(startDate, '%Y-%m-%d').date()
 		startDate = datetime.datetime(startDate.year, startDate.month, startDate.day)
 	except:
-		raise ValueError('invalid start date: {}'.format(startDate))
+		raise ValueError(_('invalid start date: {}').format(startDate))
 	try:
 		endDate = datetime.datetime.strptime(endDate, '%Y-%m-%d').date()
 		endDate = datetime.datetime(endDate.year, endDate.month, endDate.day)
 	except:
-		raise ValueError('invalid end date: {}'.format(endDate))
+		raise ValueError(_('invalid end date: {}').format(endDate))
 
-	q = SS.query(m.WorkEntry.rawPieceId
+	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.entryId, m.WorkEntry.created
 		).distinct(m.WorkEntry.rawPieceId
-		).filter(m.WorkEntry.taskId==task.taskId
-		).filter(and_(m.WorkEntry.created>=startDate, m.WorkEntry.created<=endDate))
+		).filter(m.WorkEntry.taskId==task.taskId)
 
-	# utterances first worked on
-	if workOption == MyFilter.FIRST:
-		q = q.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created)
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawPieceId, created ASC) h
-		# 	WHERE
-		# 		created >= %s AND
-		# 		created <= %s
-		# ''', (taskID, startDate, endDate))
-
-	# utterances worked on at any point
-	elif workOption == MyFilter.ANY:
+	if workOption == MyFilter.ANY:
 		pass
-		# cursor.execute('''
-		# 	SELECT DISTINCT rawPieceId
-		# 	FROM workentries
-		# 	WHERE
-		# 		taskID = %s AND
-		# 		created >= %s AND
-		# 		created <= %s
-		# ''', (taskID, startDate, endDate))
-
-	# utterances worked on most recently
+	elif workOption == MyFilter.FIRST:
+		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created)
 	elif workOption == MyFilter.MOST_RECENT:
-		q = q.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM 
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawPieceId, created DESC) h
-		# 	WHERE
-		# 		created >= %s AND
-		# 		created <= %s
-		# ''', (taskID, startDate, endDate))
-
-	# utterances modified most recently
+		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
 	elif workOption == MyFilter.MOST_RECENT_MODIFIED:
-		q = q.filter(m.WorkEntry.modifiesTranscription
+		inner = inner.filter(m.WorkEntry.modifiesTranscription
 			).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-		# cursor.execute('''
-		# 	SELECT rawPieceId
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawPieceId) *
-		# 		FROM workentries
-		# 		WHERE
-		# 			taskID = %s AND
-		# 			workTypeID IN (SELECT workTypeID FROM workTypes WHERE modifiesTranscription)
-		# 		ORDER BY rawPieceId, created DESC) h
-		# 	WHERE 
-		# 		created >= %s AND
-		# 		created <= %s
-		# ''', (taskID, startDate, endDate))
-	
 	else:
-		raise ValueError('invalid work option: {}'.format(workOption))
+		raise ValueError(_('invalid work option: {}').format(workOption))
+
+	sub_q = inner.subquery('sub_q')
+	q = SS.query(sub_q.c.rawPieceId
+		).filter(and_(sub_q.c.created>=startDate, sub_q.c.created<=endDate))
 
 	return set([r.rawPieceId for r in q.all()])
 
 
 # TEXT
+@MyFilter.register
 def filter_text(task, text, searchType=MyFilter.TEXT):
 	if searchType == MyFilter.TEXT:
 		pass
@@ -325,7 +267,7 @@ def filter_text(task, text, searchType=MyFilter.TEXT):
 		try:
 			pattern = re.compile(text)
 		except:
-			raise ValueError('invalid regular expression: {}'.format(text))
+			raise ValueError(_('invalid regular expression: {}').format(text))
 
 	def check(t):
 		try:
@@ -344,11 +286,12 @@ def filter_text(task, text, searchType=MyFilter.TEXT):
 
 
 # USER
+@MyFilter.register
 def filter_user(task, workOption, userId):
 	try:
 		userId = int(userId)
 	except:
-		raise ValueError('invalid user id: {}'.format(userId))
+		raise ValueError(_('invalid user id: {}').format(userId))
 	# TODO: check user is working on this task?
 	inner = SS.query(m.WorkEntry.rawPieceId.label('rawPieceId'),
 			m.WorkEntry.userId.label('userId')
@@ -356,59 +299,24 @@ def filter_user(task, workOption, userId):
 		).filter(m.WorkEntry.taskId==task.taskId)
 	if workOption == MyFilter.ANY:
 		inner = inner.filter(m.WorkEntry.userId==userId)
-		# cursor.execute("""
-		# 	SELECT DISTINCT rawpieceid
-		# 	FROM workentries
-		# 	WHERE
-		# 		taskID = %s AND
-		# 		userID = %s
-		# """, (taskID, userID))
 	elif workOption == MyFilter.FIRST:
 		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created)
-		# cursor.execute("""
-		# 	SELECT rawpieceid
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawpieceid) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawpieceid, created ASC) h
-		# 	WHERE userID = %s
-		# """, (taskID, userID))
 	elif workOption == MyFilter.MOST_RECENT:
 		inner = inner.order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-		# cursor.execute("""
-		# 	SELECT rawpieceid
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawpieceid) *
-		# 		FROM workentries
-		# 		WHERE taskID = %s
-		# 		ORDER BY rawpieceid, created DESC) h
-		# 	WHERE userID = %s
-		# """, (taskID, userID))
 	elif workOption == MyFilter.MOST_RECENT_MODIFIED:
 		inner = inner.filter(m.WorkEntry.modifiesTranscription.is_(True)
 			).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
-		# cursor.execute("""
-		# 	SELECT rawpieceid
-		# 	FROM
-		# 		(SELECT DISTINCT ON (rawpieceid) *
-		# 		FROM workentries
-		# 		WHERE
-		# 			taskID = %s AND
-		# 			workTypeID IN (SELECT workTypeID FROM workTypes WHERE modifiesTranscription)
-		# 		ORDER BY rawpieceid, created DESC) h
-		# 	WHERE userID = %s
-		# """, (taskID, userID))
 	else:
-		raise ValueError('invalid work option: {}'.format(workOption))
-
+		raise ValueError(_('invalid work option: {}').format(workOption))
 	sub_q = inner.subquery('sub_q')
-	sel_stmt = select([sub_q.c.rawPieceId], distinct=True,
-		from_obj=sub_q).where(sub_q.c.userId==userId)
-	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
+	q = SS.query(sub_q.c.rawPieceId
+		).distinct(sub_q.c.rawPieceId
+		).filter(sub_q.c.userId==userId)
+	return set([r.rawPieceId for r in q.all()])
 
 
 # TAG
+@MyFilter.register
 def filter_tag(task, tagId):
 	if tagId == MyFilter.ANY:
 		tagId = None
@@ -417,7 +325,7 @@ def filter_tag(task, tagId):
 		try:
 			tagId == int(tagId)
 		except:
-			raise ValueError('invalid tag id: {}'.format(tagId))
+			raise ValueError(_('invalid tag id: {}').format(tagId))
 		key_string = 'tagid="{}"'.format(tagId)
 
 	q = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.result
@@ -430,11 +338,12 @@ def filter_tag(task, tagId):
 
 
 # RESULT_WORD_COUNT
+@MyFilter.register
 def filter_word_count(task, wordCountOption, words):
 	try:
 		words = int(words)
 	except:
-		raise ValueError('invalid words: {}'.format(words))
+		raise ValueError(_('invalid words: {}').format(words))
 
 	def count_words(t):
 		extractText = Converter.asExtract(t)
@@ -457,11 +366,12 @@ def filter_word_count(task, wordCountOption, words):
 
 
 # WORD_COUNT_GAP
+@MyFilter.register
 def filter_word_count_gap(task, wordCountOption, gap):
 	try:
 		percentage = int(gap.rstrip('%')) / 100.0
 	except:
-		raise ValueError('invalid word count gap: {}'.format(gap))
+		raise ValueError(_('invalid word count gap: {}').format(gap))
 
 	def count_words(t):
 		extractText = Converter.asExtract(t)
@@ -497,6 +407,7 @@ def filter_word_count_gap(task, wordCountOption, gap):
 		if check(r.result, r.words)])
 
 # LABEL
+@MyFilter.register
 def filter_label(task, labelId):
 	if labelId == MyFilter.ANY:
 		labelId = None
@@ -504,7 +415,7 @@ def filter_label(task, labelId):
 		try:
 			labelId = int(labelId)
 		except:
-			raise ValueError('invalid label id: {}'.format(labelId))
+			raise ValueError(_('invalid label id: {}').format(labelId))
 
 	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.entryId
 		).distinct(m.WorkEntry.rawPieceId
@@ -522,23 +433,24 @@ def filter_label(task, labelId):
 
 
 # QA_ERROR_SEVERITY
+@MyFilter.register
 def filter_qa_severity(task, isMoreThan, score, isCorrect):
 	try:
 		assert isMoreThan in (MyFilter.TRUE, MyFilter.FALSE)
 	except:
-		raise ValueError('invalid option value: {}'.format(isMoreThan))
+		raise ValueError(_('invalid option value: {}').format(isMoreThan))
 	else:
 		isMoreThan = isMoreThan == MyFilter.TRUE
 	try:
 		assert isCorrect in (MyFilter.TRUE, MyFilter.FALSE)
 	except:
-		raise ValueError('invalid option value: {}'.format(isCorrect))
+		raise ValueError(_('invalid option value: {}').format(isCorrect))
 	else:
 		isCorrect = isCorrect == MyFilter.TRUE
 	try:
 		score = float(score)
 	except:
-		raise ValueError('invalid score value: {}'.format(score))
+		raise ValueError(_('invalid score value: {}').format(score))
 	
 	if isMoreThan:
 		if isCorrect:
@@ -571,25 +483,26 @@ def filter_qa_severity(task, isMoreThan, score, isCorrect):
 
 
 # QA_ERROR_TYPE
+@MyFilter.register
 def filter_qa_error_type(task, errorTypeId):
 	try:
 		errorTypeId = int(erorrTypeId)
 	except:
-		raise ValueError('invalid error type id: {}'.format(errorTypeId))
+		raise ValueError(_('invalid error type id: {}').format(errorTypeId))
 
 	taskErrorType = m.TaskErrorType.query.get((task.taskId, errorTypeId))
 	if not taskErrorType:
 		return set()
 
 	# latest QA result
-	q1 = SS.query(m.WorkEntry.entryId, m.WorkEntry.qaedEntryId,
+	inner = SS.query(m.WorkEntry.entryId, m.WorkEntry.qaedEntryId,
 			m.WorkEntry.rawPieceId
 		).distinct(m.WorkEntry.qaedEntryId
 		).filter(m.WorkEntry.taskId==task.taskId
 		).filter(m.WorkEntry.workType==m.WorkType.QA
 		).order_by(m.WorkEntry.qaedEntryId, m.WorkEntry.created.desc())
 
-	sub_q = q1.subquery('sub_q')
+	sub_q = inner.subquery('sub_q')
 
 	q = SS.query(sub_q.c.rawPieceId
 		).distinct(sub_q.c.rawPieceId
@@ -599,19 +512,20 @@ def filter_qa_error_type(task, errorTypeId):
 	return set([r.rawPieceId for r in q.all()])
 
 # QA_ERROR_CLASS
+@MyFilter.register
 def filter_qa_error_class(task, errorClassId):
 	try:
 		errorClassId = int(errorClassId)
 	except:
-		raise ValueError('invalid error class id: {}'.format(errorClassId))
+		raise ValueError(_('invalid error class id: {}').format(errorClassId))
 	# latest QA result
-	q1 = SS.query(m.WorkEntry.entryId, m.WorkEntry.qaedEntryId,
+	inner = SS.query(m.WorkEntry.entryId, m.WorkEntry.qaedEntryId,
 			m.WorkEntry.rawPieceId
 		).distinct(m.WorkEntry.qaedEntryId
 		).filter(m.WorkEntry.taskId==task.taskId
 		).filter(m.WorkEntry.workType==m.WorkType.QA
 		).order_by(m.WorkEntry.qaedEntryId, m.WorkEntry.created.desc())
-	sub_q = q1.subquery('sub_q')
+	sub_q = inner.subquery('sub_q')
 	q = SS.query(sub_q.c.rawPieceId
 		).distinct(sub_q.c.rawPieceId
 		).join(m.AppliedError, m.AppliedError.entryId==sub_q.c.entryId
@@ -621,6 +535,7 @@ def filter_qa_error_class(task, errorClassId):
 	return set([r.rawPieceId for r in q.all()])
 
 # PP_GROUP
+@MyFilter.register
 def filter_pp_group(task, groupId):
 	if groupId == MyFilter.ANY:
 		cond = m.RawPiece.groupId.isnot(None)
@@ -628,7 +543,7 @@ def filter_pp_group(task, groupId):
 		try:
 			groupId = int(groupId)
 		except:
-			raise ValueError('invalid group id: {}'.format(groupId))
+			raise ValueError(_('invalid group id: {}').format(groupId))
 		cond = m.RawPiece.groupId == groupId
 
 	q = SS.query(m.RawPiece.rawPieceId
@@ -638,6 +553,7 @@ def filter_pp_group(task, groupId):
 	return set([r.rawPieceId for r in q.all()])
 
 # CUSTOM_GROUP
+@MyFilter.register
 def filter_custom_group(task, groupId):
 	q = SS.query(m.CustomUtteranceGroupMember.rawPieceId
 		).distinct(m.CustomUtteranceGroupMember.rawPieceId
@@ -650,18 +566,19 @@ def filter_custom_group(task, groupId):
 		try:
 			groupId == int(groupId)
 		except:
-			raise ValueError('invalid group id: {}'.format(groupId))
+			raise ValueError(_('invalid group id: {}').format(groupId))
 		q = q.filter(m.CustomUtteranceGroup.groupId==groupId)
 
 	return set([r.rawPieceId for r in q.all()])
 
 
 # SUB_TASK_WORK
+@MyFilter.register
 def filter_sub_task_work(task, workOption, subTaskId):
 	try:
 		subTaskId = int(subTaskId)
 	except:
-		raise ValueError('invalid sub task id: {}'.format(subTaskId))
+		raise ValueError(_('invalid sub task id: {}').format(subTaskId))
 
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask or subTask.taskId != task.taskId:
@@ -688,6 +605,7 @@ def filter_sub_task_work(task, workOption, subTaskId):
 	return [r.rawPieceId for r in SS.bind.execute(sel_stmt)]
 
 # SUB_TASK_BATCHING
+@MyFilter.register
 def filter_sub_task_batching(task, subTaskId):
 	if subTaskId == MyFilter.ANY:
 		q1 = SS.query(m.PageMember.rawPieceId
@@ -706,7 +624,7 @@ def filter_sub_task_batching(task, subTaskId):
 		try:
 			subTaskId = int(subTaskId)
 		except:
-			raise ValueError('invalid sub task id'.format(subTaskId))
+			raise ValueError(_('invalid sub task id'.format(subTaskId)))
 		
 		subTask = m.SubTask.query.get(subTaskId)
 		if not subTask or subTaskId != task.taskId:
@@ -729,11 +647,12 @@ def filter_sub_task_batching(task, subTaskId):
 
 
 # WORK_TYPE_WORK
+@MyFilter.register
 def filter_work_type_work(task, workOption, workTypeId):
 	try:
 		workTypeId = int(workTypeId)
 	except:
-		raise ValueError('invalid work type id: {}'.format(workTypeId))
+		raise ValueError(_('invalid work type id: {}').format(workTypeId))
 
 	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.workTypeId
 		).distinct(m.WorkEntry.rawPieceId
@@ -756,11 +675,12 @@ def filter_work_type_work(task, workOption, workTypeId):
 
 
 # WORK_TYPE_BATCHING
+@MyFilter.register
 def filter_work_type_batching(task, workTypeId):
 
 	workType = m.WorkType.query.get(workTypeId)
 	if not workType:
-		raise ValueError('invalid work type id: {}'.format(workTypeId))
+		raise ValueError(_('invalid work type id: {}').format(workTypeId))
 
 	if workType.name in (m.WorkType.WORK, m.WorkType.REWORK):
 		q = SS.query(m.PageMember.rawPieceId
@@ -770,7 +690,7 @@ def filter_work_type_batching(task, workTypeId):
 	elif workType.name == m.WorkType.QA:
 		q = SS.query(m.WorkEntry.rawPieceId
 			).distinct(m.WorkEntry.rawPieceId
-			).filter(.WorkEntry.taskId==task.taskId
+			).filter(m.WorkEntry.taskId==task.taskId
 			).filter(m.WorkEntry.entryId.in_(SS.query(m.PageMember.workEntryId
 				).filter(m.PageMember.taskId==task.taskId
 				).filter(m.PageMember.workType==m.WorkType.QA)))
@@ -808,13 +728,31 @@ class Selector(object):
 	def select(selection):
 		# TODO: implemet this
 		taskId = getattr(selection, 'taskId')
+		task = m.Task.query.get(taskId)
 		if taskId is None:
-			raise ValueError('must specify taskId')
-		limit = min(selection.limit, 5)
-		rs = [r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
-			).filter_by(taskId=taskId
-			).order_by(m.RawPiece.rawPieceId
-			).all()[:limit]]
+			raise ValueError(_('must specify taskId'))
+
+		filters = {
+			True: [],  # inclusive
+			False: [], # exclusive
+		}
+		for f in selection.filters:
+			filters[f.isInclusive].append(f)
+		if len(filters[True]):
+			rs = set()
+		else:
+			rs = set([r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
+				).filter(m.RawPiece.taskId==taskId)])
+		for f in filters[True]:
+			result = MyFilter.run(f, task)
+			rs |= result
+		for f in filters[False]:
+			result = MyFilter.run(f, task)
+			rs -= result
+		rs = sorted(rs)
+		if selection.limit != None:
+			limit = min(selection.limit, len(rs))
+			rs = random.sample(rs, limit)
 		return rs
 for key, value in Selector.FILTER_TYPES.iteritems():
 	setattr(Selector, key, value)

@@ -110,6 +110,6 @@ class Converter(object):
 	@classmethod
 	def asExtract(cls, htmlText):
 		htmlDoc = cls.htmlText2HtmlDoc(htmlText)
-		xmlDoc = cls.xmlDoc2htmlDoc(htmlDoc)
+		xmlDoc = cls.htmlDoc2XmlDoc(htmlDoc)
 		extractText = cls.xmlDoc2ExtractText(xmlDoc)
-		return asExtract
+		return extractText

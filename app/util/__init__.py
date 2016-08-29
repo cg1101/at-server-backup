@@ -9,6 +9,7 @@ import db.model as m
 from db.db import SS
 from .converter import Converter
 from .extractor import Extractor
+from .selector  import Selector
 from .filehandler import get_handler
 
 def split_by_size(seq, size):
@@ -98,49 +99,6 @@ class Loader(object):
 		rawPieces = [m.RawPiece(**d) for d in itemDicts]
 		# TODO: (optional) save input data file somewhere for future reference
 		return rawPieces
-
-
-class Selector(object):
-	FILTER_TYPES = {
-		'DATE_SINGLE': 'datesingle',
-		'DATE_INTERVAL': 'dateinterval',
-		'LABEL': 'label',
-		'QA_ERROR_SEVERITY': 'qaseverity',
-		'QA_ERROR_TYPE': 'qaerrortype',
-		'QA_ERROR_CLASS': 'qaerrorclass',
-		'SUB_TASK_WORK': 'subtaskwork',
-		'SUB_TASK_BATCHING': 'subtaskbatching',
-		'TAG': 'tag',
-		'SOURCE_TAG': 'sourcetag',
-		'TEXT': 'text',
-		'RAW_TEXT': 'rawtext',
-		'ALLOCATION_CONTEXT': 'allocationcontext',
-		'TRANSCRIBED': 'transcribed',
-		'USER': 'user',
-		'WORK_TYPE_WORK': 'worktypework',
-		'WORK_TYPE_BATCHING': 'worktypebatching',
-		'PP_GROUP': 'ppgroup',
-		'CUSTOM_GROUP': 'customgroup',
-		'LOAD': 'load',
-		'SOURCE_WORD_COUNT': 'sourcewordcount',
-		'RESULT_WORD_COUNT': 'resultwordcount',
-		'WORD_COUNT_GAP': 'wordcountgap',
-	}
-	@staticmethod
-	def select(selection):
-		# TODO: implemet this
-		taskId = getattr(selection, 'taskId')
-		if taskId is None:
-			raise ValueError('must specify taskId')
-		limit = min(selection.limit, 5)
-		rs = [r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
-			).filter_by(taskId=taskId
-			).order_by(m.RawPiece.rawPieceId
-			).all()[:limit]]
-		return rs
-for key, value in Selector.FILTER_TYPES.iteritems():
-	setattr(Selector, key, value)
-del key, value
 
 
 class Warnings(dict):

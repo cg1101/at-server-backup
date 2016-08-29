@@ -123,9 +123,11 @@ class Extractor(object):
 
 		if len(groupIds):
 			# include rawPieces that members of selected groups
+			print ('load from following groups: %s' % groupIds)
 			q_r = SS.query(m.CustomUtteranceGroupMember.rawPieceId.distinct()
 				).join(m.CustomUtteranceGroup
-				).filter(m.CustomUtteranceGroup.taskId==task.taskId)
+				).filter(m.CustomUtteranceGroup.taskId==task.taskId
+				).filter(m.CustomUtteranceGroup.groupId.in_(groupIds))
 			q = SS.query(m.RawPiece, m.WorkEntry
 				).filter(m.RawPiece.taskId==task.taskId
 				).filter(m.RawPiece.rawPieceId.in_(q_r)
@@ -147,7 +149,6 @@ class Extractor(object):
 			items.append((rawPiece, entry))
 
 		data = template.render(items=items).encode('utf-8')
-		print data
 		if compress:
 			sio = cStringIO.StringIO()
 			with gzip.GzipFile(None, mode='w', compresslevel=9, fileobj=sio) as f:
