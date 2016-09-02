@@ -3,6 +3,7 @@ from sqlalchemy import *
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy import event
 
+from lib import utcnow
 from mytypes import JsonString, MutableDict
 
 metadata = MetaData()
@@ -1095,6 +1096,327 @@ t_markings =  Table('markings', metadata,
 	schema='q',
 )
 Index('marking_by_sheet_entry_id', t_markings.c.sheetEntryId, unique=False)
+
+
+t_audio_collection_supervisors = Table("audio_collection_supervisors", metadata,
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("user_id", INTEGER, nullable=False, key="userId", doc=""),
+	PrimaryKeyConstraint("audioCollectionId", "userId"),
+)
+Index("audio_collection_supervisors_by_audio_collection_id", t_audio_collection_supervisors.c.audioCollectionId, unique=False)
+Index("audio_collection_supervisors_by_user_id", t_audio_collection_supervisors.c.userId, unique=False)
+
+
+t_corpus_codes = Table("corpus_codes", metadata,
+	Column("corpus_code_id", INTEGER, primary_key=True, key="corpusCodeId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("code", TEXT, nullable=False, key="code", doc=""),
+	Column("requires_cutup", BOOLEAN, nullable=False, default=False, key="requiresCutup", doc=""),
+	Column("included", BOOLEAN, key="included", doc=""),
+	Column("regex", TEXT, key="regex", doc=""),
+	UniqueConstraint("audioCollectionId", "code"),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+)
+Index("corpus_codes_by_audio_collection_id", t_corpus_codes.c.audioCollectionId, unique=False)
+
+
+t_tracks = Table("tracks", metadata,
+	Column("track_id", INTEGER, primary_key=True, key="trackId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("track_index", INTEGER, nullable=False, key="trackIndex", doc=""),
+	UniqueConstraint("recordingPlatformId", "name"),
+	UniqueConstraint("recordingPlatformId", "trackIndex"),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+)
+Index("tracks_by_recording_platform_id", t_tracks.c.recordingPlatformId, unique=False)
+
+
+t_recording_platform_types = Table("recording_platform_types", metadata,
+	Column("recording_platform_type_id", INTEGER, primary_key=True, key="recordingPlatformTypeId", doc=""),
+	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
+)
+
+
+t_audio_files = Table("audio_files", metadata,
+	Column("audio_file_id", INTEGER, primary_key=True, key="audioFileId", doc=""),
+	Column("recording_id", INTEGER, nullable=False, key="recordingId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("track_id", INTEGER, nullable=False, key="trackId", doc=""),
+	Column("file_path", TEXT, nullable=False, unique=True, key="filePath", doc=""),
+	Column("audio_spec", JSONB, nullable=False, key="audioSpec", doc=""),
+	Column("audio_data_location", JSONB, nullable=False, key="audioDataLocation", doc=""),
+	Column("duration", INTERVAL, nullable=False, key="duration", doc=""),
+	Column("stats", JSONB, nullable=False, key="stats", doc=""),
+	ForeignKeyConstraint(["recordingId"], ["recordings.recordingId"]),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	ForeignKeyConstraint(["trackId"], ["tracks.trackId"]),
+)
+Index("audio_files_by_recording_id", t_audio_files.c.recordingId, unique=False)
+
+
+t_recordings = Table("recordings", metadata,
+	Column("recording_id", INTEGER, primary_key=True, key="recordingId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("performance_id", INTEGER, nullable=False, key="performanceId", doc=""),
+	Column("corpus_code_id", INTEGER, nullable=False, key="corpusCodeId", doc=""),
+	Column("prompt", TEXT, key="prompt", doc=""),
+	Column("hypothesis", TEXT, key="hypothesis", doc=""),
+	ForeignKeyConstraint(["performanceId"], ["performances.performanceId"]),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["corpusCodeId"], ["corpus_codes.corpusCodeId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+)
+Index("recordings_by_audio_collection_id", t_recordings.c.audioCollectionId, unique=False)
+Index("recordings_by_performance_id", t_recordings.c.performanceId, unique=False)
+
+
+t_performances = Table("performances", metadata,
+	Column("performance_id", INTEGER, primary_key=True, key="performanceId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("album_id", INTEGER, key="albumId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("script_id", TEXT, key="scriptId", doc=""),
+	Column("name", TEXT, key="name", doc=""),
+	Column("data", JSONB, key="data", doc=""),
+	Column("key", VARCHAR(8), key="key", doc=""),
+	Column("imported_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="importedAt", doc=""),
+	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+)
+Index("performances_by_audio_collection_id", t_performances.c.audioCollectionId, unique=False)
+Index("performances_by_album_id", t_performances.c.albumId, unique=False)
+Index("performances_by_recording_platform_id", t_performances.c.recordingPlatformId, unique=False)
+
+
+t_albums = Table("albums", metadata,
+	Column("album_id", INTEGER, primary_key=True, key="albumId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("speaker_id", INTEGER, nullable=False, key="speakerId", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["speakerId"], ["speakers.speakerId"]),
+)
+Index("albums_by_audio_collection_id", t_albums.c.audioCollectionId, unique=False)
+Index("albums_by_speaker_id", t_albums.c.speakerId, unique=False)
+
+
+t_audio_collections = Table("audio_collections", metadata,
+	Column("audio_collection_id", INTEGER, primary_key=True, key="audioCollectionId", doc=""),
+	Column("project_id", INTEGER, nullable=False, key="projectId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("key", VARCHAR(6), key="key", doc=""),
+	Column("audio_collection_status_id", INTEGER, nullable=False, key="audioCollectionStatusId", doc=""),
+	Column("archive_file", TEXT, key="archiveFile", doc=""),
+	ForeignKeyConstraint(["projectId"], ["projects.projectId"]),
+	ForeignKeyConstraint(["audioCollectionStatusId"], ["audio_collection_statuses.audioCollectionStatusId"]),
+	UniqueConstraint("projectId", "name"),
+)
+Index("audio_collections_by_project_id", t_audio_collections.c.projectId, unique=False)
+
+
+t_audio_collection_statuses = Table("audio_collection_statuses", metadata,
+	Column("audio_collection_status_id", INTEGER, primary_key=True, key="audioCollectionStatusId", doc=""),
+	Column("name", TEXT, unique=True, nullable=False, key="name", doc=""),
+)
+
+
+t_audio_collection_status_log = Table("audio_collection_status_log", metadata,
+	Column("log_entry_id", INTEGER, primary_key=True, key="logEntryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("from_audio_collection_status_id", INTEGER, nullable=False, key="fromAudioCollectionStatusId", doc=""),
+	Column("to_audio_collection_status_id", INTEGER, nullable=False, key="toAudioCollectionStatusId", doc=""),
+	Column("changed_by", INTEGER, nullable=False, key="changedBy", doc=""),
+	Column("changed_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="changedAt", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["fromAudioCollectionStatusId"], ["audio_collection_statuses.audioCollectionStatusId"]),
+	ForeignKeyConstraint(["toAudioCollectionStatusId"], ["audio_collection_statuses.audioCollectionStatusId"]),
+	ForeignKeyConstraint(["changedBy"], ["users.userId"]),
+)
+Index("audio_collections_status_log_audio_collection_id", t_audio_collection_status_log.c.audioCollectionId, unique=False)
+
+
+t_speakers = Table("speakers", metadata,
+	Column("speaker_id", INTEGER, primary_key=True, key="speakerId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("identifier", TEXT, nullable=False, key="identifier", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("audioCollectionId", "identifier"),
+)
+Index("speakers_by_audio_collection_id", t_speakers.c.audioCollectionId, unique=False)
+
+
+t_recording_platforms = Table("recording_platforms", metadata,
+	Column("recording_platform_id", INTEGER, primary_key=True, key="recordingPlatformId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_type_id", INTEGER, nullable=False, key="recordingPlatformTypeId", doc=""),
+	Column("storage_location", TEXT, key="storageLocation", doc=""),
+	Column("index", INTEGER, nullable=False, key="index", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("audio_importer_id", INTEGER, key="audioImporterId", doc=""),
+	Column("default_audio_spec", JSONB, key="defaultAudioSpec", doc=""),
+	Column("master_script_file", JSONB, key="masterScriptFile", doc=""),
+	Column("master_hypothesis_file", JSONB, key="masterHypothesisFile", doc=""),
+	Column("config", JSONB, key="config", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformTypeId"], ["recording_platform_types.recordingPlatformTypeId"]),
+	ForeignKeyConstraint(["audioImporterId"], ["audio_importers.audioImporterId"]),
+	UniqueConstraint("audioCollectionId", "index"),
+	UniqueConstraint("audioCollectionId", "name"),
+	CheckConstraint('"index" >= 0'),
+)
+Index("recording_platforms_by_audio_collection_id", t_recording_platforms.c.audioCollectionId, unique=False)
+
+
+t_audio_importers = Table("audio_importers", metadata,
+	Column("audio_importer_id", INTEGER, primary_key=True, key="audioImporterId", doc=""),
+	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
+	Column("all_performances_incomplete", BOOLEAN, nullable=False, server_default=text("FALSE"), key="allPerformancesIncomplete", doc=""),
+)
+
+
+t_speaker_meta_categories = Table("speaker_meta_categories", metadata,
+	Column("speaker_meta_category_id", INTEGER, primary_key=True, key="speakerMetaCategoryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("validator", JSONB, nullable=False, key="validator", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("audioCollectionId", "name"),
+)
+Index("speaker_meta_categories_by_audio_collection_id", t_speaker_meta_categories.c.audioCollectionId, unique=False)
+
+
+t_speaker_meta_values = Table("speaker_meta_values", metadata,
+	Column("speaker_meta_value_id", INTEGER, primary_key=True, key="speakerMetaValueId", doc=""),
+	Column("speaker_meta_category_id", INTEGER, nullable=False, key="speakerMetaCategoryId", doc=""),
+	Column("speaker_id", INTEGER, nullable=False, key="speakerId", doc=""),
+	Column("value", JSONB, nullable=False, key="value", doc=""),
+	ForeignKeyConstraint(["speakerMetaCategoryId"], ["speaker_meta_categories.speakerMetaCategoryId"]),
+	ForeignKeyConstraint(["speakerId"], ["speakers.speakerId"]),
+	UniqueConstraint("speakerMetaCategoryId", "speakerId"),
+)
+Index("speaker_meta_values_by_speaker_meta_category_id", t_speaker_meta_values.c.speakerMetaCategoryId, unique=False)
+Index("speaker_meta_values_by_speaker_id", t_speaker_meta_values.c.speakerId, unique=False)
+
+
+t_album_meta_categories = Table("album_meta_categories", metadata,
+	Column("album_meta_category_id", INTEGER, primary_key=True, key="albumMetaCategoryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("validator", JSONB, nullable=False, key="validator", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("audioCollectionId", "name"),
+)
+Index("album_meta_categories_by_audio_collection_id", t_album_meta_categories.c.audioCollectionId, unique=False)
+
+
+t_album_meta_values = Table("album_meta_values", metadata,
+	Column("album_meta_value_id", INTEGER, primary_key=True, key="albumMetaValueId", doc=""),
+	Column("album_meta_category_id", INTEGER, nullable=False, key="albumMetaCategoryId", doc=""),
+	Column("album_id", INTEGER, nullable=False, key="albumId", doc=""),
+	Column("value", JSONB, nullable=False, key="value", doc=""),
+	ForeignKeyConstraint(["albumMetaCategoryId"], ["album_meta_categories.albumMetaCategoryId"]),
+	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
+	UniqueConstraint("albumMetaCategoryId", "albumId"),
+)
+Index("album_meta_values_by_album_meta_category_id", t_album_meta_values.c.albumMetaCategoryId, unique=False)
+Index("album_meta_values_by_album_id", t_album_meta_values.c.albumId, unique=False)
+
+
+t_performance_meta_categories = Table("performance_meta_categories", metadata,
+	Column("performance_meta_category_id", INTEGER, primary_key=True, key="performanceMetaCategoryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("extractor", JSONB, key="extractor", doc=""),
+	Column("validator", JSONB, nullable=False, key="validator", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	UniqueConstraint("audioCollectionId", "name"),
+)
+Index("performance_meta_categories_by_audio_collection_id", t_performance_meta_categories.c.audioCollectionId, unique=False)
+
+
+t_performance_meta_values = Table("performance_meta_values", metadata,
+	Column("performance_meta_value_id", INTEGER, primary_key=True, key="performanceMetaValueId", doc=""),
+	Column("performance_meta_category_id", INTEGER, nullable=False, key="performanceMetaCategoryId", doc=""),
+	Column("performance_id", INTEGER, nullable=False, key="performanceId", doc=""),
+	Column("value", JSONB, nullable=False, key="value", doc=""),
+	ForeignKeyConstraint(["performanceMetaCategoryId"], ["performance_meta_categories.performanceMetaCategoryId"]),
+	ForeignKeyConstraint(["performanceId"], ["performances.performanceId"]),
+	UniqueConstraint("performanceMetaCategoryId", "performanceId"),
+)
+Index("performance_meta_values_by_performance_meta_category_id", t_performance_meta_values.c.performanceMetaCategoryId, unique=False)
+Index("performance_meta_values_by_performance_id", t_performance_meta_values.c.performanceId, unique=False)
+
+
+t_recording_meta_categories = Table("recording_meta_categories", metadata,
+	Column("recording_meta_category_id", INTEGER, primary_key=True, key="recordingMetaCategoryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("validator", JSONB, nullable=False, key="validator", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	UniqueConstraint("audioCollectionId", "name"),
+)
+Index("recording_meta_categories_by_audio_collection_id", t_recording_meta_categories.c.audioCollectionId, unique=False)
+
+
+t_recording_meta_values = Table("recording_meta_values", metadata,
+	Column("recording_meta_value_id", INTEGER, primary_key=True, key="recordingMetaValueId", doc=""),
+	Column("recording_meta_category_id", INTEGER, nullable=False, key="recordingMetaCategoryId", doc=""),
+	Column("recording_id", INTEGER, nullable=False, key="recordingId", doc=""),
+	Column("value", JSONB, nullable=False, key="value", doc=""),
+	ForeignKeyConstraint(["recordingMetaCategoryId"], ["recording_meta_categories.recordingMetaCategoryId"]),
+	ForeignKeyConstraint(["recordingId"], ["recordings.recordingId"]),
+	UniqueConstraint("recordingMetaCategoryId", "recordingId"),
+)
+Index("recording_meta_values_by_recording_meta_category_id", t_recording_meta_values.c.recordingMetaCategoryId, unique=False)
+Index("recording_meta_values_by_recording_id", t_recording_meta_values.c.recordingId, unique=False)
+
+
+t_meta_data_change_methods = Table("meta_data_change_methods", metadata,
+	Column("meta_data_change_method_id", INTEGER, primary_key=True, key="metaDataChangeMethodId", doc=""),
+	Column("name", TEXT, unique=True, nullable=False, key="name", doc=""),
+)
+
+
+t_meta_data_change_log = Table("meta_data_change_log", metadata,
+	Column("log_entry_id", INTEGER, primary_key=True, key="logEntryId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("meta_data_change_method_id", INTEGER, nullable=False, key="metaDataChangeMethodId", doc=""),
+	Column("info", JSONB, nullable=False, key="info", doc=""),
+	Column("changed_by", INTEGER, nullable=False, key="changedBy", doc=""),
+	Column("changed_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="changedAt", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["metaDataChangeMethodId"], ["meta_data_change_methods.metaDataChangeMethodId"]),
+)
+Index("meta_data_change_log_by_audio_collection_id", t_meta_data_change_log.c.audioCollectionId, unique=False)
+
+
+t_meta_data_change_requests = Table("meta_data_change_requests", metadata,
+	Column("meta_data_change_request_id", INTEGER, primary_key=True, key="metaDataChangeRequestId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("meta_data_change_method_id", INTEGER, nullable=False, key="metaDataChangeMethodId", doc=""),
+	Column("info", JSONB, nullable=False, key="info", doc=""),
+	Column("requested_by", INTEGER, nullable=False, key="requestedBy", doc=""),
+	Column("requested_at", TIMESTAMP(timezone=True), nullable=False, key="requestedAt", doc=""),
+	Column("status", TEXT, nullable=False, key="status", doc=""),
+	Column("checked_by", INTEGER, nullable=False, key="checkedBy", doc=""),
+	Column("checked_at", TIMESTAMP(timezone=True), nullable=False, key="checkedAt", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	ForeignKeyConstraint(["metaDataChangeMethodId"], ["meta_data_change_methods.metaDataChangeMethodId"]),
+	ForeignKeyConstraint(["requestedBy"], ["users.userId"]),
+	ForeignKeyConstraint(["checkedBy"], ["users.userId"]),
+	CheckConstraint("status IN ('Pending', 'Rejected', 'Accepted')")
+)
+Index("meta_data_change_requests_by_audio_collection_id", t_meta_data_change_requests.c.audioCollectionId, unique=False)
 
 
 j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)

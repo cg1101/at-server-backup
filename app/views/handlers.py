@@ -16,8 +16,8 @@ from . import views as bp
 def index():
 	me = session['current_user']
 	# TODO: add check to see if user doesn't have admin capability
-	if me.userId != 699:
-		return redirect(current_app.config['NON_ADMIN_REDIRECT_URL'])
+	#if me.userId != 699:
+	#	return redirect(current_app.config['NON_ADMIN_REDIRECT_URL'])
 	index_html = os.path.join(os.path.dirname(__file__), '../index.html')
 	return send_file(index_html)
 
