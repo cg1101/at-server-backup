@@ -260,10 +260,13 @@ class MyForm(object):
 		self.field_names.append(field.name)
 		self.field_by_name[field.name] = field
 
-	def get_data(self, with_view_args=True, is_json=True, copy=False):
+	def get_data(self, with_view_args=True, is_json=True, copy=False, use_args=False):
 		if is_json:
 			try:
 				data = request.get_json() or {}
+				if use_args:
+					data.update(request.args)
+					print request.args, data
 			except Exception, exc:
 				raise InvalidUsage(_('error decoding json from incoming request'))
 		else:
