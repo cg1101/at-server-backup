@@ -74,45 +74,51 @@ def migrate_task(taskId):
 	if not pdb_task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 
-	if m.Task.query.get(taskId):
-		raise InvalidUsage(_('task {0} already exists').format(taskId))
-
 	me = session['current_user']
 
 	data = MyForm(
-		Field('taskTypeId', is_mandatory=True, validators=[
-			validators.is_number,
-			check_task_type_existence,
+		Field('taskTypeId', is_mandatory=True,
+			normalizer=lambda data, key, value: int(value[-1]) if isinstance(value, list) else int(value),
+			validators=[
+				validators.is_number,
+				check_task_type_existence,
 		]),
-	).get_data()
+	).get_data(use_args=True)
 
-	project = m.Project.query.get(pdb_task.projectId)
-	migrate_project = not bool(project)
-	if migrate_project:
-		pdb_project = m.PdbProject.query.get(pdb_task.projectId)
-		if not pdb_project:
-			# this should never happen, just in case
-			raise InvalidUsage(_('unable to migrate project {0}'
-				).format(pdb_task.projectId))
-		project = m.Project(projectId=pdb_task.projectId,
-			name=pdb_project.name, _migratedByUser=me)
-		SS.add(project)
-		SS.flush()
-
-	task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
-		taskTypeId=data['taskTypeId'], projectId=project.projectId,
-		_migratedByUser=me)
-	SS.add(task)
-
-	# reload task to make sure missing attributes are populated
-	rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
-	if migrate_project:
-		rs['message'] = _('migrated project {0} and task {1} successfully')\
-			.format(task.projectId, taskId)
-		rs['project'] = m.Project.dump(project)
+	task = m.Task.query.get(taskId)
+	if task:
+		return jsonify(
+			message=_('task {0} already exists').format(taskId),
+			task=m.Task.dump(task),
+		)
 	else:
-		rs['message'] = _('migrated task {0} successfully').format(taskId)
-	return jsonify(rs)
+		project = m.Project.query.get(pdb_task.projectId)
+		migrate_project = not bool(project)
+		if migrate_project:
+			pdb_project = m.PdbProject.query.get(pdb_task.projectId)
+			if not pdb_project:
+				# this should never happen, just in case
+				raise InvalidUsage(_('unable to migrate project {0}'
+					).format(pdb_task.projectId))
+			project = m.Project(projectId=pdb_task.projectId,
+				name=pdb_project.name, _migratedByUser=me)
+			SS.add(project)
+			SS.flush()
+
+		task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
+			taskTypeId=data['taskTypeId'], projectId=project.projectId,
+			_migratedByUser=me)
+		SS.add(task)
+
+		# reload task to make sure missing attributes are populated
+		rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
+		if migrate_project:
+			rs['message'] = _('migrated project {0} and task {1} successfully')\
+				.format(task.projectId, taskId)
+			rs['project'] = m.Project.dump(project)
+		else:
+			rs['message'] = _('migrated task {0} successfully').format(taskId)
+		return jsonify(rs)
 
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])

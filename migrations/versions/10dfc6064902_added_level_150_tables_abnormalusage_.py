@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('batchid', sa.INTEGER(), nullable=False),
     sa.Column('userid', sa.INTEGER(), nullable=False),
     sa.Column('event', sa.TEXT(), nullable=False),
-    sa.Column('when', postgresql.TIMESTAMP(), server_default=sa.text(u'now()'), nullable=False),
+    sa.Column('when', postgresql.TIMESTAMP(timezone=True), server_default=sa.text(u'now()'), nullable=False),
     sa.ForeignKeyConstraint(['userid'], [u'users.userid'], name=u'batchhistory_userid_fkey'),
     sa.CheckConstraint("event=ANY(ARRAY['assigned','abandoned','submitted','revoked'])"),
     )
