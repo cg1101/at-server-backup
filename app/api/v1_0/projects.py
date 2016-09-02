@@ -61,15 +61,18 @@ def migrate_project(projectId):
 		raise InvalidUsage(_('project {0} not found').format(projectId), 404)
 	project = m.Project.query.get(projectId)
 	if project:
-		raise InvalidUsage(_('project {0} already migrated').format(projectId))
-	project = m.Project(projectId=candidate.projectId, name=candidate.name,
-			_migratedByUser=session['current_user'])
-	SS.add(project)
-	SS.flush()
+		message = _('project {0} already exists').format(projectId)
+	else:
+		project = m.Project(projectId=candidate.projectId, name=candidate.name,
+				_migratedByUser=session['current_user'])
+		SS.add(project)
+		SS.flush()
+		message = _('project {0} successfully migrated').format(projectId)
+
 	# as an alternative, we do following to trigger flush()
 	#project = m.Project.query.get(projectId)
 	return jsonify({
-		'status': _('project {0} successfully migrated').format(projectId),
+		'message': message,
 		'project': m.Project.dump(project),
 	})
 
