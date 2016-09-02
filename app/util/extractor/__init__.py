@@ -123,7 +123,6 @@ class Extractor(object):
 
 		if len(groupIds):
 			# include rawPieces that members of selected groups
-			print ('load from following groups: %s' % groupIds)
 			q_r = SS.query(m.CustomUtteranceGroupMember.rawPieceId.distinct()
 				).join(m.CustomUtteranceGroup
 				).filter(m.CustomUtteranceGroup.taskId==task.taskId

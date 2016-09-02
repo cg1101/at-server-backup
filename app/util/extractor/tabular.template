@@ -1,9 +1,4 @@
-
-{% for item in items -%}
-
-{%}
-RAW_PIECE_ID: {{ item.get('rawPieceId', None) }}
-FILE: {{ item.get('file', None) }}
-TRANSCRIPTION: {{ item.get('transcription', None) }}
-
-{% endfor -%}
+{{ '\t'.join(['RAW_PIECE_ID', 'FILE', 'TRANSCRIPTION', 'SOURCE', 'LABELS', 'USER', 'USERNAME', 'QAERRORS']) }}
+{% for rawPiece, entry in items -%}
+{{ rawPiece.rawPieceId }}{{'\t'}}{{rawPiece.assemblyContext}}{{'\t'}}{{entry | formatResult}}{{'\t'}}{{rawPiece.rawText | formatSource}}{{'\t'}}{{entry | formatLabels }}{{'\t'}}{{entry | formatUser('emailAddress') }}{{'\t'}}{{entry | formatUser('userName') }}{{'\t'}}{{entry | formatQaErrors }}
+{% endfor %}
