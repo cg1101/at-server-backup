@@ -27,5 +27,14 @@ def list():
 		print(str(rule), 'methods:', ','.join(rule.methods), '->', rule.endpoint)
 
 
+@manager.command
+def seed():
+	"""
+	Add seed data to the database.
+	"""
+	from seeds import seed_db
+	seed_db()
+
+
 if __name__ == '__main__':
 	manager.run()

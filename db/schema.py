@@ -1419,6 +1419,11 @@ t_meta_data_change_requests = Table("meta_data_change_requests", metadata,
 Index("meta_data_change_requests_by_audio_collection_id", t_meta_data_change_requests.c.audioCollectionId, unique=False)
 
 
+t_database_settings = Table("database_settings", metadata,
+	Column("seeded", BOOLEAN, primary_key=True)
+)
+
+
 j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
