@@ -89,9 +89,78 @@ class Batch(Base):
 	__table__ = t_batches
 	user = relationship('User', foreign_keys=[t_batches.c.userId])
 	userName = association_proxy('user', 'userName')
-	pages = relationship('Page', order_by='Page.pageIndex')
+	pages = relationship('Page', order_by='Page.pageIndex',
+		cascade='all, delete-orphan')
 	task = relationship('Task')
 	subTask = relationship('SubTask')
+
+	@property
+	def isExpired(self):
+		if self.leaseExpires is None:
+			return False
+		else:
+			return self.leaseExpires <= utcnow()
+
+	@property
+	def isFinished(self):
+		if self.userId is None:
+			return False
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					return False
+		return True
+
+	@property
+	def unfinishedCount(self):
+		if self.userId is None:
+			return sum([len(page.members) for page in self.pages])
+		count = 0
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					count += 1
+		return count
+
+	def expire(self):
+		"""
+		Expires the lease on the batch.
+		"""
+		if self.userId:
+			log.debug("revoking batch {0}, owned by {1}".format(self.batchId, self.userId))
+			self.log_event("revoked")
+			self.reset_ownership()
+			self.increase_priority()
+
+		else:
+			log.debug("batch {0} is not owned by anyone".format(self.batchId))
+
+	def reset_ownership(self):
+		"""
+		Resets the ownership of the batch.
+		"""
+		self.userId = None
+		self.leaseGranted = None
+		self.leaseExpires = None
+		self.checkedOut = False
+
+	def increase_priority(self, increase_by=1):
+		"""
+		Increases the batch priority.
+		"""
+		self.priority += increase_by
+
+	def log_event(self, event):
+		"""
+		Adds an event to the batch log.
+		"""
+		query = t_batchhistory.insert({
+			"batchId": self.batchId,
+			"userId": self.userId,
+			"event": event,
+		})
+		SS.execute(query)
+
 
 class BatchSchema(Schema):
 	user = fields.Method('get_user')
@@ -275,7 +344,8 @@ class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
 		primaryjoin='Page.pageId == PageMember.pageId', order_by='PageMember.memberIndex',
-		cascade='all, delete-orphan')
+		cascade='all, delete-orphan'
+		)
 	memberEntries = relationship('PageMemberEntry', cascade='all, delete-orphan')
 
 class PageSchema(Schema):
@@ -1102,6 +1172,9 @@ class UtteranceSelectionSchema(Schema):
 		# skip_missing = True
 
 # WorkEntry
+class BasicWorkEntry(Base):
+	__table__ = t_workentries
+
 class WorkEntry(Base):
 	__table__ = j_workentries
 	__mapper_args__ = {

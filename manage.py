@@ -4,8 +4,8 @@
 from __future__ import print_function
 import os
 
-from flask.ext.script import Manager
-from flask.ext.migrate import Migrate, MigrateCommand
+from flask_script import Manager
+from flask_migrate import Migrate, MigrateCommand
 
 from application import application as app
 from db import database as db

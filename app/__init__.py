@@ -4,7 +4,7 @@ import os
 
 from flask import Flask, session, request, send_file, after_this_request,\
 		redirect, jsonify, make_response
-from flask.ext.cors import CORS
+from flask_cors import CORS
 
 from config import config
 from db.model import User
