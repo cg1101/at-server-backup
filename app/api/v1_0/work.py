@@ -5,18 +5,27 @@ from flask import request, session, jsonify, redirect
 import pytz
 
 import db.model as m
+from db.schema import t_batchhistory
 from db.db import SS
-from app.api import api, caps
+from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp
 from .. import InvalidUsage
 
 from app.util import TestManager
 
+def is_local_address(ipAddress):
+	if ipAddress.startswith('192.168.') or ipAddress.startswith('165.228.178.104'):
+		return True
+	if ipAddress.startswith('127.'):
+		return True
+	return False
+
 _name = __file__.split('/')[-1].split('.')[0]
 
 
-@bp.route(_name + '/work/<int:subTaskId>')
+@bp.route(_name + '/get/<int:subTaskId>')
+@api
 def get_batch_from_sub_task(subTaskId):
 	me = session['current_user']
 
@@ -75,6 +84,7 @@ def get_batch_from_sub_task(subTaskId):
 
 
 @bp.route(_name + '/do/<int:batchId>')
+@api
 def load_batch(batchId):
 	me = session['current_user']
 
@@ -108,7 +118,202 @@ def load_batch(batchId):
 	return jsonify(batch=m.Batch.dump(batch), showGuideline=showGuideline)
 
 
+@bp.route(_name + '/do/<int:batchId>/abandon')
+@api
+def abandon_batch(batchId):
+	batch = m.Batch.query.get(batchId)
+	if not batch:
+		raise InvalidUsage(_('batch {0} not found').format(batchId))
+	me = session['current_user']
+	if batch.userId != me.userId:
+		raise InvalidUsage(_('batch {0} is not owned by user {1}').format(batchId, me.userId))
+
+	batch.log_event('abandoned')
+	batch.reset_ownership()
+	batch.increase_priority()
+
+	return jsonify(message=_('batch {0} has been abandoned by user {1}').format(batchId, me.userId))
+
+
+def check_page_existence(data, key, pageId, batchId):
+	page = m.Page.query.get(pageId)
+	if not page or page.batchId != batchId:
+		raise ValueError(_('page {0} not found in batch {1}').format(pageId, batchId))
+
+
+def check_member_existence(data, key, memberIndex):
+	pageId = data['pageId']
+	memberEntry = m.PageMemberEntry.query.get((pageId, memberIndex))
+	if not memberEntry:
+		raise ValueError(_('page number ({}, {}) not found').format(pageId, memberIndex))
+
+
+def normalize_label_ids(data, key, labelIds):
+	task = data['task']
+	rs = []
+	if task.labelSetId != None:
+		try:
+			input_ids = set([int(i) for i in labelIds])
+		except:
+			raise ValueError(_('invalid labelIds input: {0}').format(labelIds))
+		for labelId in input_ids:
+			label = m.Label.query.get(labelId)
+			if not label or label.labelSetId != task.labelSetId:
+				continue
+			rs.append(labelId)
+	return sorted(rs)
+
+
+def normalize_error_type_ids(data, key, errorTypeIds):
+	task = data['task']
+	rs = []
+	valid_ids = set([r.errorTypeId for r in SS.query(m.TaskErrorType.errorTypeId
+		).filter(m.TaskErrorType.taskId==task.taskId
+		).filter(m.TaskErrorType.disabled.is_(False))])
+	try:
+		input_ids = set([int(i) for i in errorTypeIds])
+	except:
+		raise ValueError(_('invalid errorTypeIds input: {0}').format(errorTypeIds))
+	return sorted(valid_ids & input_ids)
+
+
+@bp.route(_name + '/do/<int:batchId>/save', methods=['POST'])
+@api
+def save_work_entry(batchId):
+	batch = m.Batch.query.get(batchId)
+	if not batch:
+		raise InvalidUsage(_('batch {0} not found').format(batchId))
+	me = session['current_user']
+	if batch.userId != me.userId:
+		raise InvalidUsage(_('batch {0} is not owned by user {1}').format(batchId, me.userId))
+	if batch.isExpired:
+		raise InvalidUsage(_('batch {0} has expired already').format(batchId))
+
+	subTask = batch.subTask
+
+	data = MyForm(
+		Field('task', is_mandatory=True, default=batch.task),
+		Field('pageId', is_mandatory=True, validators=[
+			(check_page_existence, (batchId,)),
+		]),
+		Field('memberIndex', is_mandatory=True, validators=[
+			check_member_existence,
+		]),
+		Field('result', is_mandatory=True, default=''),
+		Field('labels', is_mandatory=True, default=[],
+			normalizer=normalize_label_ids),
+		Field('errors', is_mandatory=True, default=[],
+			normalizer=normalize_error_type_ids),
+	).get_data()
+
+	ipAddress = request.environ['REMOTE_ADDR']
+
+	memberEntry = m.PageMemberEntry.query.get((data['pageId'], data['memberIndex']))
+	assert memberEntry
+
+	if subTask.workType == m.WorkType.QA:
+		qaedEntryId = memberEntry.workEntryId
+		qaedEntry = m.WorkEntry.query.get(qaedEntryId)
+		qaedUserId = qaedEntry.userId
+		rawPieceId = qaedEntry.rawPieceId
+		taskErrorTypeById = dict([(i.errorTypeId, i) for i
+			in m.TaskErrorType.query.filter_by(taskId=batch.taskId).all()])
+	else:
+		qaedEntryId = None
+		qaedEntry = None
+		qaedUserId = None
+		rawPieceId = memberEntry.rawPieceId
+		taskErrorTypeById = {}
+		data['errors'] = []
+
+	# add new Entry
+	newEntry = m.BasicWorkEntry(**{
+		# 'entryId': None, # TBD
+		# 'created': None, # auto-fill
+		'result': data['result'],
+		'rawPieceId': rawPieceId,
+		'batchId': batchId,
+		'taskId': batch.taskId,
+		'subTaskId': batch.subTaskId,
+		'workTypeId': batch.subTask.workTypeId,
+		'userId': me.userId,
+		# 'notes': None,
+		'qaedUserId': qaedUserId,
+		'qaedEntryId': qaedEntryId,
+		'pageId': data['pageId']
+	})
+	SS.add(newEntry)
+	SS.flush()
+	# add labels
+	for labelId in data['labels']:
+		SS.add(m.AppliedLabel(entryId=newEntry.entryId, labelId=labelId))
+	# add errors, (if applicable)
+	for errorTypeId in data['errors']:
+		e = taskErrorTypeById.get(errorTypeId, None)
+		SS.add(m.AppliedError(entryId=newEntry.entryId,
+			errorTypeId=e.errorTypeId, severity=e.severity))
+
+	# add payable event
+	event = m.PayableEvent(**{
+		# 'eventId': None, # TBD
+		'userId': me.userId,
+		'taskId': batch.taskId,
+		'subTaskId': batch.subTaskId,
+		# 'created': None, # auto-fill
+		'batchId': batchId,
+		'pageId': data['pageId'],
+		'rawPieceId': rawPieceId,
+		'workEntryId': newEntry.entryId,
+		'calculatedPaymentId': None, # explicitly set to NULL
+		'localConnection': is_local_address(ipAddress),
+		'ipAddress': ipAddress,
+		'ratio': 1.0,
+	})
+	SS.add(event)
+
+	SS.flush()
+	newEntry = m.WorkEntry.query.get(newEntry.entryId)
+	return jsonify(
+		entry=m.WorkEntry.dump(newEntry),
+		event=m.PayableEvent.dump(event),
+	)
+
+
+@bp.route(_name + '/do/<int:batchId>/submit')
+@api
+def submit_batch(batchId):
+	batch = m.Batch.query.get(batchId)
+	if not batch:
+		raise InvalidUsage(_('batch {0} not found').format(batchId))
+	me = session['current_user']
+	if batch.userId != me.userId:
+		raise InvalidUsage(_('batch {0} is not owned by user {1}').format(batchId, me.userId))
+	if not batch.isFinished:
+		raise InvalidUsage(_('batch {0} is not finished').format(batchId))
+
+	SS.rollback()
+	batch = m.Batch.query.get(batchId)
+	batch.log_event('submitted')
+	for p in batch.pages:
+	# 	for member in p.members:
+	# 		SS.delete(member)
+		for memberEntry in p.memberEntries:
+			SS.delete(memberEntry)
+		SS.delete(p)
+	SS.delete(batch)
+	SS.flush()
+
+	remaining = m.Batch.query.filter_by(subTaskId=batch.subTaskId
+		).filter(m.Batch.onHold.isnot(True)
+		).filter(m.Batch.userId.is_(None)).count()
+	return jsonify(
+		message=_('batch {1} has been submitted by user {1}').format(batchId, me.userId),
+		remainingBatches=remaining,
+	)
+
+
 @bp.route(_name + '/tests/<int:testId>/start')
+@api
 def start_or_resume_test(testId):
 	me = session['current_user']
 

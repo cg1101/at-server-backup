@@ -180,9 +180,38 @@ class Batch(Base):
 	__table__ = t_batches
 	user = relationship('User', foreign_keys=[t_batches.c.userId])
 	userName = association_proxy('user', 'userName')
-	pages = relationship('Page', order_by='Page.pageIndex')
+	pages = relationship('Page', order_by='Page.pageIndex',
+		cascade='all, delete-orphan')
 	task = relationship('Task')
 	subTask = relationship('SubTask')
+
+	@property
+	def isExpired(self):
+		if self.leaseExpires is None:
+			return False
+		else:
+			return self.leaseExpires <= utcnow()
+
+	@property
+	def isFinished(self):
+		if self.userId is None:
+			return False
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					return False
+		return True
+
+	@property
+	def unfinishedCount(self):
+		if self.userId is None:
+			return sum([len(page.members) for page in self.pages])
+		count = 0
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					count += 1
+		return count
 
 	def expire(self):
 		"""
@@ -221,7 +250,7 @@ class Batch(Base):
 			"userId": self.userId,
 			"event": event,
 		})
-		db.session.execute(query)
+		SS.execute(query)
 
 
 class BatchSchema(Schema):
@@ -406,7 +435,8 @@ class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
 		primaryjoin='Page.pageId == PageMember.pageId', order_by='PageMember.memberIndex',
-		cascade='all, delete-orphan')
+		cascade='all, delete-orphan'
+		)
 	memberEntries = relationship('PageMemberEntry', cascade='all, delete-orphan')
 
 class PageSchema(Schema):
@@ -1233,6 +1263,9 @@ class UtteranceSelectionSchema(Schema):
 		# skip_missing = True
 
 # WorkEntry
+class BasicWorkEntry(Base):
+	__table__ = t_workentries
+
 class WorkEntry(Base):
 	__table__ = j_workentries
 	__mapper_args__ = {
