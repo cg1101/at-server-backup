@@ -85,27 +85,34 @@ def get_batch_from_sub_task(subTaskId):
 
 @bp.route(_name + '/do/<int:batchId>')
 @api
-def load_batch(batchId):
+def load_batch_context(batchId):
 	me = session['current_user']
 
 	batch = m.Batch.query.get(batchId)
 	if not batch:
 		raise InvalidUsage(_('batch {0} not found').format(batchId), 404)
 
-	taskId = batch.taskId
-	subTaskId = batch.subTaskId
+	task = batch.task
 	subTask = batch.subTask
+	tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
+	labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
+	taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
 
-	permit = m.TaskWorker.query.get((me.userId, taskId, subTaskId))
-	if not permit or permit.removed:
-		# TODO: take back assigned batch if user got removed?
-		raise InvalidUsage(_('Sorry, you are not assigned to this sub task.'))
+	# check if current user has the capability to view batch
+	# this allows supervisors to check progress
+	has_cap = True
 
-	if batch.userId != me.userId:
+	if batch.userId != me.userId and not has_cap:
 		raise InvalidUsage(_('Sorry, you have requested a batch that you don\'t own.'
 			'If you have any questions, please contact your transcription supervisor.'))
 
-	if batch.leaseExpires <= datetime.datetime.now():
+	permit = m.TaskWorker.query.get((me.userId, task.taskId, subTask.subTaskId))
+	if (not permit or permit.removed) and not has_cap:
+		# TODO: take back assigned batch if user got removed?
+		raise InvalidUsage(_('Sorry, you are not assigned to this sub task.'))
+
+	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+	if batch.leaseExpires <= now and not has_cap:
 		# TODO: take back expired batch
 		raise InvalidUsage(_().format('Sorry, you current work lease is expired.',
 			'Please select another item to work on.',
@@ -113,9 +120,19 @@ def load_batch(batchId):
 
 	showGuideline = (subTask.instructionPage != None
 				and subTask.instructionPage.strip()
+				and permit
 				and not permit.hasReadInstructions)
 
-	return jsonify(batch=m.Batch.dump(batch), showGuideline=showGuideline)
+	return jsonify(
+		contextType='batch',
+		task=m.Task.dump(batch.task),
+		subTask=m.SubTask.dump(batch.subTask),
+		tagSet=m.TagSet.dump(tagSet) if tagSet else None,
+		labelSet=m.LabelSet.dump(labelSet) if labelSet else None,
+		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
+		batch=m.Batch.dump(batch),
+		showGuideline=showGuideline,
+	)
 
 
 @bp.route(_name + '/do/<int:batchId>/abandon')

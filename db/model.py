@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import datetime
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
+import pytz
 
 from . import database, mode
 from .db import SS
@@ -99,7 +102,7 @@ class Batch(Base):
 		if self.leaseExpires is None:
 			return False
 		else:
-			return self.leaseExpires <= utcnow()
+			return self.leaseExpires <= datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
 	@property
 	def isFinished(self):
