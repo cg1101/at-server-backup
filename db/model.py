@@ -1467,7 +1467,6 @@ class AudioFile(Base, ImportMixin):
 			file_path=data["filePath"],
 			audio_spec=data["audioSpec"],
 			audio_data_location=data["audioDataLocation"],
-			duration=DurationField().deserialize(data["duration"]),
 			stats=data["stats"]
 		)
 
@@ -1737,6 +1736,7 @@ class Recording(Base, ImportMixin):
 			recording_platform=performance.recording_platform,
 			performance=performance,
 			corpus_code=corpus_code,
+			duration=DurationField().deserialize(data["duration"]),
 			prompt=data["prompt"],
 			hypothesis=data["hypothesis"]
 		)

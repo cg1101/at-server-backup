@@ -29,10 +29,13 @@ AUDIO_IMPORT_SCHEMA = {
 			"minItems": 1,
 			"items": {
 				"type": "object",
-				"required": ["corpusCodeId", "prompt", "hypothesis", "audioFiles"],
+				"required": ["corpusCodeId", "duration", "prompt", "hypothesis", "audioFiles"],
 				"properties": {
 					"corpusCodeId": {
 						"type": "integer"
+					},
+					"duration": {
+						"type": "number"
 					},
 					"prompt": {
 						"type": ["string", "null"]
@@ -45,7 +48,7 @@ AUDIO_IMPORT_SCHEMA = {
 						"minItems": 1,
 						"items": {
 							"type": "object",
-							"required": ["filePath", "trackId", "audioSpec", "audioDataLocation", "duration", "stats"],
+							"required": ["filePath", "trackId", "audioSpec", "audioDataLocation", "stats"],
 							"properties": {
 								"filePath" : {
 									"type": "string"
@@ -58,9 +61,6 @@ AUDIO_IMPORT_SCHEMA = {
 								},
 								"audioDataLocation": {
 									"type": "object"
-								},
-								"duration": {
-									"type": "number"
 								},
 								"stats": {
 									"type": ["object", "null"]
