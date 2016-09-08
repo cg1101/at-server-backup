@@ -1475,8 +1475,11 @@ class AudioFile(Base, ImportMixin):
 
 
 class AudioFileSchema(Schema):
+	duration = DurationField()
+	track = fields.Nested("TrackSchema")
+
 	class Meta:
-		fields = ("audioFileId", "recordingId", "trackId", "filePath", "audioSpec", "audioDataLocation", "duration", "stats")
+		additional = ("audioFileId", "recordingId", "filePath", "audioSpec", "audioDataLocation", "stats")
 
 # AudioImporter
 class AudioImporter(Base):
@@ -1749,8 +1752,9 @@ class Recording(Base, ImportMixin):
 
 
 class RecordingSchema(Schema):
+	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
 	class Meta:
-		fields = ("recordingId", "audioCollectionId", "performanceId", "corpusCodeId", "prompt", "hypothesis")
+		additional = ("recordingId", "audioCollectionId", "performanceId", "prompt", "hypothesis")
 
 # CorpusCode
 class CorpusCode(Base):

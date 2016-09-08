@@ -21,6 +21,8 @@ import misc
 import pools
 import projects
 import rates
+import recordings
+import recording_platforms
 import sheets
 import subtasks
 import tagsets
