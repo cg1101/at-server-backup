@@ -976,19 +976,25 @@ class SpanTag(Tag):
 		'polymorphic_identity': Tag.NON_EMBEDDABLE,
 		#'include_properties': [t_tags.c.color, t_tags.c.isForeground, t_tags.c.extend, t_tags.c.split],
 	}
+	@property
+	def style(self):
+		return '{}:{}'.format('color' if self.isForeground else 'background-color', self.color)
 
 class SpanTagSchema(TagSchema):
 	class Meta:
-		additional = ('color', 'isForeground', 'surround', 'extend', 'split')
+		additional = ('color', 'isForeground', 'surround', 'extend', 'split', 'style')
 
 class SpanBTag(Tag):
 	__mapper_args__ = {
 		'polymorphic_identity': Tag.EMBEDDABLE,
 	}
+	@property
+	def style(self):
+		return '{}:{}'.format('color' if self.isForeground else 'background-color', self.color)
 
 class SpanBTagSchema(TagSchema):
 	class Meta:
-		additional = ('color', 'isForeground')
+		additional = ('color', 'isForeground', 'style')
 
 class SubstitutionTag(Tag):
 	__mapper_args__ = {
@@ -1216,10 +1222,13 @@ class WorkTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.WORK,
 	}
 	appliedLabels = relationship('AppliedLabel')
+	@property
+	def labels(self):
+		return [l.labelId for l in self.appliedLabels]
 
 class WorkTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('labels',)
 		ordered = True
 
 class QaTypeEntry(WorkEntry):
@@ -1227,10 +1236,13 @@ class QaTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.QA,
 	}
 	appliedErrors = relationship('AppliedError')
+	@property
+	def errors(self):
+		return [e.errorTypeId for e in self.appliedErrors]
 
 class QaTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('errors',)
 		ordered = True
 
 class ReworkTypeEntry(WorkEntry):
@@ -1238,10 +1250,13 @@ class ReworkTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.REWORK,
 	}
 	appliedLabels = relationship('AppliedLabel')
+	@property
+	def labels(self):
+		return [l.labelId for l in self.appliedLabels]
 
 class ReworkTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('labels',)
 		ordered = True
 
 # WorkInterval
