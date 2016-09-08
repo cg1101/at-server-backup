@@ -98,6 +98,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['selectionid'], [u'utteranceselections.selectionid'], name=u'reworkcontenthistory_selectionid_fkey'),
     sa.ForeignKeyConstraint(['subtaskid'], [u'subtasks.subtaskid'], name=u'reworkcontenthistory_subtaskid_fkey'),
     sa.CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
+    sa.PrimaryKeyConstraint(u'eventid', name=op.f('pk_reworkcontenthistory'))
     )
     op.create_index('reworkcontenthistorybysubtaskid', 'reworkcontenthistory', ['subtaskid'], unique=False)
     op.create_table('subtaskmetrics',
