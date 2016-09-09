@@ -5,7 +5,7 @@ from alembic import context
 from db.schema import t_database_settings
 
 
-def add_seed_data(table_name: str, data: dict):
+def add_seed_data(table_name, data):
 	"""
 	Adds a seed data record to the database if the 
 	database has already been seeded. The data is
@@ -38,7 +38,7 @@ def add_seed_data(table_name: str, data: dict):
 		migrate_context.connection.execute(sqlalchemy.text(sql), **data)
 
 
-def delete_seed_data(table_name: str, constraint: str, **data):
+def delete_seed_data(table_name, constraint, **data):
 	"""
 	Deletes seed data from the database if the database
 	has already been seeded. The constraint should select
