@@ -1418,6 +1418,7 @@ class AudioCollection(Base):
 	project_id = synonym("projectId")
 	audio_collection_status_id = synonym("audioCollectionStatusId")
 	archive_file = synonym("archiveFile")
+	audio_cutup_config = synonym("audioCutupConfig")
 
 	@property
 	def importable(self):
@@ -1430,7 +1431,7 @@ class AudioCollection(Base):
 
 class AudioCollectionSchema(Schema):
 	class Meta:
-		fields = ("audioCollectionId", "projectId", "name", "key", "config", "audioCollectionStatusId", "defaultAudioSpec", "masterScriptFile", "masterHypothesisFile", "archiveFile")
+		fields = ("audioCollectionId", "projectId", "name", "key", "audioCollectionStatusId", "archiveFile", "audioCutupConfig")
 
 # AudioFile
 class AudioFile(Base, ImportMixin):
