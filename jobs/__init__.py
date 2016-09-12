@@ -2,7 +2,7 @@ import logging
 import sys
 
 from flask import current_app
-from flask.ext.script import Manager
+from flask_script import Manager
 from sqlalchemy import func
 
 from db import database as db

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -8,6 +9,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
+import pytz
 
 from . import database, mode
 from .db import SS
@@ -180,9 +182,38 @@ class Batch(Base):
 	__table__ = t_batches
 	user = relationship('User', foreign_keys=[t_batches.c.userId])
 	userName = association_proxy('user', 'userName')
-	pages = relationship('Page', order_by='Page.pageIndex')
+	pages = relationship('Page', order_by='Page.pageIndex',
+		cascade='all, delete-orphan')
 	task = relationship('Task')
 	subTask = relationship('SubTask')
+
+	@property
+	def isExpired(self):
+		if self.leaseExpires is None:
+			return False
+		else:
+			return self.leaseExpires <= datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+	@property
+	def isFinished(self):
+		if self.userId is None:
+			return False
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					return False
+		return True
+
+	@property
+	def unfinishedCount(self):
+		if self.userId is None:
+			return sum([len(page.members) for page in self.pages])
+		count = 0
+		for page in self.pages:
+			for member in page.members:
+				if not member.saved:
+					count += 1
+		return count
 
 	def expire(self):
 		"""
@@ -221,7 +252,7 @@ class Batch(Base):
 			"userId": self.userId,
 			"event": event,
 		})
-		db.session.execute(query)
+		SS.execute(query)
 
 
 class BatchSchema(Schema):
@@ -406,7 +437,8 @@ class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
 		primaryjoin='Page.pageId == PageMember.pageId', order_by='PageMember.memberIndex',
-		cascade='all, delete-orphan')
+		cascade='all, delete-orphan'
+		)
 	memberEntries = relationship('PageMemberEntry', cascade='all, delete-orphan')
 
 class PageSchema(Schema):
@@ -1034,19 +1066,25 @@ class SpanTag(Tag):
 		'polymorphic_identity': Tag.NON_EMBEDDABLE,
 		#'include_properties': [t_tags.c.color, t_tags.c.isForeground, t_tags.c.extend, t_tags.c.split],
 	}
+	@property
+	def style(self):
+		return '{}:{}'.format('color' if self.isForeground else 'background-color', self.color)
 
 class SpanTagSchema(TagSchema):
 	class Meta:
-		additional = ('color', 'isForeground', 'surround', 'extend', 'split')
+		additional = ('color', 'isForeground', 'surround', 'extend', 'split', 'style')
 
 class SpanBTag(Tag):
 	__mapper_args__ = {
 		'polymorphic_identity': Tag.EMBEDDABLE,
 	}
+	@property
+	def style(self):
+		return '{}:{}'.format('color' if self.isForeground else 'background-color', self.color)
 
 class SpanBTagSchema(TagSchema):
 	class Meta:
-		additional = ('color', 'isForeground')
+		additional = ('color', 'isForeground', 'style')
 
 class SubstitutionTag(Tag):
 	__mapper_args__ = {
@@ -1233,6 +1271,9 @@ class UtteranceSelectionSchema(Schema):
 		# skip_missing = True
 
 # WorkEntry
+class BasicWorkEntry(Base):
+	__table__ = t_workentries
+
 class WorkEntry(Base):
 	__table__ = j_workentries
 	__mapper_args__ = {
@@ -1271,10 +1312,13 @@ class WorkTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.WORK,
 	}
 	appliedLabels = relationship('AppliedLabel')
+	@property
+	def labels(self):
+		return [l.labelId for l in self.appliedLabels]
 
 class WorkTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('labels',)
 		ordered = True
 
 class QaTypeEntry(WorkEntry):
@@ -1282,10 +1326,13 @@ class QaTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.QA,
 	}
 	appliedErrors = relationship('AppliedError')
+	@property
+	def errors(self):
+		return [e.errorTypeId for e in self.appliedErrors]
 
 class QaTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('errors',)
 		ordered = True
 
 class ReworkTypeEntry(WorkEntry):
@@ -1293,10 +1340,13 @@ class ReworkTypeEntry(WorkEntry):
 		'polymorphic_identity': WorkType.REWORK,
 	}
 	appliedLabels = relationship('AppliedLabel')
+	@property
+	def labels(self):
+		return [l.labelId for l in self.appliedLabels]
 
 class ReworkTypeEntrySchema(WorkEntrySchema):
 	class Meta:
-		additional = ()
+		additional = ('labels',)
 		ordered = True
 
 # WorkInterval
