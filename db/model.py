@@ -1395,6 +1395,7 @@ class RecordingPlatform(Base):
 	audio_importer_id = synonym("audioImporterId")
 	recording_platform_id = synonym("recordingPlatformId")
 	storage_location = synonym("storageLocation")
+	audio_cutup_config = synonym("audioCutupConfig")
 
 	@property
 	def importable_performance_meta_categories(self):
@@ -1407,7 +1408,7 @@ class RecordingPlatform(Base):
 class RecordingPlatformSchema(Schema):
 	audioImporter = fields.Nested("AudioImporterSchema", attribute="audio_importer")
 	class Meta:
-		additional = ("recordingPlatformId", "storageLocation", "index", "name", "masterHypothesisFile", "masterScriptFile", "config")
+		additional = ("recordingPlatformId", "storageLocation", "index", "name", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
 # AudioCollectionStatusLog
 class AudioCollectionStatusLog(Base):
@@ -1468,7 +1469,6 @@ class AudioCollection(Base):
 	project_id = synonym("projectId")
 	audio_collection_status_id = synonym("audioCollectionStatusId")
 	archive_file = synonym("archiveFile")
-	audio_cutup_config = synonym("audioCutupConfig")
 
 	@property
 	def importable(self):
@@ -1481,7 +1481,7 @@ class AudioCollection(Base):
 
 class AudioCollectionSchema(Schema):
 	class Meta:
-		fields = ("audioCollectionId", "projectId", "name", "key", "audioCollectionStatusId", "archiveFile", "audioCutupConfig")
+		fields = ("audioCollectionId", "projectId", "name", "key", "audioCollectionStatusId", "archiveFile")
 
 # AudioFile
 class AudioFile(Base, ImportMixin):

@@ -8,7 +8,6 @@ from app.api import api, caps
 from db import database as db
 from db.model import AudioCollection, Performance, RecordingPlatform
 from lib.AmrConfigFile import AmrConfigFile
-from lib.audio_cutup import validate_audio_cutup_config
 from lib.audio_import import ImportConfigAudioCollection, validate_import_data
 from lib.metadata_validation import MetaValidator
 
@@ -72,6 +71,21 @@ def import_audio_data(audio_collection_id):
 	return jsonify(success=True)
 
 
+@bp.route("audiocollections/<int:audio_collection_id>/recordingplatforms")
+@api
+@caps()
+def get_audio_collection_recording_platforms(audio_collection_id):
+	
+	audio_collection = AudioCollection.query.get(audio_collection_id)
+	
+	if not audio_collection:
+		raise InvalidUsage("audio collection {0} not found".format(audio_collection_id), 404)
+
+	recording_platforms = RecordingPlatform.query.filter_by(audio_collection_id=audio_collection_id).all()
+	return jsonify({"recordingPlatforms": RecordingPlatform.dump(recording_platforms)})
+
+
+# TODO move this to recording platforms, or something more general
 @bp.route("audiocollections/<int:audio_collection_id>/metadata/performances/upload", methods=["POST"])
 @api
 @caps()
@@ -93,18 +107,3 @@ def upload_metadata_config_file(audio_collection_id):
 		})
 
 	return jsonify(categories=categories)
-
-
-@bp.route("audiocollections/<int:audio_collection_id>/audiocutup", methods=["PUT"])
-@api
-@caps()
-def update_audio_cutup_config(audio_collection_id):
-	audio_collection = AudioCollection.query.get(audio_collection_id)
-	
-	if not audio_collection:
-		raise InvalidUsage("audio collection {0} not found".format(audio_collection_id), 404)
-	
-	audio_cutup_config = request.json
-	validate_audio_cutup_config(audio_cutup_config)
-	audio_collection.audio_cutup_config = audio_cutup_config
-	return jsonify(success=True)
