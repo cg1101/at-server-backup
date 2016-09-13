@@ -1817,12 +1817,16 @@ class CorpusCode(Base):
 	# synonyms
 	corpus_code_id = synonym("corpusCodeId")
 	audio_collection_id = synonym("audioCollectionId")
-	requires_cutup = synonym("requiresCutup")
+	recording_platform_id = synonym("recordingPlatformId")
+	is_scripted = synonym("isScripted")
 	corpus_code_group_id = synonym("corpusCodeGroupId")
 
 class CorpusCodeSchema(Schema):
+	included = fields.Boolean()
+	regex = fields.String()
+	type = fields.Function(lambda obj: "Scripted" if obj.is_scripted else "Spontaneous")
 	class Meta:
-		fields = ("corpusCodeId", "code", "requiresCutup", "included", "regex")
+		additional = ("corpusCodeId", "code", "isScripted")
 
 # Track
 class Track(Base):
