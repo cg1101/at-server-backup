@@ -13,6 +13,7 @@ def handle_invalid_usage(error):
 
 import audio_collections
 import batches
+import corpus_codes
 import errorclasses
 import errortypes
 import filehandlers
