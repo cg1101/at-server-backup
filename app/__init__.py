@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
-import os
+import re
+import urllib
+import json
 
-from flask import Flask, session, request, send_file, after_this_request,\
-		redirect, jsonify, make_response
+from flask import Flask, session, request, after_this_request,\
+		redirect, jsonify, make_response, url_for, current_app
+from flask_oauthlib.client import OAuth
 from flask_cors import CORS
 
 from config import config
 from db.model import User
 from db.db import SS
 from db import database as db
-from .auth import MyAuthMiddleWare
+import auth
 from .i18n import get_text as _
 
 def create_app(config_name):
@@ -20,11 +23,16 @@ def create_app(config_name):
 	db.init_app(app)
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
-	# app.wsgi_app = MyAuthMiddleWare(app.wsgi_app,
-	# 	app.config['AUTHENTICATION_LOGIN_URL'],
-	# 	public_prefixes=['/static/', '/webservices', '/logout'],
-	# 	json_prefixes=['/api/'],
-	# )
+	public_url_patterns = map(re.compile, [
+		'/static/',
+		'/webservices',
+		'/logout',
+		'/favicon.ico',
+		'/authorization_response',
+	])
+	json_url_patterns = map(re.compile, [
+		'/api'
+	])
 
 	from app.api import api_1_0
 	# from app.webservices import webservices
@@ -33,14 +41,62 @@ def create_app(config_name):
 	# app.register_blueprint(webservices, url_prefix='/webservices')
 	app.register_blueprint(views, url_prefix='')
 
+	oauth = OAuth()
+	soteria = oauth.remote_app('soteria',
+		base_url=None,
+		request_token_url=None,
+		access_token_url=app.config['OAUTH2_TOKEN_ENDPOINT'],
+		authorize_url=app.config['OAUTH2_AUTHORIZATION_ENDPOINT'],
+		consumer_key=app.config['OAUTH2_CLIENT_ID'],
+		consumer_secret=app.config['OAUTH2_CLIENT_SECRET'],
+		request_token_params={'scope': 'user', 'state': 'blah'},
+	)
+
 	@app.before_request
-	def get_current_user():
-		data = request.environ.get('myauthmiddleware', None)
-		if not data:
-			user = User.query.get(699)
+	def authenticate_request():
+		# no need to authenticate
+		for p in public_url_patterns:
+			if p.match(request.path):
+				print '\033[1,32mAuthentication not needed: %s\033[0m' % request.url
+				return None
+
+		# authenticate by cookie
+		cookie = request.cookies.get(current_app.config['APP_COOKIE_NAME'])
+		if cookie:
+			secret = current_app.config['APP_COOKIE_SECRET']
+			try:
+				user_dict = auth.decode_cookie(cookie, secret)
+			except:
+				user_dict = None
+			if user_dict:
+				session['current_user'] = User.query.get(user_dict['REMOTE_USER_ID'])
+				return None
+		# 	else:
+		# 		# cookie corrupted or expired
+		# 		pass
+		# else:
+		# 	# cookie not found
+		# 	pass
+
+		# authenticate by header
+		# TBD
+
+		is_json = False
+		for p in json_url_patterns:
+			if p.match(request.path):
+				is_json = True
+				break
 		else:
-			user = User.query.get(data['REMOTE_USER_ID'])
-		session['current_user'] = user
+			is_json = (request.headers.get('HTTP-ACCEPT') or ''
+					).find('application/json') >= 0
+		if is_json:
+			return make_response(jsonify(
+				error=_('authentication required to access requested url'),
+				authorizationUrl=authentication_url,
+			), 401)
+
+		callback = url_for('authorization_response', r=request.url, _external=True)
+		return soteria.authorize(callback=callback)
 
 	@app.after_request
 	def clear_current_user(resp):
@@ -59,7 +115,7 @@ def create_app(config_name):
 	def logout():
 		@after_this_request
 		def clear_cookie(response):
-			response.delete_cookie('appen')
+			response.delete_cookie(current_app.config['APP_COOKIE_NAME'])
 			return response
 		# if request.is_xhr:
 		# 	return jsonify({'url': app.config['AUTHENTICATION_LOGOUT_URL']})
@@ -72,6 +128,46 @@ def create_app(config_name):
 	# 		response.delete_cookie('appen')
 	# 		return response
 	# 	return jsonify({'url': app.config['AUTHENTICATION_LOGOUT_URL']})
+
+	@app.route('/authorization_response')
+	def authorization_response():
+		original_url = request.args['r']
+
+		# retrieve the access_token using code from authorization grant
+		resp = soteria.authorized_response()
+		if resp is None:
+			return _('You need to grant access to continue, error: {}'.format(
+				request.args['error']))
+
+		# get user info from Go
+		token = resp['access_token']
+		userInfo = json.load(urllib.urlopen('%s?%s' % (
+			app.config['AUTHENTICATED_USER_INFO_URL'],
+			urllib.urlencode({'oauth_token': token}))))
+
+		# search for user, if found, setup cookie
+		email = userInfo['info']['email']
+		try:
+			me = User.query.filter(User.emailAddress==email).one()
+		except:
+			# add user
+			me = User(emailAddress=email,
+				familyName=userInfo['extra']['last_name'],
+				givenName=userInfo['extra']['first_name'],
+			)
+			SS.add(me)
+			SS.flush()
+
+		data = {
+			'REMOTE_USER_ID': me.userId,
+			'REMOTE_USER_NAME': me.userName,
+			'CAPABILITIES': ['admin']
+		}
+		value = auth.encode_cookie(data,
+			current_app.config['APP_COOKIE_SECRET'], timeout=0)
+		response = redirect(location=original_url)
+		response.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
+		return response
 
 	@app.errorhandler(404)
 	def default_hander(exc):

@@ -2,17 +2,27 @@
 import os
 
 class Config:
-	SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
+	SECRET_KEY = os.environ['SECRET_KEY']
+
+	APP_COOKIE_NAME = os.environ['APP_COOKIE_NAME']
+	APP_COOKIE_SECRET = os.environ['APP_COOKIE_SECRET']
+
+	OAUTH2_AUTHORIZATION_ENDPOINT = os.environ['OAUTH2_AUTHORIZATION_ENDPOINT']
+	OAUTH2_TOKEN_ENDPOINT = os.environ['OAUTH2_TOKEN_ENDPOINT']
+	OAUTH2_CLIENT_ID = os.environ['OAUTH2_CLIENT_ID']
+	OAUTH2_CLIENT_SECRET = os.environ['OAUTH2_CLIENT_SECRET']
+	AUTHENTICATED_USER_INFO_URL = os.environ['AUTHENTICATED_USER_INFO_URL']
+
+	AUTHENTICATION_LOGOUT_URL = os.environ['AUTHENTICATION_LOGOUT_URL']
+
 	SQLALCHEMY_COMMIT_ON_TEARDOWN = True
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
 	SQLALCHEMY_DATABASE_URI = (os.environ.get('DATABASE_URI')
 			or 'postgresql://localhost/atdb')
+
 	NON_ADMIN_REDIRECT_URL = (os.environ.get('NON_ADMIN_REDIRECT_URL')
 			or 'http://appenonline.appen.com.au')
-	AUTHENTICATION_LOGIN_URL = (os.environ.get('AUTHENTICATION_LOGIN_URL')
-			or 'http://appenonline.appen.com.au')
-	AUTHENTICATION_LOGOUT_URL = (os.environ.get('AUTHENTICATION_LOGOUT_URL')
-			or 'http://appenonline.appen.com.au/logout')
+
 	@staticmethod
 	def init_app(app):
 		pass
