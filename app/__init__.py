@@ -25,9 +25,9 @@ def create_app(config_name):
 
 	public_url_patterns = map(re.compile, [
 		'/static/',
+		'/favicon.ico',
 		'/webservices',
 		'/logout',
-		'/favicon.ico',
 		'/authorization_response',
 	])
 	json_url_patterns = map(re.compile, [
@@ -68,7 +68,8 @@ def create_app(config_name):
 			except:
 				user_dict = None
 			if user_dict:
-				session['current_user'] = User.query.get(user_dict['REMOTE_USER_ID'])
+				session['current_user'] = User.query.get(
+					user_dict['REMOTE_USER_ID'])
 				return None
 		# 	else:
 		# 		# cookie corrupted or expired
@@ -91,10 +92,11 @@ def create_app(config_name):
 		if is_json:
 			return make_response(jsonify(
 				error=_('authentication required to access requested url'),
-				authorizationUrl=authentication_url,
+				authorizationUrl=app.config['AUTHENTICATION_LOGOUT_URL'],
 			), 401)
 
-		callback = url_for('authorization_response', r=request.url, _external=True)
+		callback = url_for('authorization_response',
+			r=request.url, _external=True)
 		return soteria.authorize(callback=callback)
 
 	@app.after_request
@@ -165,7 +167,8 @@ def create_app(config_name):
 				_('Sorry, the resource you have requested for is not found'),
 				404)
 		if request.path.startswith('/api/'):
-			return make_response(jsonify(error='requested url not found'), 404, {})
+			return make_response(jsonify(error='requested url not found'),
+				404, {})
 		# TODO: only redirect valid urls
 		return redirect('/#%s' % request.path)
 

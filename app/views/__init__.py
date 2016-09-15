@@ -1,7 +1,5 @@
 
-from flask import Blueprint, make_response, render_template
-
-from app.api import InvalidUsage
+from flask import Blueprint
 
 views = Blueprint('views', __name__, template_folder='../templates')
 
