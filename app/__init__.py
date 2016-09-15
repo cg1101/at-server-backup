@@ -57,7 +57,6 @@ def create_app(config_name):
 		# no need to authenticate
 		for p in public_url_patterns:
 			if p.match(request.path):
-				print '\033[1,32mAuthentication not needed: %s\033[0m' % request.url
 				return None
 
 		# authenticate by cookie
@@ -117,17 +116,7 @@ def create_app(config_name):
 		def clear_cookie(response):
 			response.delete_cookie(current_app.config['APP_COOKIE_NAME'])
 			return response
-		# if request.is_xhr:
-		# 	return jsonify({'url': app.config['AUTHENTICATION_LOGOUT_URL']})
 		return redirect(app.config['AUTHENTICATION_LOGOUT_URL'])
-
-	# @app.route('/logout2')
-	# def logout2():
-	# 	@after_this_request
-	# 	def clear_cookie(response):
-	# 		response.delete_cookie('appen')
-	# 		return response
-	# 	return jsonify({'url': app.config['AUTHENTICATION_LOGOUT_URL']})
 
 	@app.route('/authorization_response')
 	def authorization_response():
