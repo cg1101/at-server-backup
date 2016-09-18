@@ -51,7 +51,7 @@ t_ao_payrolls = Table('ao_payrolls', metadata,
 
 t_ao_users = Table('ao_users', metadata,
 	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId', doc=''),
-	Column('emailaddress', Text, nullable=False, key=u'emailAddress', doc=''),
+	Column('emailaddress', Text, nullable=True, key=u'emailAddress', doc=''),
 	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', Text, key=u'familyName', doc=''),
 	Column('givenname', Text, key=u'givenName', doc=''),
@@ -302,7 +302,7 @@ t_projects =  Table('projects', metadata,
 
 t_users =  Table('users', metadata,
 	Column(u'userid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'userId', doc=''),
-	Column('emailaddress', TEXT, nullable=True, key=u'emailAddress', doc=''),
+	Column('emailaddress', TEXT, nullable=False, key=u'emailAddress', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', TEXT, key=u'familyName', doc=''),
 	Column('givenname', TEXT, key=u'givenName', doc=''),
@@ -1442,9 +1442,6 @@ t_database_settings = Table("database_settings", metadata,
 	Column("seeded", BOOLEAN, primary_key=True)
 )
 
-
-#j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
-j_users = t_users
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(

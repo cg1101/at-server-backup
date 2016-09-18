@@ -1233,8 +1233,7 @@ class TrackingEventSchema(Schema):
 
 # User
 class User(Base):
-	__table__ = j_users
-	userId = column_property(t_users.c.userId, t_ao_users.c.userId)
+	__table__ = t_users
 	@hybrid_property
 	def userName(self):
 		if self.givenName == None or not self.givenName.strip():
@@ -1362,6 +1361,14 @@ class WorkIntervalSchema(Schema):
 	class Meta:
 		fields = ('workIntervalId', 'taskId', 'subTaskId', 'status', 'startTime', 'endTime')
 		ordered = True
+
+##########################################################################
+
+# SnsMessageRecord
+class SnsMessageRecord(Base):
+	__table__ = t_sns_message_records
+
+##########################################################################
 
 # RecordingPlatformType
 class RecordingPlatformType(Base):
