@@ -302,6 +302,12 @@ t_projects =  Table('projects', metadata,
 
 t_users =  Table('users', metadata,
 	Column(u'userid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'userId', doc=''),
+	Column('emailaddress', TEXT, nullable=True, key=u'emailAddress', doc=''),
+	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
+	Column('familyname', TEXT, key=u'familyName', doc=''),
+	Column('givenname', TEXT, key=u'givenName', doc=''),
+	Column('global_id', INTEGER, key=u'globalId', doc=''),
+	UniqueConstraint(u'emailAddress'),
 )
 
 
@@ -1097,6 +1103,18 @@ t_markings =  Table('markings', metadata,
 )
 Index('marking_by_sheet_entry_id', t_markings.c.sheetEntryId, unique=False)
 
+##########################################################################
+
+t_sns_message_records =  Table('sns_message_records', metadata,
+	Column(u'message_id', TEXT, nullable=False, key=u'messageId', doc=''),
+	Column(u'message_type', TEXT, nullable=False, key=u'messageType', doc=''),
+	Column(u'body', TEXT, nullable=False, key=u'body', doc=''),
+	Column(u'processed_at', TIMESTAMP(timezone=True), nullable=False, server_default=text(u'now()'), key=u'processedAt', doc=''),
+	PrimaryKeyConstraint(u'messageId'),
+)
+
+##########################################################################
+
 
 t_audio_collection_supervisors = Table("audio_collection_supervisors", metadata,
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
@@ -1425,7 +1443,8 @@ t_database_settings = Table("database_settings", metadata,
 )
 
 
-j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
+#j_users = join(t_users, t_ao_users, t_users.c.userId == t_ao_users.c.userId)
+j_users = t_users
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
