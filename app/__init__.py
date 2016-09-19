@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 import re
-import urllib
-import json
 
+import requests
 from flask import Flask, session, request, after_this_request,\
 		redirect, jsonify, make_response, url_for, current_app
 from flask_oauthlib.client import OAuth
@@ -128,29 +127,50 @@ def create_app(config_name):
 		original_url = request.args['r']
 
 		# retrieve the access_token using code from authorization grant
-		resp = soteria.authorized_response()
+		try:
+			resp = soteria.authorized_response()
+		except Exception, e:
+			return make_response(_('error getting access token: {}').format(e), 500)
+
 		if resp is None:
-			return _('You need to grant access to continue, error: {}'.format(
-				request.args['error']))
+			return make_response(_(
+				'You need to grant access to continue, error: {}').format(
+				request.args['error']), 400)
 
 		# get user info from Go
-		token = resp['access_token']
-		userInfo = json.load(urllib.urlopen('%s?%s' % (
-			app.config['AUTHENTICATED_USER_INFO_URL'],
-			urllib.urlencode({'oauth_token': token}))))
+		try:
+			token = resp['access_token']
+		except:
+			return make_response(_('error loading access token {}').format(resp), 500)
 
+		try:
+			userInfo = requests.get(app.config['AUTHENTICATED_USER_INFO_URL'],
+				params={'oauth_token': token},
+				headers={
+					'Accept': 'application/vnd.edm.v1',
+					'Content-Type': 'application/json'
+				}).json()
+			email = userInfo['info']['email']
+		except Exception, e:
+			return make_response(_('error retrieving user info {}'
+				).format(e), 500)
+
+		#
 		# search for user, if found, setup cookie
-		email = userInfo['info']['email']
 		try:
 			me = User.query.filter(User.emailAddress==email).one()
 		except:
 			# add user
-			me = User(emailAddress=email,
-				familyName=userInfo['extra']['last_name'],
-				givenName=userInfo['extra']['first_name'],
-			)
-			SS.add(me)
-			SS.flush()
+			try:
+				me = User(emailAddress=email,
+					familyName=userInfo['extra']['last_name'],
+					givenName=userInfo['extra']['first_name'],
+				)
+				SS.add(me)
+				SS.flush()
+			except Exception, e:
+				return make_response(_('error creating new user: {}'
+					).format(e), 500)
 
 		data = {
 			'REMOTE_USER_ID': me.userId,
