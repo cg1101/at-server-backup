@@ -106,13 +106,13 @@ def create_app(config_name):
 		session['current_user'] = None
 		return resp
 
-	# @app.teardown_request
-	# def terminate_transaction(exception):
-	# 	if exception is None:
-	# 		SS.commit()
-	# 	else:
-	# 		SS.rollback()
-	# 	SS.remove()
+	@app.teardown_request
+	def terminate_transaction(exception):
+		if exception is None:
+			SS.commit()
+		else:
+			SS.rollback()
+		SS.remove()
 
 	@app.route('/logout')
 	def logout():
