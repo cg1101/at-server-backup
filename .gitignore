@@ -1,6 +1,7 @@
 venv*
 *.pyc
 .*
+app/index.html
 app/static
 setenv.sh
 doc
