@@ -51,7 +51,7 @@ t_ao_payrolls = Table('ao_payrolls', metadata,
 
 t_ao_users = Table('ao_users', metadata,
 	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId', doc=''),
-	Column('emailaddress', Text, nullable=True, key=u'emailAddress', doc=''),
+	Column('emailaddress', Text, nullable=False, key=u'emailAddress', doc=''),
 	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', Text, key=u'familyName', doc=''),
 	Column('givenname', Text, key=u'givenName', doc=''),
@@ -301,7 +301,7 @@ t_projects =  Table('projects', metadata,
 
 
 t_users =  Table('users', metadata,
-	Column(u'userid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'userId', doc=''),
+	Column(u'userid', INTEGER, primary_key=True, autoincrement=True, nullable=False, key=u'userId', doc=''),
 	Column('emailaddress', TEXT, nullable=False, key=u'emailAddress', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', TEXT, key=u'familyName', doc=''),
