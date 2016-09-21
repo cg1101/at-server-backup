@@ -1443,6 +1443,18 @@ t_database_settings = Table("database_settings", metadata,
 )
 
 
+t_audio_collection_performance_flags = Table("audio_collection_performance_flags", metadata,
+	Column("performance_flag_id", INTEGER, primary_key=True, key="performanceFlagId", doc=""),
+	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("severity", TEXT, nullable=False, key="severity", doc=""),
+	Column("enabled", BOOLEAN, nullable=False, key="enabled", server_default="true", doc=""),
+	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	CheckConstraint("severity IN ('Info', 'Warning', 'Severe')")
+)
+Index("audio_collection_performance_flags_by_audio_collection_id", t_audio_collection_performance_flags.c.audioCollectionId, unique=False)
+
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

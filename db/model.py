@@ -21,8 +21,20 @@ log = logging.getLogger(__name__)
 
 
 # model mixin classes
+class ModelMixin(object):
+	
+	@classmethod
+	def check_exists(cls, data, key, value):
+		"""
+		MyForm validator to check that the model
+		exists. The value is assumed to be the
+		primary key.
+		"""
+		if not cls.query.get(value):
+			raise ValueError("{0} {1} does not exist".format(key, value))
 
-class ImportMixin:
+
+class ImportMixin(object):
 	"""
 	Adds extra functionality for models created
 	during audio import.
@@ -37,7 +49,7 @@ class ImportMixin:
 		raise NotImplementedError
 
 
-class MetaCategoryMixin:
+class MetaCategoryMixin(object):
 	"""
 	Adds extra functionality for metadata categories.
 	"""
@@ -50,7 +62,7 @@ class MetaCategoryMixin:
 		raise NotImplementedError
 
 
-class MetaEntityMixin:
+class MetaEntityMixin(object):
 	"""
 	Adds extra functionality for models that store metadata.
 	"""
@@ -84,7 +96,7 @@ class MetaEntityMixin:
 		raise NotImplementedError
 
 
-class MetaValueMixin:
+class MetaValueMixin(object):
 	"""
 	Adds extra functionality for metadata values.
 	"""
@@ -1465,7 +1477,7 @@ class AudioCollectionSupervisorSchema(Schema):
 		fields = ("audioCollectionId", "userId")
 
 # AudioCollection
-class AudioCollection(Base):
+class AudioCollection(Base, ModelMixin):
 	__table__ = t_audio_collections
 
 	# relationships
@@ -1850,6 +1862,60 @@ class Track(Base):
 class TrackSchema(Schema):
 	class Meta:
 		fields = ("trackId", "name", "trackIndex")
+
+
+# PerformanceFlag
+class PerformanceFlag(Base):
+	__table__ = t_audio_collection_performance_flags
+
+	# constants
+	INFO = "Info"
+	WARNING = "Warning"
+	SEVERE = "Severe"
+
+	# synonyms
+	performance_flag_id = synonym("performanceFlagId")
+	audio_collection_id = synonym("audioCollectionId")
+
+	@classmethod
+	def check_valid_severity(cls, data, key, value):
+		"""
+		MyForm validator for checking a valid
+		severity.
+		"""
+		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
+			raise ValueError("{0} is not a valid severity".format(value))
+
+	@classmethod
+	def check_name_unique(cls, data, key, value):
+		"""
+		MyForm validator for checking that a new
+		performance flag name is unique for the
+		audio collection.
+		"""
+		audio_collection_id = data["audioCollectionId"]
+		if cls.query.filter_by(audio_collection_id=audio_collection_id, name=value).count():
+			raise ValueError("{0} is already used".format(value))
+	
+	def check_other_name_unique(self, data, key, value):
+		"""
+		MyForm validator for checking that an
+		existing performance flag name is unique
+		for the audio collection.
+		"""
+		query = self.query.filter(
+			self.__class__.audio_collection_id==self.audio_collection_id,
+			self.__class__.name==value,
+			self.__class__.performance_flag_id!=self.performance_flag_id,
+		)
+
+		if query.count():
+			raise ValueError("{0} is used by another performance flag".format(value))
+
+
+class PerformanceFlagSchema(Schema):
+	class Meta:
+		fields = ("performanceFlagId", "name", "severity", "enabled")
 
 
 #

@@ -19,6 +19,7 @@ import errortypes
 import filehandlers
 import labelsets
 import misc
+import performance_flags
 import pools
 import projects
 import rates

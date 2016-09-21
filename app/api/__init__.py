@@ -93,6 +93,24 @@ def caps(*caps):
 	return customized_decorator
 
 
+def get_model(model_cls):
+	def customized_decorator(fn):
+		@wraps(fn)
+		def decorated(*args, **kwargs):
+			if not len(kwargs) == 1:
+				raise RuntimeError("expected 1 keyword argument, got {0}".format(kwargs))
+			
+			model_id = kwargs.values()[0]
+			model = model_cls.query.get(model_id)
+
+			if not model:
+				raise InvalidUsage("not found", 404)
+
+			return fn(model)
+		return decorated
+	return customized_decorator
+
+
 class validators:
 	@classmethod
 	def is_mandatory(cls, data, key, value):
