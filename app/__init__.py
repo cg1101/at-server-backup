@@ -3,6 +3,7 @@
 import re
 
 import requests
+import sqlalchemy.orm.exc
 from flask import Flask, session, request, after_this_request,\
 		redirect, jsonify, make_response, url_for, current_app
 from flask_oauthlib.client import OAuth
@@ -150,6 +151,7 @@ def create_app(config_name):
 					'Accept': 'application/vnd.edm.v1',
 					'Content-Type': 'application/json'
 				}).json()
+			# current_app.logger.info('retrieved user info {}'.format(userInfo))
 			email = userInfo['info']['email']
 		except Exception, e:
 			return make_response(_('error retrieving user info {}'
@@ -159,18 +161,21 @@ def create_app(config_name):
 		# search for user, if found, setup cookie
 		try:
 			me = User.query.filter(User.emailAddress==email).one()
-		except:
+		except sqlalchemy.orm.exc.NoResultFound:
+			SS.rollback()
 			# add user
 			try:
 				me = User(emailAddress=email,
 					familyName=userInfo['extra']['last_name'],
 					givenName=userInfo['extra']['first_name'],
+					globalId=userInfo['extra']['global_id']
 				)
 				SS.add(me)
 				SS.flush()
 			except Exception, e:
-				return make_response(_('error creating new user: {}'
-					).format(e), 500)
+				SS.rollback()
+				# current_app.logger.error('error creating new user: {}'.format(e))
+				return make_response(_('error creating new user {}').format(email), 500)
 
 		data = {
 			'REMOTE_USER_ID': me.userId,

@@ -6,8 +6,8 @@ import cStringIO
 import traceback
 from collections import OrderedDict
 
+import sqlalchemy.orm.exc
 from flask import request, current_app, make_response
-from sqlalchemy import func
 from M2Crypto import X509
 
 import db.model as m
@@ -251,11 +251,9 @@ ATTR_MAP = {
 	}
 }
 
-def decode_changes(json_encoded, attr_map):
-	desc = json.loads(json_encoded)
-	lookup = attr_map
+def decode_changes(changes, lookup):
 	data = {}
-	for i in desc['changes']:
+	for i in changes:
 		key = lookup.get(i['attribute_name'])
 		if not key:
 			continue
@@ -264,13 +262,23 @@ def decode_changes(json_encoded, attr_map):
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Create')
 def create_person(self):
-	data = decode_changes(self.Message, ATTR_MAP['Person'])
-	user = m.User(**data)
-	newId = SS.query(func.max(m.User.userId)).one()[0] + 1
-	user.userId = newId
-	SS.add(user)
-	SS.flush()
-	current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
+	desc = json.loads(self.Message)
+	data = decode_changes(desc['changes'], ATTR_MAP['Person'])
+	try:
+		user = m.User.query.filter_by(emailAddress=data['emailAddress']).one()
+		for k, v in data:
+			if k == 'emailAddress':
+				continue
+			setattr(user, d, v)
+		SS.flush()
+		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		user = m.User(**data)
+		user.globalId = desc['global_id']
+		SS.add(user)
+		SS.flush()
+		current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
 	return
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
