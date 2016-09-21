@@ -1,14 +1,14 @@
 """added performance flags
 
 Revision ID: 15d803310916
-Revises: d7799ac9b6a7
+Revises: cc85d588c99b
 Create Date: 2016-09-20 17:06:24.442544
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '15d803310916'
-down_revision = 'd7799ac9b6a7'
+down_revision = 'cc85d588c99b'
 branch_labels = None
 depends_on = None
 
