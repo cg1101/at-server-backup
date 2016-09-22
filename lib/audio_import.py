@@ -100,7 +100,7 @@ class ImportConfigRecordingPlatform(Schema):
 		CorpusCodeSchema,
 		attribute="corpus_codes",
 		many=True,
-		only=("corpusCodeId", "code", "requiresCutup", "regex")
+		only=("corpusCodeId", "code", "isScripted", "regex")
 	)
 	performanceMetaCategories = fields.Nested(
 		PerformanceMetaCategorySchema,

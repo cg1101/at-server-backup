@@ -30,6 +30,9 @@ def create_app(config_name):
 		'/webservices',
 		'/logout',
 		'/authorization_response',
+		'/api/1.0/status',
+		'/api/1.0/audiocollections/\d+/importconfig',
+		'/api/1.0/audiocollections/\d+/import',
 	])
 	json_url_patterns = map(re.compile, [
 		'/api'
