@@ -107,13 +107,10 @@ def create_app(config_name):
 		session['current_user'] = None
 		return resp
 
-	# @app.teardown_request
-	# def terminate_transaction(exception):
-	# 	if exception is None:
-	# 		SS.commit()
-	# 	else:
-	# 		SS.rollback()
-	# 	SS.remove()
+	@app.route('/whoami')
+	def who_am_i():
+		me = session['current_user']
+		return jsonify(user=User.dump(me, use='full'))
 
 	@app.route('/logout')
 	def logout():
