@@ -27,7 +27,6 @@ def get_audio_collection(audio_collection):
 
 @bp.route("audiocollections/<int:audio_collection_id>/importconfig")
 @api
-@caps()
 @get_model(AudioCollection)
 def get_import_config(audio_collection):
 	"""
@@ -44,7 +43,6 @@ def get_import_config(audio_collection):
 
 @bp.route("audiocollections/<int:audio_collection_id>/import", methods=["POST"])
 @api
-@caps()
 @get_model(AudioCollection)
 def import_audio_data(audio_collection):
 	audio_import_data = request.json
@@ -55,7 +53,7 @@ def import_audio_data(audio_collection):
 	if not recording_platform:
 		raise InvalidUsage("unknown recording platform: {0}".format(recording_platform_id))
 
-	if recording_platform.audio_collection_id != audio_collection_id:
+	if recording_platform.audio_collection_id != audio_collection.audio_collection_id:
 		raise InvalidUsage("invalid recording platform ({0}) for audio collection {1}".format(recording_platform_id, audio_collection.audio_collection_id))
 		
 	performance = Performance.from_import(audio_import_data, recording_platform)
