@@ -99,7 +99,7 @@ def get_model(model_cls):
 		def decorated(*args, **kwargs):
 			if not len(kwargs) == 1:
 				raise RuntimeError("expected 1 keyword argument, got {0}".format(kwargs))
-			
+
 			model_id = kwargs.values()[0]
 			model = model_cls.query.get(model_id)
 

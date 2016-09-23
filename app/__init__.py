@@ -64,12 +64,15 @@ def create_app(config_name):
 
 		# authenticate by cookie
 		cookie = request.cookies.get(current_app.config['APP_COOKIE_NAME'])
-		if cookie:
+		if cookie or True:
 			secret = current_app.config['APP_COOKIE_SECRET']
 			try:
 				user_dict = auth.decode_cookie(cookie, secret)
 			except:
 				user_dict = None
+			# TODO: remove following statement to re-enable authentication
+			user_dict = {'REMOTE_USER_ID':699}
+
 			if user_dict:
 				session['current_user'] = User.query.get(
 					user_dict['REMOTE_USER_ID'])
