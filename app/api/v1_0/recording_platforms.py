@@ -1,9 +1,10 @@
+import jsonschema
 import logging
 
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import CorpusCode, RecordingPlatform, Track
 from lib.audio_cutup import validate_audio_cutup_config
@@ -66,3 +67,52 @@ def get_recording_platform_corpus_codes(recording_platform_id):
 	
 	corpus_codes = CorpusCode.query.filter_by(recording_platform_id=recording_platform_id).all()
 	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/upload", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def upload_recording_platform_corpus_codes(recording_platform):
+	
+	if recording_platform.corpus_codes:
+		raise InvalidUsage("recording platform already has corpus codes")
+	
+	schema = {
+		"type": "array",
+		"minItems": 1,
+		"items": {
+			"type": "object",
+			"required": ["code", "isScripted"],
+			"properties": {
+				"code": {
+					"type": "string",
+				},
+				"isScripted": {
+					"type": "boolean"
+				},
+				"regex": {
+					"type": ["string", "null"]
+				}
+			}
+		}
+	}
+
+	try:
+		jsonschema.validate(request.json, schema)
+	except jsonschema.ValidationError:
+		raise InvalidUsage("invalid corpus code list uploaded")
+
+	for data in request.json:
+		corpus_code = CorpusCode(
+			audio_collection_id=recording_platform.audio_collection_id,
+			recording_platform=recording_platform,
+			code=data["code"],
+			regex=data.get("regex"),
+			is_scripted=data["isScripted"],
+		)
+		db.session.add(corpus_code)
+
+	db.session.flush()
+	db.session.commit()
+	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})

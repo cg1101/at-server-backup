@@ -1437,7 +1437,6 @@ class RecordingPlatform(Base):
 		"""
 		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
 
-
 class RecordingPlatformSchema(Schema):
 	audioImporter = fields.Nested("AudioImporterSchema", attribute="audio_importer")
 	class Meta:
