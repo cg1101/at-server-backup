@@ -17,7 +17,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -82,6 +82,11 @@ def migrate_task(taskId):
 			validators=[
 				validators.is_number,
 				check_task_type_existence,
+		]),
+		Field('globalProjectId', is_mandatory=True,
+			normalizer=lambda data, key, value: int(value[-1]) if isinstance(value, list) else int(value),
+			validators=[
+				validators.is_number,
 		]),
 	).get_data(use_args=True)
 
@@ -1087,6 +1092,36 @@ def create_sub_task(taskId):
 @api
 @caps()
 def get_task_supervisors(taskId):
+	#
+	# Notes for one-crowd integration:
+	#
+	# first get assigned supervisor list from tiger and compare with local record
+	# for newly added users, create an entry
+	# for removed users, remove them from local records
+	# others remain unchanged
+	#
+	appenIds = tiger.get_task_supervisors(task)
+	if isinstance(appenIds, list):
+		user_ids_tiger = set()
+		for appenId in appenIds:
+			try:
+				user = m.User.query.filter(m.User.globalId==appenIds).one()
+			except NoResultFound:
+				# TODO: poll EDM to add this user in
+				continue
+			user_ids_tiger.add(user.userId)
+		user_ids_gnx = set([r.userId for r in SS.query(m.TaskSupervisor.userId
+			).distinct().filter(m.TaskSupervisor.taskId==taskId).all()])
+		added = user_ids_tiger - user_ids_gnx
+		removed = user_ids_gnx - user_ids_tiger
+		for userId in added:
+			entry = m.TaskSupervisor(taskId=taskId, userId=userId)
+			SS.add(entry)
+		for entry in m.TaskSupervisor.query.filter_by(taskId=taskId
+				).filter(m.TaskSupervisor.userId.in_(removed)):
+			SS.delete(entry)
+		SS.flush()
+
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
@@ -1308,6 +1343,44 @@ def get_task_workers(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
+	#
+	# Notes for one-crowd integration:
+	#
+	# first get assigned user list from tiger and compare with local record
+	# for newly added users, create a dummy entry if necessary
+	# for removed users, remove them from all sub tasks
+	# others remain unchanged
+	#
+	appenIds = tiger.get_task_workers(task)
+	if isinstance(appenIds, list):
+		user_ids_tiger = set()
+		for appenId in appenIds:
+			try:
+				user = m.User.query.filter(m.User.globalId==appenIds).one()
+			except NoResultFound:
+				# TODO: poll EDM to add this user in
+				continue
+			user_ids_tiger.add(user.userId)
+		user_ids_gnx = set([r.userId for r in SS.query(m.TaskWorker.userId
+			).distinct().filter(m.TaskWorker.taskId==taskId).all()])
+		added = user_ids_tiger - user_ids_gnx
+		removed = user_ids_gnx - user_ids_tiger
+		if added:
+			try:
+				subTask = m.SubTask.query.filter(m.SubTask.taskId==taskId
+					).order_by('subTaskId')[0]
+				for userId in added:
+					entry = m.TaskWorker(taskId=taskId,
+						subTaskId=subTask.subTaskId, removed=True)
+					SS.add(entry)
+			except IndexError:
+				# no sub tasks defined yet
+				pass
+		for entry in m.TaskWorker.query.filter_by(taskId=taskId
+				).filter(m.TaskWorker.userId.in_(removed)):
+			entry.removed = True
+		SS.flush()
 
 	workers = m.TaskWorker.query.filter_by(taskId=taskId).all()
 	return jsonify({

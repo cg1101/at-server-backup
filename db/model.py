@@ -1277,7 +1277,7 @@ class User_FullSchema(Schema):
 		caps = getattr(obj, 'caps', [])
 		return sorted(caps)
 	class Meta:
-		fields = ('userId', 'userName', 'familyName', 'givenName', 'caps')
+		fields = ('userId', 'userName', 'emailAddress', 'familyName', 'givenName', 'globalId', 'caps')
 
 # UtteranceSelection
 class UtteranceSelection(Base):

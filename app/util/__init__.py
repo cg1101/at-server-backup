@@ -1,8 +1,11 @@
 
 import random
+import os
+import hashlib
 from collections import OrderedDict
 
 from flask import url_for
+import requests
 
 from app.i18n import get_text as _
 import db.model as m
@@ -187,3 +190,39 @@ class PolicyChecker(object):
 		# 	).format(subTask.getPolicy, subTask.subTaskId)
 		return None
 
+
+class TigerAgent(object):
+	def __init__(self, url_root, secret):
+		self.url_root = url_root
+		self.secret = secret
+	def get_task_workers(self, task):
+		server_path = '/projects/{0}/workers'.format(task.globalProjectId)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()['workers']
+			else:
+				result = None
+		except Exception, e:
+			result = None
+		return result
+	def get_task_supervisors(self, task):
+		server_path = '/projects/{0}/supervisors'.format(task.globalProjectId)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()['supervisors']
+			else:
+				result = None
+		except Exception, e:
+			result = None
+		return result
+
+
+tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
