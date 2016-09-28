@@ -1183,7 +1183,10 @@ class TaskSchema(Schema):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj._migratedByUser).data
 	class Meta:
-		fields = ('taskId', 'name', 'projectId', 'taskTypeId', 'taskType', 'status', 'srcDir', 'lastStatusChange', 'tagSetId', 'labelSetId', 'migrated', 'migratedBy')
+		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
+			'taskType', 'status', 'srcDir', 'lastStatusChange',
+			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
+			'globalProjectId')
 		ordered = True
 
 # TaskErrorType
