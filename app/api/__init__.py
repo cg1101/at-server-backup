@@ -284,7 +284,6 @@ class MyForm(object):
 				data = request.get_json() or {}
 				if use_args:
 					data.update(request.args)
-					print request.args, data
 			except Exception, exc:
 				raise InvalidUsage(_('error decoding json from incoming request'))
 		else:
