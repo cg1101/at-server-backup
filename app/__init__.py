@@ -78,8 +78,8 @@ def create_app(config_name):
 			# user_dict = {'REMOTE_USER_ID':699}
 
 			if user_dict:
-				session['current_user'] = User.query.get(
-					user_dict['REMOTE_USER_ID'])
+				user = User.query.get(user_dict['REMOTE_USER_ID'])
+				session['current_user'] = user
 				return None
 		# 	else:
 		# 		# cookie corrupted or expired
@@ -100,8 +100,20 @@ def create_app(config_name):
 					session['current_user'] = user
 					return None
 				except NoResultFound:
-					# add user
-					pass
+					result = edm.get_user(globalId)
+					if result:
+						data = dict(
+							familyName=result['family_name'],
+							givenName=result['given_name'],
+							emailAddress=result['primary_email_email_address'],
+							globalId=globalId,
+						)
+						user = User(**data)
+						SS.add(user)
+						SS.flush()
+						SS.commit()
+						session['current_user'] = user
+						return None
 		except:
 			pass
 

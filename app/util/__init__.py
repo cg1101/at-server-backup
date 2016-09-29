@@ -225,9 +225,6 @@ class TigerAgent(object):
 		return result
 
 
-tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
-
-
 class GoAgent(object):
 	def __init__(self, url_root):
 		self.url_root = url_root
@@ -248,4 +245,27 @@ class GoAgent(object):
 			'client_id': 'appen_global'
 		})
 
+
+class EdmAgent(object):
+	def __init__(self, url_root, secret):
+		self.url_root = url_root
+		self.secret = secret
+	def get_user(self, global_id):
+		server_path = '/api/edm_people/{}'.format(global_id)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()
+			else:
+				result = None
+		except Exception, e:
+			result = None
+		return result
+
+
+tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
 go = GoAgent(os.environ['GO_URL'])
+edm = EdmAgent(os.environ['EDM_URL'], os.environ['APPEN_API_SECRET_KEY'])
