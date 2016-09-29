@@ -15,6 +15,7 @@ from db.db import SS
 from db import database as db
 import auth
 from .i18n import get_text as _
+from .util import go
 
 def create_app(config_name):
 	app = Flask(__name__)
@@ -73,8 +74,8 @@ def create_app(config_name):
 				user_dict = auth.decode_cookie(cookie, secret)
 			except:
 				user_dict = None
-			# TODO: remove following statement to re-enable authentication
-			user_dict = {'REMOTE_USER_ID':699}
+			# # TODO: remove following statement to re-enable authentication
+			# user_dict = {'REMOTE_USER_ID':699}
 
 			if user_dict:
 				session['current_user'] = User.query.get(
@@ -88,7 +89,21 @@ def create_app(config_name):
 		# 	pass
 
 		# authenticate by header
-		# TBD
+		try:
+			authorization_info = request.headers.get('authorization', None)
+			globalId, token = authorization_info.split('~', 1)
+			result = go.validate_token(token)
+			if result:
+				globalId = result['token']['global_id']
+				try:
+					user = User.query.filter(User.globalId==globalId).one()
+					session['current_user'] = user
+					return None
+				except NoResultFound:
+					# add user
+					pass
+		except:
+			pass
 
 		is_json = False
 		for p in json_url_patterns:

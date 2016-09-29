@@ -226,3 +226,26 @@ class TigerAgent(object):
 
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
+
+
+class GoAgent(object):
+	def __init__(self, url_root):
+		self.url_root = url_root
+	def validate_token(self, token):
+		server_path = '/auth/validate_token/{}'.format(token)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		try:
+			resp = requests.get(url)
+			if resp.status_code == 200:
+				result = resp.json()
+		except:
+			result = None
+		# return result
+		return dict(token={
+			'token': token,
+			'expires_by': 'something',
+			'global_id': 15517,
+			'client_id': 'appen_global'
+		})
+
+go = GoAgent(os.environ['GO_URL'])
