@@ -92,9 +92,14 @@ def create_app(config_name):
 		try:
 			authorization_info = request.headers.get('authorization', None)
 			globalId, token = authorization_info.split('~', 1)
-			result = go.validate_token(token)
-			if result:
-				globalId = result['token']['global_id']
+			result = go.check_token_for_user(globalId)
+			# result = {
+			# 	'token': token,
+			# 	'expires_at': 'something',
+			# 	'appen_id': 15517,
+			# 	'app_id': 'appen_global'
+			# }
+			if result and token == result['token']:
 				try:
 					user = User.query.filter(User.globalId==globalId).one()
 					session['current_user'] = user
