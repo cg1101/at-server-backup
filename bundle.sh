@@ -9,9 +9,14 @@ if [ -e "$BUNDLE" ]; then
 fi
 
 echo -n "Building new bundle file ... "
+
 # set -o xtrace
-zip -r "$BUNDLE" . -x venv\* ./.\* \*__pycache\* \*.pyc dumpstr dump_str\* ./bundle.sh ./doc/\* >/dev/null
-zip -r "$BUNDLE" ./.ebextensions >/dev/null
+if [ -e "exclude.lst" ]; then
+	zip -r "$BUNDLE" . -x@exclude.lst >/dev/null
+elif
+	zip -r "$BUNDLE" . -x venv\* ./.\* \*__pycache\* \*.pyc ./doc/\* ./bundle.sh >/dev/null
+	zip -r "$BUNDLE" ./.ebextensions >/dev/null
+fi
 echo "done"
 
 echo "Checking eb environment ... "
