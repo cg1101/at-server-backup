@@ -195,6 +195,8 @@ class TigerAgent(object):
 	def __init__(self, url_root, secret):
 		self.url_root = url_root
 		self.secret = secret
+	def get_url_root(self):
+		return self.url_root
 	def get_task_workers(self, task):
 		server_path = '/projects/{0}/workers'.format(task.globalProjectId)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
@@ -228,6 +230,8 @@ class TigerAgent(object):
 class GoAgent(object):
 	def __init__(self, url_root):
 		self.url_root = url_root
+	def get_url_root(self):
+		return self.url_root
 	def check_token_for_user(self, global_id):
 		server_path = '/auth/validate_token/{}'.format(global_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
@@ -246,6 +250,8 @@ class EdmAgent(object):
 	def __init__(self, url_root, secret):
 		self.url_root = url_root
 		self.secret = secret
+	def get_url_root(self):
+		return self.url_root
 	def get_user(self, global_id):
 		server_path = '/api/edm_people/{}'.format(global_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))

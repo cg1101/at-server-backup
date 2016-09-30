@@ -15,7 +15,7 @@ from db.db import SS
 from db import database as db
 import auth
 from .i18n import get_text as _
-from .util import go
+import app.util as util
 
 def create_app(config_name):
 	app = Flask(__name__)
@@ -92,7 +92,7 @@ def create_app(config_name):
 		try:
 			authorization_info = request.headers.get('authorization', None)
 			globalId, token = authorization_info.split('~', 1)
-			result = go.check_token_for_user(globalId)
+			result = util.go.check_token_for_user(globalId)
 			# result = {
 			# 	'token': token,
 			# 	'expires_at': 'something',
@@ -148,7 +148,14 @@ def create_app(config_name):
 	@app.route('/whoami')
 	def who_am_i():
 		me = session['current_user']
-		return jsonify(user=User.dump(me, use='full'))
+		return jsonify(
+			user=User.dump(me, use='full'),
+			runtimeEnvironment={
+				'tiger': util.tiger.get_url_root(),
+				'edm': util.edm.get_url_root(),
+				'go': util.go.get_url_root(),
+			}
+		)
 
 	@app.route('/logout')
 	def logout():
