@@ -13,7 +13,7 @@ echo -n "Building new bundle file ... "
 # set -o xtrace
 if [ -e "exclude.lst" ]; then
 	zip -r "$BUNDLE" . -x@exclude.lst >/dev/null
-elif
+else
 	zip -r "$BUNDLE" . -x venv\* ./.\* \*__pycache\* \*.pyc ./doc/\* ./bundle.sh >/dev/null
 	zip -r "$BUNDLE" ./.ebextensions -x \*~ >/dev/null
 fi
