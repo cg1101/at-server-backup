@@ -1111,7 +1111,7 @@ def get_task_supervisors(taskId):
 			user_ids_tiger = set()
 			for appenId in appenIds:
 				try:
-					user = m.User.query.filter(m.User.globalId==appenIds).one()
+					user = m.User.query.filter(m.User.globalId==appenId).one()
 				except NoResultFound:
 					# TODO: poll EDM to add this user in
 					continue
@@ -1362,7 +1362,7 @@ def get_task_workers(taskId):
 			user_ids_tiger = set()
 			for appenId in appenIds:
 				try:
-					user = m.User.query.filter(m.User.globalId==appenIds).one()
+					user = m.User.query.filter(m.User.globalId==appenId).one()
 				except NoResultFound:
 					# TODO: poll EDM to add this user in
 					continue
