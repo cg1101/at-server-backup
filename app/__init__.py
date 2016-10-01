@@ -105,7 +105,7 @@ def create_app(config_name):
 					session['current_user'] = user
 					return None
 				except NoResultFound:
-					result = edm.get_user(globalId)
+					result = util.edm.get_user(globalId)
 					if result:
 						data = dict(
 							familyName=result['family_name'],

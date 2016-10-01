@@ -247,6 +247,24 @@ class GoAgent(object):
 
 
 class EdmAgent(object):
+	ATTR_MAP = {
+		'Person': {
+			'primary_email_email_address': 'emailAddress',
+			'family_name': 'familyName',
+			'given_name': 'givenName',
+			# 'mobile_phone_phone_number': None,
+			# 'street_address_address1': None,
+			# 'street_address_country': None,
+			# 'nationality_country_id': None,
+			# 'salutation': None,
+			# 'street_address_city': None,
+		},
+		'Country': {
+			'name_eng': 'name',
+			'iso2': None,
+			'iso3': None,
+		}
+	}
 	def __init__(self, url_root, secret):
 		self.url_root = url_root
 		self.secret = secret
@@ -266,6 +284,15 @@ class EdmAgent(object):
 		except Exception, e:
 			result = None
 		return result
+	def decode_changes(self, entity, changes):
+		lookup = self.ATTR_MAP[entity]
+		data = {}
+		for i in changes:
+			key = lookup.get(i['attribute_name'])
+			if not key:
+				continue
+			data[key] = i['after_value']
+		return data
 
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])

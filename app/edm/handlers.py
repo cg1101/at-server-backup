@@ -13,6 +13,7 @@ from M2Crypto import X509
 import db.model as m
 from db.db import SS
 from app.i18n import get_text as _
+import app.util as util
 from . import edm as bp
 
 
@@ -97,7 +98,7 @@ class SnsMessage(object):
 		try:
 			data = json.loads(body)
 		except (ValueError, TypeError):
-			raise MessageError(_('message not well-formed: {}').format(body))
+			raise MessageError(_('message not well-formed: \'{}\'').format(body))
 		msg = super(SnsMessage, cls).__new__(cls)
 		msg.body = body
 		msg._data = data
@@ -209,6 +210,7 @@ class SnsMessage(object):
 
 @bp.route('/process', methods=['POST'])
 def edm_callback():
+	current_app.logger.debug('received incoming message {}'.format(request.data));
 	try:
 		return SnsMessage.processMessage(request,
 			topics=current_app.config['EDM_TOPICS'])
@@ -227,74 +229,83 @@ def edm_callback():
 
 @SnsMessage.message_handler(Type='SubscriptionConfirmation')
 def confirm_subscription(self):
+	current_app.logger.debug('confirming subscription from %s' % self.SubscribeURL)
 	resp = urllib.urlopen(self.SubscribeURL)
-	return make_response(resp.read(), resp.getcode(),
+	return make_response(resp.read(), 200, #resp.getcode(),
 			dict(resp.info().items()))
 
-
-ATTR_MAP = {
-	'Person': {
-		'primary_email_address': 'emailAddress',
-		'family_name': 'familyName',
-		'given_name': 'givenName',
-		# 'mobile_phone_phone_number': None,
-		# 'street_address_address1': None,
-		# 'street_address_country': None,
-		# 'nationality_country_id': None,
-		# 'salutation': None,
-		# 'street_address_city': None,
-	},
-	'Country': {
-		'name_eng': 'name',
-		'iso2': None,
-		'iso3': None,
-	}
-}
-
-def decode_changes(changes, lookup):
-	data = {}
-	for i in changes:
-		key = lookup.get(i['attribute_name'])
-		if not key:
-			continue
-		data[key] = i['after_value']
-	return data
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Create')
 def create_person(self):
 	desc = json.loads(self.Message)
-	data = decode_changes(desc['changes'], ATTR_MAP['Person'])
+	globalId = desc['global_id']
+	data = util.edm.decode_changes('Person', desc['changes'])
 	try:
 		user = m.User.query.filter_by(emailAddress=data['emailAddress']).one()
-		for k, v in data:
+		for k, v in data.items():
 			if k == 'emailAddress':
 				continue
-			setattr(user, d, v)
+			setattr(user, k, v)
+		user.globalId = globalId
 		SS.flush()
 		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
 	except sqlalchemy.orm.exc.NoResultFound:
 		SS.rollback()
 		user = m.User(**data)
-		user.globalId = desc['global_id']
+		user.globalId = globalId
 		SS.add(user)
 		SS.flush()
+		SS.commit()
 		current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
 	return
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
 def update_person(self):
-	data = decode_changes(self.Message, ATTR_MAP['Person'])
-	current_app.logger.info('a person is being updated using {}'.format(data))
+	desc = json.loads(self.Message)
+	globalId = desc['global_id']
+	try:
+		user = m.User.query.filter(m.User.globalId==globalId).one()
+		data = util.edm.decode_changes('Person', desc['changes'])
+		current_app.logger.info('found user {}, applying changes {}'.format(globalId, data))
+		changes = {}
+		for k, v in data.items():
+			try:
+				if getattr(user, k) != v:
+					setattr(user, k, v)
+					changes[k] = v
+			except AttributeError:
+				continue
+		current_app.logger.debug('actual changes {}'.format(changes))
+		SS.flush()
+		SS.commit()
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
+		result = util.edm.get_user(globalId)
+		data = dict(
+			familyName=result['family_name'],
+			givenName=result['given_name'],
+			emailAddress=result['primary_email_email_address'],
+			globalId=globalId,
+		)
+		user = User(**data)
+		SS.add(user)
+		SS.flush()
+		SS.commit()
+		session['current_user'] = user
+		current_app.logger.info('user {} is added locally'.format(globalId))
 	return
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Create')
 def create_country(self):
-	data = decode_changes(self.Message, ATTR_MAP['Country'])
+	desc = json.loads(self.Message)
+	data = util.edm.decode_changes('Country', desc['changes'])
 	current_app.logger.info('a country is being created using {}'.format(data))
 	return
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Update')
 def update_country(self):
-	data = decode_changes(self.Message, ATTR_MAP['Country'])
+	desc = json.loads(self.Message)
+	data = util.edm.decode_changes('Country', desc['changes'])
 	current_app.logger.info('a country is being updated using {}'.format(data))
 	return
