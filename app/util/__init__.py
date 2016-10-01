@@ -287,11 +287,20 @@ class EdmAgent(object):
 	def decode_changes(self, entity, changes):
 		lookup = self.ATTR_MAP[entity]
 		data = {}
-		for i in changes:
-			key = lookup.get(i['attribute_name'])
-			if not key:
+		for c in changes:
+			if 'attribute_name' in c:
+				key = lookup.get(c['attribute_name'])
+				if key:
+					data[key] = c['after_value']
+			elif 'jkvp' in c:
+				for cc in c['jkvp']:
+					attr = cc.get('attribute_name', None)
+					key = lookup.get(attr, None)
+					if key:
+						data[key] = cc['after_value']
+			else:
+				# unknown format, ignore it
 				continue
-			data[key] = i['after_value']
 		return data
 
 

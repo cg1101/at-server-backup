@@ -212,7 +212,7 @@ class SnsMessage(object):
 def edm_callback():
 	current_app.logger.debug('received incoming message {}'.format(request.data));
 	try:
-		return SnsMessage.processMessage(request,
+		return SnsMessage.processMessage(request,\
 			topics=current_app.config['EDM_TOPICS'])
 	except MessageError, e:
 		return make_response('%s' % e, 400)
@@ -220,7 +220,7 @@ def edm_callback():
 		out = cStringIO.StringIO()
 		traceback.print_exc(file=out)
 		current_app.logger.error(
-			'\033[1;31mERROR caught inside api:\033[0m\n%s\n' %
+			'ERROR caught inside api:\n%s\n' %
 			out.getvalue())
 		# TODO: hide debug information for production deployment
 		return make_response(_('internal server error: {}'
@@ -288,7 +288,7 @@ def update_person(self):
 			emailAddress=result['primary_email_email_address'],
 			globalId=globalId,
 		)
-		user = User(**data)
+		user = m.User(**data)
 		SS.add(user)
 		SS.flush()
 		SS.commit()
