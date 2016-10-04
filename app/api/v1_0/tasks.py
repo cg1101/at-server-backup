@@ -106,7 +106,8 @@ def migrate_task(taskId):
 				raise InvalidUsage(_('unable to migrate project {0}'
 					).format(pdb_task.projectId))
 			project = m.Project(projectId=pdb_task.projectId,
-				name=pdb_project.name, _migratedByUser=me)
+				name=pdb_project.name, _migratedByUser=me,
+				globalProjectId=globalProjectId)
 			SS.add(project)
 			SS.flush()
 
