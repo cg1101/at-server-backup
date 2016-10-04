@@ -228,15 +228,18 @@ class TigerAgent(object):
 
 
 class GoAgent(object):
-	def __init__(self, url_root):
+	def __init__(self, url_root, secret):
 		self.url_root = url_root
+		self.secret = secret
 	def get_url_root(self):
 		return self.url_root
 	def check_token_for_user(self, global_id):
 		server_path = '/auth/validate_token/{}'.format(global_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
 		try:
-			resp = requests.get(url)
+			resp = requests.get(url, headers={'authorization': token})
 			if resp.status_code == 200:
 				result = resp.json()
 				if 'token' not in result or 'error' in result:
@@ -305,5 +308,5 @@ class EdmAgent(object):
 
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
-go = GoAgent(os.environ['GO_URL'])
+go = GoAgent(os.environ['GO_URL'], os.environ['APPEN_API_SECRET_KEY'])
 edm = EdmAgent(os.environ['EDM_URL'], os.environ['APPEN_API_SECRET_KEY'])
