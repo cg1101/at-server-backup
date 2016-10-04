@@ -61,9 +61,14 @@ def create_app(config_name):
 
 	@app.before_request
 	def authenticate_request():
+		# current_app.logger.debug('authenticating request {}, {}'.format(
+		#		request.method, request.url))
+		# current_app.logger.debug('request headers:\n{}'.format(request.headers))
+
 		# no need to authenticate
 		for p in public_url_patterns:
 			if p.match(request.path):
+				# current_app.logger.debug('this is public, no need to authenticate, proceed')
 				return None
 
 		# authenticate by cookie
@@ -88,11 +93,16 @@ def create_app(config_name):
 		# 	# cookie not found
 		# 	pass
 
+		# current_app.logger.debug('cookie authentication failed')
+		# current_app.logger.debug('try header authentication')
+
 		# authenticate by header
 		try:
 			authorization_info = request.headers.get('authorization', None)
 			globalId, token = authorization_info.split('~', 1)
 			result = util.go.check_token_for_user(globalId)
+			# current_app.logger.debug('authorization header: {}'.format(authorization_info))
+			# current_app.logger.debug('token info: {}'.format(result))
 			# result = {
 			# 	'token': token,
 			# 	'expires_at': 'something',
@@ -102,6 +112,7 @@ def create_app(config_name):
 			if result and token == result['token']:
 				try:
 					user = User.query.filter(User.globalId==globalId).one()
+					# current_app.logger.debug('found user {}'.format(user.emailAddress))
 					session['current_user'] = user
 					return None
 				except NoResultFound:
