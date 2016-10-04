@@ -106,14 +106,13 @@ def migrate_task(taskId):
 				raise InvalidUsage(_('unable to migrate project {0}'
 					).format(pdb_task.projectId))
 			project = m.Project(projectId=pdb_task.projectId,
-				name=pdb_project.name, _migratedByUser=me,
-				globalProjectId=globalProjectId)
+				name=pdb_project.name, _migratedByUser=me)
 			SS.add(project)
 			SS.flush()
 
 		task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
 			taskTypeId=data['taskTypeId'], projectId=project.projectId,
-			_migratedByUser=me)
+			_migratedByUser=me, globalProjectId=data['globalProjectId'])
 		SS.add(task)
 
 		# reload task to make sure missing attributes are populated
