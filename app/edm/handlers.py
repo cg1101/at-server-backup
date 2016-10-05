@@ -333,8 +333,8 @@ def update_country(self):
 		changes = {}
 		for k, v in data.items():
 			try:
-				if getattr(lang, k) != v:
-					setattr(lang, k, v)
+				if getattr(country, k) != v:
+					setattr(country, k, v)
 					changes[k] = v
 			except AttributeError:
 				continue
