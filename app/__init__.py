@@ -3,7 +3,7 @@
 import re
 
 import requests
-import sqlalchemy.orm.exc
+from sqlalchemy.orm.exc import NoResultFound
 from flask import Flask, session, request, after_this_request,\
 		redirect, jsonify, make_response, url_for, current_app
 from flask_oauthlib.client import OAuth
@@ -61,14 +61,13 @@ def create_app(config_name):
 
 	@app.before_request
 	def authenticate_request():
-		# current_app.logger.debug('authenticating request {}, {}'.format(
-		#		request.method, request.url))
-		# current_app.logger.debug('request headers:\n{}'.format(request.headers))
+		current_app.logger.debug('authenticating request {}, {}'.format(request.method, request.url))
+		current_app.logger.debug('request headers:\n{}'.format(request.headers))
 
 		# no need to authenticate
 		for p in public_url_patterns:
 			if p.match(request.path):
-				# current_app.logger.debug('this is public, no need to authenticate, proceed')
+				current_app.logger.debug('this is public, no need to authenticate, proceed')
 				return None
 
 		# authenticate by cookie
@@ -79,8 +78,6 @@ def create_app(config_name):
 				user_dict = auth.decode_cookie(cookie, secret)
 			except:
 				user_dict = None
-			# # TODO: remove following statement to re-enable authentication
-			# user_dict = {'REMOTE_USER_ID':699}
 
 			if user_dict:
 				user = User.query.get(user_dict['REMOTE_USER_ID'])
@@ -93,16 +90,16 @@ def create_app(config_name):
 		# 	# cookie not found
 		# 	pass
 
-		# current_app.logger.debug('cookie authentication failed')
-		# current_app.logger.debug('try header authentication')
+		current_app.logger.debug('cookie authentication failed')
+		current_app.logger.debug('try header authentication')
 
 		# authenticate by header
 		try:
 			authorization_info = request.headers.get('authorization', None)
 			globalId, token = authorization_info.split('~', 1)
 			result = util.go.check_token_for_user(globalId)
-			# current_app.logger.debug('authorization header: {}'.format(authorization_info))
-			# current_app.logger.debug('token info: {}'.format(result))
+			current_app.logger.debug('authorization header: {}'.format(authorization_info))
+			current_app.logger.debug('token info: {}'.format(result))
 			# result = {
 			# 	'token': token,
 			# 	'expires_at': 'something',
@@ -112,11 +109,14 @@ def create_app(config_name):
 			if result and token == result['token']:
 				try:
 					user = User.query.filter(User.globalId==globalId).one()
-					# current_app.logger.debug('found user {}'.format(user.emailAddress))
+					current_app.logger.debug('found local user {}'.format(user.emailAddress))
 					session['current_user'] = user
 					return None
 				except NoResultFound:
+					current_app.logger.debug('user {} not found, get it from edm'.format(user.emailAddress))
+					SS.rollback()
 					result = util.edm.get_user(globalId)
+					current_app.logger.debug('edm query returns {}'.format(result))
 					if result:
 						data = dict(
 							familyName=result['family_name'],
@@ -130,7 +130,10 @@ def create_app(config_name):
 						SS.commit()
 						session['current_user'] = user
 						return None
-		except:
+					else:
+						current_app.logger.error('failed to get user from edm')
+		except Exception, e:
+			current_app.logger.error('caught unknown error {}'.format(e))
 			pass
 
 		is_json = False
@@ -214,7 +217,7 @@ def create_app(config_name):
 		# search for user, if found, setup cookie
 		try:
 			me = User.query.filter(User.emailAddress==email).one()
-		except sqlalchemy.orm.exc.NoResultFound:
+		except NoResultFound:
 			SS.rollback()
 			# add user
 			try:
