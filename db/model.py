@@ -1397,6 +1397,14 @@ class WorkIntervalSchema(Schema):
 class SnsMessageRecord(Base):
 	__table__ = t_sns_message_records
 
+# Country
+class Country(Base):
+	__table__ = t_countries
+
+# Language
+class Language(Base):
+	__table__ = t_languages
+
 ##########################################################################
 
 # RecordingPlatformType

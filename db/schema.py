@@ -1114,6 +1114,28 @@ t_sns_message_records =  Table('sns_message_records', metadata,
 	PrimaryKeyConstraint(u'messageId'),
 )
 
+t_countries = Table('countries', metadata,
+	Column('country_id', Integer, autoincrement=True, key=u'countryId', doc=''),
+	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('iso2', VARCHAR(2), nullable=True, unique=True, key=u'iso2', doc=''),
+	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
+	Column('iso_num', INTEGER, nullable=False, unique=True, key=u'isoNum', doc=''),
+	Column('internet', VARCHAR(2), nullable=True, unique=True, key=u'internet', doc=''),
+	Column('active', BOOLEAN, nullable=False, server_default=text(u'TRUE'), key=u'active', doc=''),
+	PrimaryKeyConstraint(u'countryId'),
+)
+
+t_languages = Table('languages', metadata,
+	Column('language_id', Integer, autoincrement=True, key=u'languageId', doc=''),
+	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('iso2', VARCHAR(2), nullable=True, unique=True, key=u'iso2', doc=''),
+	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
+	Column('active', BOOLEAN, nullable=False, server_default=text(u'TRUE'), key=u'active', doc=''),
+	Column('ltr', Boolean, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
+	PrimaryKeyConstraint(u'languageId'),
+)
+
+
 ##########################################################################
 
 
