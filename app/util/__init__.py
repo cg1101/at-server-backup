@@ -265,8 +265,17 @@ class EdmAgent(object):
 		},
 		'Country': {
 			'name_eng': 'name',
-			'iso2': None,
-			'iso3': None,
+			'iso2': 'iso2',
+			'iso3': 'iso3',
+			'iso_num': 'isoNum',
+			'internet': 'internet',
+			'active': 'active'
+		},
+		'Language': {
+			'name_eng': 'name',
+			'iso2': 'iso2',
+			'iso3': 'iso3',
+			'active': 'active'
 		}
 	}
 	def __init__(self, url_root, secret):
@@ -274,6 +283,34 @@ class EdmAgent(object):
 		self.secret = secret
 	def get_url_root(self):
 		return self.url_root
+	def get_country(self, iso3):
+		server_path = '/api/edm_countries/{}'.format(iso3)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()
+			else:
+				result = None
+		except Exception, e:
+			result = None
+		return result
+	def get_language(self, iso3):
+		server_path = '/api/edm_languages/{}'.format(iso3)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()
+			else:
+				result = None
+		except Exception, e:
+			result = None
+		return result
 	def get_user(self, global_id):
 		server_path = '/api/edm_people/{}'.format(global_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))

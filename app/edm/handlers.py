@@ -292,7 +292,6 @@ def update_person(self):
 		SS.add(user)
 		SS.flush()
 		SS.commit()
-		session['current_user'] = user
 		current_app.logger.info('user {} is added locally'.format(globalId))
 	return
 
@@ -301,11 +300,124 @@ def create_country(self):
 	desc = json.loads(self.Message)
 	data = util.edm.decode_changes('Country', desc['changes'])
 	current_app.logger.info('a country is being created using {}'.format(data))
+	try:
+		country = m.Country.query.filter(m.Country.name==data['name']).one()
+		current_app.logger.info('found country {}, applying changes {}'.format(country.name, data))
+		changes = {}
+		for k, v in data.iteritems():
+			try:
+				if getattr(country, k) != v:
+					setattr(country, k, v)
+					changes[k] = v
+			except AttributeError:
+				continue
+		current_app.logger.debug('actual changes {}'.format(changes))
+		SS.flush()
+		SS.commit()
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		country = m.Country(**data)
+		SS.add(country)
+		SS.flush()
+		SS.commit()
 	return
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Update')
 def update_country(self):
 	desc = json.loads(self.Message)
-	data = util.edm.decode_changes('Country', desc['changes'])
-	current_app.logger.info('a country is being updated using {}'.format(data))
+	iso3 = desc['iso3']
+	try:
+		country = m.Country.query.filter(m.Country.iso3==iso3).one()
+		data = util.edm.decode_changes('Country', desc['changes'])
+		current_app.logger.info('found country {}, applying changes {}'.format(country.name, data))
+		changes = {}
+		for k, v in data.items():
+			try:
+				if getattr(lang, k) != v:
+					setattr(lang, k, v)
+					changes[k] = v
+			except AttributeError:
+				continue
+		current_app.logger.debug('actual changes {}'.format(changes))
+		SS.flush()
+		SS.commit()
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		current_app.logger.info('country {} not found, get country from edm'.format(iso3))
+		result = util.edm.get_country(iso3)
+		data = dict(
+			name=result['name_eng'],
+			iso2=result['iso2'],
+			iso3=iso3,
+			isoNum=result['iso_num'],
+			internet=result['internet'],
+			active=result['active'],
+		)
+		country = m.Country(**data)
+		SS.add(country)
+		SS.flush()
+		SS.commit()
+		current_app.logger.info('country {} is added locally'.format(country.name))
+	return
+
+@SnsMessage.message_handler(Type='Notification', Subject='Language_Create')
+def create_language(self):
+	desc = json.loads(self.Message)
+	data = util.edm.decode_changes('Language', desc['changes'])
+	current_app.logger.info('a language is being created using {}'.format(data))
+	try:
+		lang = m.Language.query.filter(m.Language.name==data['name']).one()
+		current_app.logger.info('found language {}, applying changes {}'.format(lang.name, data))
+		changes = {}
+		for k, v in data.iteritems():
+			try:
+				if getattr(lang, k) != v:
+					setattr(lang, k, v)
+					changes[k] = v
+			except AttributeError:
+				continue
+		current_app.logger.debug('actual changes {}'.format(changes))
+		SS.flush()
+		SS.commit()
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		lang = m.Language(**data)
+		SS.add(lang)
+		SS.flush()
+		SS.commit()
+
+@SnsMessage.message_handler(Type='Notification', Subject='Language_Update')
+def update_language(self):
+	desc = json.loads(self.Message)
+	iso3 = desc['iso3']
+	try:
+		lang = m.Language.query.filter(m.Language.iso3==iso3).one()
+		data = util.edm.decode_changes('Language', desc['changes'])
+		current_app.logger.info('found language {}, applying changes {}'.format(lang.name, data))
+		changes = {}
+		for k, v in data.items():
+			try:
+				if getattr(lang, k) != v:
+					setattr(lang, k, v)
+					changes[k] = v
+			except AttributeError:
+				continue
+		current_app.logger.debug('actual changes {}'.format(changes))
+		SS.flush()
+		SS.commit()
+	except sqlalchemy.orm.exc.NoResultFound:
+		SS.rollback()
+		current_app.logger.info('language {} not found, get language from edm'.format(iso3))
+		result = util.edm.get_language(iso3)
+		data = dict(
+			name=result['name_eng'],
+			iso2=result['iso2'],
+			iso3=iso3,
+			active=result['active'],
+		)
+		lang = m.Language(**data)
+		SS.add(lang)
+		SS.flush()
+		SS.commit()
+		current_app.logger.info('language {} is added locally'.format(lang.name))
 	return
