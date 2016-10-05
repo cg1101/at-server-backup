@@ -2,6 +2,7 @@
 import random
 import os
 import hashlib
+import json
 from collections import OrderedDict
 
 from flask import url_for
@@ -307,6 +308,44 @@ class EdmAgent(object):
 		return data
 
 
+class PdbAgent(object):
+	token = None
+	def __init__(self, url_root, api_key, api_secret):
+		self.url_root = url_root
+		self.api_key = api_key
+		self.api_secret = api_secret
+	def update_token(self):
+		url = os.path.join(self.url_root, '/login'.lstrip('/'))
+		resp = requests.post(url, headers={'Content-Type': 'application/json'},
+			data=json.dumps({'apiKey': self.api_key, 'apiSecret': self.api_secret}))
+		if resp.status_code == 200:
+			try:
+				self.token = resp.json()
+			except:
+				pass
+	def get_project(self, projectId):
+		if self.token is None:
+			self.update_token()
+		if self.token:
+			server_path = '/api/v1/projects/{}'.format(projectId)
+			url = os.path.join(self.url_root, server_path.lstrip('/'))
+			resp = requests.get(url, headers={'Authorization': self.token['accessToken']})
+			if resp.status_code == 200:
+				data = resp.json()
+				return data['result']
+	def get_task(self, taskId):
+		if self.token is None:
+			self.update_token()
+		if self.token:
+			server_path = '/api/v1/tasks/{}'.format(taskId)
+			url = os.path.join(self.url_root, server_path.lstrip('/'))
+			resp = requests.get(url, headers={'Authorization': self.token['accessToken']})
+			if resp.status_code == 200:
+				data = resp.json()
+				return data['result']
+
+
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
 go = GoAgent(os.environ['GO_URL'], os.environ['APPEN_API_SECRET_KEY'])
 edm = EdmAgent(os.environ['EDM_URL'], os.environ['APPEN_API_SECRET_KEY'])
+pdb = PdbAgent(os.environ['PDB_API_URL'], os.environ['PDB_API_KEY'], os.environ['PDB_API_SECRET'])
