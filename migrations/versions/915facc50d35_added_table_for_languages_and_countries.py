@@ -24,7 +24,7 @@ def upgrade():
     sa.Column('iso2', sa.VARCHAR(length=2), nullable=True),
     sa.Column('iso3', sa.VARCHAR(length=3), nullable=False),
     sa.Column('iso_num', sa.INTEGER(), nullable=False),
-    sa.Column('internet', sa.VARCHAR(length=2), nullable=True),
+    sa.Column('internet', sa.VARCHAR(length=3), nullable=True),
     sa.Column('active', sa.BOOLEAN(), server_default=sa.text(u'TRUE'), nullable=False),
     sa.PrimaryKeyConstraint('country_id'),
     sa.UniqueConstraint('internet'),

@@ -1120,7 +1120,7 @@ t_countries = Table('countries', metadata,
 	Column('iso2', VARCHAR(2), nullable=True, unique=True, key=u'iso2', doc=''),
 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
 	Column('iso_num', INTEGER, nullable=False, unique=True, key=u'isoNum', doc=''),
-	Column('internet', VARCHAR(2), nullable=True, unique=True, key=u'internet', doc=''),
+	Column('internet', VARCHAR(3), nullable=True, unique=True, key=u'internet', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text(u'TRUE'), key=u'active', doc=''),
 	PrimaryKeyConstraint(u'countryId'),
 )
