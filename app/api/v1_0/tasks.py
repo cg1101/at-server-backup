@@ -5,7 +5,7 @@ import datetime
 import re
 import json
 
-from flask import request, session, jsonify, make_response, url_for
+from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
@@ -17,7 +17,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -1113,7 +1113,13 @@ def get_task_supervisors(taskId):
 				try:
 					user = m.User.query.filter(m.User.globalId==appenId).one()
 				except NoResultFound:
-					# TODO: poll EDM to add this user in
+					try:
+						user = edm.make_new_user(appenId)
+						SS.add(user)
+						SS.flush()
+					except:
+						current_app.logger.error('error adding new user {}'.format(appenId))
+						SS.rollback()
 					continue
 				user_ids_tiger.add(user.userId)
 			user_ids_gnx = set([r.userId for r in SS.query(m.TaskSupervisor.userId
@@ -1358,26 +1364,37 @@ def get_task_workers(taskId):
 		# others remain unchanged
 		#
 		appenIds = tiger.get_task_workers(task)
+		current_app.logger.debug('global returned workers {}'.format(appenIds))
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()
 			for appenId in appenIds:
 				try:
 					user = m.User.query.filter(m.User.globalId==appenId).one()
 				except NoResultFound:
-					# TODO: poll EDM to add this user in
+					try:
+						user = edm.make_new_user(appenId)
+						SS.add(user)
+						SS.flush()
+					except:
+						current_app.logger.error('error adding new user {}'.format(appenId))
+						SS.rollback()
 					continue
 				user_ids_tiger.add(user.userId)
+			current_app.logger.debug('translated user Ids {}'.format(user_ids_tiger))
 			user_ids_gnx = set([r.userId for r in SS.query(m.TaskWorker.userId
 				).distinct().filter(m.TaskWorker.taskId==taskId).all()])
 			added = user_ids_tiger - user_ids_gnx
 			removed = user_ids_gnx - user_ids_tiger
+			current_app.logger.debug('added users {}'.format(added))
+			current_app.logger.debug('removed users {}'.format(removed))
 			if added:
 				try:
 					subTask = m.SubTask.query.filter(m.SubTask.taskId==taskId
 						).order_by('subTaskId')[0]
 					for userId in added:
 						entry = m.TaskWorker(taskId=taskId,
-							subTaskId=subTask.subTaskId, removed=True)
+							subTaskId=subTask.subTaskId,
+							userId=userId, removed=True)
 						SS.add(entry)
 				except IndexError:
 					# no sub tasks defined yet

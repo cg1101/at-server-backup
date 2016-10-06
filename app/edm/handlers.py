@@ -281,14 +281,7 @@ def update_person(self):
 	except sqlalchemy.orm.exc.NoResultFound:
 		SS.rollback()
 		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
-		result = util.edm.get_user(globalId)
-		data = dict(
-			familyName=result['family_name'],
-			givenName=result['given_name'],
-			emailAddress=result['primary_email_email_address'],
-			globalId=globalId,
-		)
-		user = m.User(**data)
+		user = edm.make_new_user(globalId)
 		SS.add(user)
 		SS.flush()
 		SS.commit()

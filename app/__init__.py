@@ -10,7 +10,7 @@ from flask_oauthlib.client import OAuth
 from flask_cors import CORS
 
 from config import config
-from db.model import User
+import db.model as m
 from db.db import SS
 from db import database as db
 import auth
@@ -61,8 +61,8 @@ def create_app(config_name):
 
 	@app.before_request
 	def authenticate_request():
-		current_app.logger.debug('authenticating request {}, {}'.format(request.method, request.url))
-		current_app.logger.debug('request headers:\n{}'.format(request.headers))
+		# current_app.logger.debug('authenticating request {}, {}'.format(request.method, request.url))
+		# current_app.logger.debug('request headers:\n{}'.format(request.headers))
 
 		# no need to authenticate
 		for p in public_url_patterns:
@@ -80,7 +80,7 @@ def create_app(config_name):
 				user_dict = None
 
 			if user_dict:
-				user = User.query.get(user_dict['REMOTE_USER_ID'])
+				user = m.User.query.get(user_dict['REMOTE_USER_ID'])
 				session['current_user'] = user
 				return None
 		# 	else:
@@ -108,30 +108,17 @@ def create_app(config_name):
 			# }
 			if result and token == result['token']:
 				try:
-					user = User.query.filter(User.globalId==globalId).one()
+					user = m.User.query.filter(m.User.globalId==globalId).one()
 					current_app.logger.debug('found local user {}'.format(user.emailAddress))
 					session['current_user'] = user
 					return None
 				except NoResultFound:
 					current_app.logger.debug('user {} not found, get it from edm'.format(globalId))
 					SS.rollback()
-					result = util.edm.get_user(globalId)
-					current_app.logger.debug('edm query returns {}'.format(result))
-					if result:
-						data = dict(
-							familyName=result['family_name'],
-							givenName=result['given_name'],
-							emailAddress=result['primary_email_email_address'],
-							globalId=globalId,
-						)
-						user = User(**data)
-						SS.add(user)
-						SS.flush()
-						SS.commit()
-						session['current_user'] = user
-						return None
-					else:
-						current_app.logger.error('failed to get user from edm')
+					user = edm.make_new_user(globalId)
+					SS.add(user)
+					SS.flush()
+					SS.commit()
 		except Exception, e:
 			current_app.logger.error('caught unknown error {}'.format(e))
 			pass
@@ -163,7 +150,7 @@ def create_app(config_name):
 	def who_am_i():
 		me = session['current_user']
 		return jsonify(
-			user=User.dump(me, use='full'),
+			user=m.User.dump(me, use='full'),
 			runtimeEnvironment={
 				'tiger': util.tiger.get_url_root(),
 				'edm': util.edm.get_url_root(),
@@ -216,12 +203,12 @@ def create_app(config_name):
 		#
 		# search for user, if found, setup cookie
 		try:
-			me = User.query.filter(User.emailAddress==email).one()
+			me = m.User.query.filter(m.User.emailAddress==email).one()
 		except NoResultFound:
 			SS.rollback()
 			# add user
 			try:
-				me = User(emailAddress=email,
+				me = m.User(emailAddress=email,
 					familyName=userInfo['extra']['last_name'],
 					givenName=userInfo['extra']['first_name'],
 					globalId=userInfo['extra']['global_id']

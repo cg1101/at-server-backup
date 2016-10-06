@@ -311,7 +311,7 @@ class EdmAgent(object):
 		except Exception, e:
 			result = None
 		return result
-	def get_user(self, global_id):
+	def get_user_data(self, global_id):
 		server_path = '/api/edm_people/{}'.format(global_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
 		canonical_string = url + self.secret
@@ -325,6 +325,16 @@ class EdmAgent(object):
 		except Exception, e:
 			result = None
 		return result
+	def make_new_user(self, global_id):
+		result = self.get_user_data(global_id)
+		data = dict(
+			familyName=result['family_name'],
+			givenName=result['given_name'],
+			emailAddress=result['primary_email_email_address'],
+			globalId=result['global_id'],
+		)
+		user = m.User(**data)
+		return user
 	def decode_changes(self, entity, changes):
 		lookup = self.ATTR_MAP[entity]
 		data = {}
