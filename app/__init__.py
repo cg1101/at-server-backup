@@ -113,7 +113,7 @@ def create_app(config_name):
 					session['current_user'] = user
 					return None
 				except NoResultFound:
-					current_app.logger.debug('user {} not found, get it from edm'.format(user.emailAddress))
+					current_app.logger.debug('user {} not found, get it from edm'.format(globalId))
 					SS.rollback()
 					result = util.edm.get_user(globalId)
 					current_app.logger.debug('edm query returns {}'.format(result))
