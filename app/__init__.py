@@ -67,7 +67,7 @@ def create_app(config_name):
 		# no need to authenticate
 		for p in public_url_patterns:
 			if p.match(request.path):
-				current_app.logger.debug('this is public, no need to authenticate, proceed')
+				# current_app.logger.debug('this is public, no need to authenticate, proceed')
 				return None
 
 		# authenticate by cookie
@@ -90,16 +90,16 @@ def create_app(config_name):
 		# 	# cookie not found
 		# 	pass
 
-		current_app.logger.debug('cookie authentication failed')
-		current_app.logger.debug('try header authentication')
+		# current_app.logger.debug('cookie authentication failed')
+		# current_app.logger.debug('try header authentication')
 
 		# authenticate by header
 		try:
 			authorization_info = request.headers.get('authorization', None)
 			globalId, token = authorization_info.split('~', 1)
 			result = util.go.check_token_for_user(globalId)
-			current_app.logger.debug('authorization header: {}'.format(authorization_info))
-			current_app.logger.debug('token info: {}'.format(result))
+			# current_app.logger.debug('authorization header: {}'.format(authorization_info))
+			# current_app.logger.debug('token info: {}'.format(result))
 			# result = {
 			# 	'token': token,
 			# 	'expires_at': 'something',
@@ -109,11 +109,11 @@ def create_app(config_name):
 			if result and token == result['token']:
 				try:
 					user = m.User.query.filter(m.User.globalId==globalId).one()
-					current_app.logger.debug('found local user {}'.format(user.emailAddress))
+					# current_app.logger.debug('found local user {}'.format(user.emailAddress))
 					session['current_user'] = user
 					return None
 				except NoResultFound:
-					current_app.logger.debug('user {} not found, get it from edm'.format(globalId))
+					# current_app.logger.debug('user {} not found, get it from edm'.format(globalId))
 					SS.rollback()
 					user = edm.make_new_user(globalId)
 					SS.add(user)
