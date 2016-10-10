@@ -124,3 +124,38 @@ def upload_recording_platform_corpus_codes(recording_platform):
 @get_model(RecordingPlatform)
 def get_performance_meta_categories(recording_platform):
 	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def create_performance_meta_category(recording_platform):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				(PerformanceMetaCategory.check_name_unique, (recording_platform,)),
+		]),
+		Field('extractor', 
+			validators=[
+				recording_platform.check_extractor,
+			]
+		),
+		Field('validator', is_mandatory=True,
+			validators=[
+				PerformanceMetaCategory.check_validator,
+			]
+		),
+	).get_data()
+
+	performance_meta_category = PerformanceMetaCategory(
+		recording_platform=recording_platform,
+		name=data["name"],
+		extractor=data.get("extractor"),
+		validator=data["validator"],
+	)
+	db.session.add(performance_meta_category)
+	db.session.commit()
+
+	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
