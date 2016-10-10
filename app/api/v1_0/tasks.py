@@ -17,7 +17,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -70,9 +70,31 @@ from .pools import check_task_type_existence
 @api
 @caps()
 def migrate_task(taskId):
-	pdb_task = m.PdbTask.query.get(taskId)
-	if not pdb_task:
-		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	task = m.Task.query.get(taskId)
+	if task:
+		return jsonify(
+			message=_('task {0} already exists').format(taskId),
+			task=m.Task.dump(task),
+		)
+
+	if current_app.config['USE_PDB_API']:
+		pdb_task = pdb.get_task(taskId)
+		if not pdb_task:
+			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+		data = pdb_task
+		class data_holder(object): pass
+		pdb_task = data_holder()
+		for k, v in data.iteritems():
+			setattr(pdb_task, k, v)
+		data = pdb.get_project(pdb_task.projectId)
+		pdb_project = data_holder()
+		for k, v in data.iteritems():
+			setattr(pdb_project, k, v)
+	else:
+		pdb_task = m.PdbTask.query.get(taskId)
+		if not pdb_task:
+			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+		pdb_project = m.PdbProject.query.get(pdb_task.projectId)
 
 	me = session['current_user']
 
@@ -90,40 +112,32 @@ def migrate_task(taskId):
 		]),
 	).get_data(use_args=True)
 
-	task = m.Task.query.get(taskId)
-	if task:
-		return jsonify(
-			message=_('task {0} already exists').format(taskId),
-			task=m.Task.dump(task),
-		)
+	project = m.Project.query.get(pdb_task.projectId)
+	migrate_project = not bool(project)
+	if migrate_project:
+		if not pdb_project:
+			# this should never happen, just in case
+			raise InvalidUsage(_('unable to migrate project {0}'
+				).format(pdb_task.projectId))
+		project = m.Project(projectId=pdb_task.projectId,
+			name=pdb_project.name, _migratedByUser=me)
+		SS.add(project)
+		SS.flush()
+
+	task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
+		taskTypeId=data['taskTypeId'], projectId=project.projectId,
+		_migratedByUser=me, globalProjectId=data['globalProjectId'])
+	SS.add(task)
+
+	# reload task to make sure missing attributes are populated
+	rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
+	if migrate_project:
+		rs['message'] = _('migrated project {0} and task {1} successfully')\
+			.format(task.projectId, taskId)
+		rs['project'] = m.Project.dump(project)
 	else:
-		project = m.Project.query.get(pdb_task.projectId)
-		migrate_project = not bool(project)
-		if migrate_project:
-			pdb_project = m.PdbProject.query.get(pdb_task.projectId)
-			if not pdb_project:
-				# this should never happen, just in case
-				raise InvalidUsage(_('unable to migrate project {0}'
-					).format(pdb_task.projectId))
-			project = m.Project(projectId=pdb_task.projectId,
-				name=pdb_project.name, _migratedByUser=me)
-			SS.add(project)
-			SS.flush()
-
-		task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
-			taskTypeId=data['taskTypeId'], projectId=project.projectId,
-			_migratedByUser=me, globalProjectId=data['globalProjectId'])
-		SS.add(task)
-
-		# reload task to make sure missing attributes are populated
-		rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
-		if migrate_project:
-			rs['message'] = _('migrated project {0} and task {1} successfully')\
-				.format(task.projectId, taskId)
-			rs['project'] = m.Project.dump(project)
-		else:
-			rs['message'] = _('migrated task {0} successfully').format(taskId)
-		return jsonify(rs)
+		rs['message'] = _('migrated task {0} successfully').format(taskId)
+	return jsonify(rs)
 
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
