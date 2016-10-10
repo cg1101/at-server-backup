@@ -1469,8 +1469,20 @@ class RecordingPlatform(Base, ModelMixin):
 
 		return []
 
-	def is_valid_metadata_source(self, source):
-		return source in self.metadata_sources
+	def check_extractor(self, data, key, value):
+		"""
+		MyForm validator for checking that the metadata extractor
+		is valid.
+		"""
+
+		if not "key" in value:
+			raise ValueError("no key found")
+
+		if not "source" in value:
+			raise ValueError("no source found")
+
+		if value["source"] not in self.metadata_sources:
+			raise ValueError("{0} is an invalid source".format(value["source"]))
 
 
 class RecordingPlatformSchema(Schema):
@@ -1718,14 +1730,13 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 		return self.performance_meta_category_id
 
 	@classmethod
-	def check_name_unique(cls, data, key, value):
+	def check_name_unique(cls, data, key, value, recording_platform):
 		"""
 		MyForm validator for checking that a new
 		performance meta category name is unique 
 		for the	recording platform.
 		"""
-		recording_platform_id = data["recordingPlatformId"]
-		if cls.query.filter_by(recording_platform_id=recording_platform_id, name=value).count():
+		if cls.query.filter_by(recording_platform=recording_platform, name=value).count():
 			raise ValueError("{0} is already used".format(value))
 
 	def check_other_name_unique(self, data, key, value):
@@ -1742,22 +1753,6 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 
 		if query.count():
 			raise ValueError("{0} is used by another performance meta category".format(value))
-
-	def check_extractor(self, data, key, value):
-		"""
-		MyForm validator for checking that the
-		extractor is valid for the recording
-		platform.
-		"""
-
-		if not "key" in value:
-			raise ValueError("no key found")
-
-		if not "source" in value:
-			raise ValueError("no source found")
-
-		if not self.recording_platform.is_valid_metadata_source(value["source"]):
-			raise ValueError("{0} is an invalid source".format(value["source"]))
 
 
 class PerformanceMetaCategorySchema(Schema):

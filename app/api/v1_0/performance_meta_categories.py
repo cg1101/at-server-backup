@@ -10,44 +10,6 @@ from db.model import PerformanceMetaCategory, RecordingPlatform
 log = logging.getLogger(__name__)
 
 
-@bp.route("performancemetacategories", methods=["POST"])
-@api
-@caps()
-def create_performance_meta_category():
-
-	data = MyForm(
-		Field('recordingPlatformId', is_mandatory=True,
-			validators=[
-				RecordingPlatform.check_exists,
-		]),
-		Field('name', is_mandatory=True,
-			validators=[
-				PerformanceMetaCategory.check_name_unique,
-		]),
-		Field('extractor', 
-			validators=[
-				# TODO validate extractor
-			]
-		),
-		Field('validator', is_mandatory=True,
-			validators=[
-				PerformanceMetaCategory.check_validator
-			]
-		),
-	).get_data()
-
-	performance_meta_category = PerformanceMetaCategory(
-		recording_platform_id=data["recordingPlatformId"],
-		name=data["name"],
-		extractor=data.get("extractor"),
-		validator=data["validator"],
-	)
-	db.session.add(performance_meta_category)
-	db.session.commit()
-
-	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
-
-
 @bp.route("performancemetacategories/<int:performance_meta_category_id>", methods=["PUT"])
 @api
 @caps()
@@ -61,7 +23,7 @@ def update_performance_meta_category(performance_meta_category):
 		]),
 		Field('extractor', 
 			validators=[
-				performance_meta_category.check_extractor
+				performance_meta_category.recording_platform.check_extractor
 			]
 		),
 		Field('validator', is_mandatory=True,
