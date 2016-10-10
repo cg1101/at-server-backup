@@ -1,14 +1,14 @@
 """added metadata sources for importers
 
 Revision ID: d625d5d18d7a
-Revises: 15d803310916
+Revises: 915facc50d35
 Create Date: 2016-09-26 16:04:46.902966
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'd625d5d18d7a'
-down_revision = '15d803310916'
+down_revision = '915facc50d35'
 branch_labels = None
 depends_on = None
 
