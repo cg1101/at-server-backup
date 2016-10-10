@@ -13,7 +13,7 @@ models = [
 	# audio importers
 	AudioImporter(name=AudioImporter.UNSTRUCTURED, all_performances_incomplete=True),
 	AudioImporter(name=AudioImporter.STANDARD),
-	AudioImporter(name=AudioImporter.AMR_SCRIPTED),
+	AudioImporter(name=AudioImporter.AMR_SCRIPTED, metadata_sources=["Log File"]),
 	AudioImporter(name=AudioImporter.AMR_CONVERSATIONAL),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_SCRIPTED),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_CONVERSATIONAL),

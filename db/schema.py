@@ -1319,6 +1319,7 @@ t_audio_importers = Table("audio_importers", metadata,
 	Column("audio_importer_id", INTEGER, primary_key=True, key="audioImporterId", doc=""),
 	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
 	Column("all_performances_incomplete", BOOLEAN, nullable=False, server_default=text("FALSE"), key="allPerformancesIncomplete", doc=""),
+	Column("metadata_sources", JSONB, key="metadataSources", doc="")
 )
 
 
@@ -1372,16 +1373,14 @@ Index("album_meta_values_by_album_id", t_album_meta_values.c.albumId, unique=Fal
 
 t_performance_meta_categories = Table("performance_meta_categories", metadata,
 	Column("performance_meta_category_id", INTEGER, primary_key=True, key="performanceMetaCategoryId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("name", TEXT, nullable=False, key="name", doc=""),
 	Column("extractor", JSONB, key="extractor", doc=""),
 	Column("validator", JSONB, nullable=False, key="validator", doc=""),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
-	UniqueConstraint("audioCollectionId", "name"),
+	UniqueConstraint("recordingPlatformId", "name"),
 )
-Index("performance_meta_categories_by_audio_collection_id", t_performance_meta_categories.c.audioCollectionId, unique=False)
+Index("performance_meta_categories_by_recording_platform_id", t_performance_meta_categories.c.recordingPlatformId, unique=False)
 
 
 t_performance_meta_values = Table("performance_meta_values", metadata,

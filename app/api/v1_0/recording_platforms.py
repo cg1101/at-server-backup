@@ -6,7 +6,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import CorpusCode, RecordingPlatform, Track
+from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, Track
 from lib.audio_cutup import validate_audio_cutup_config
 
 log = logging.getLogger(__name__)
@@ -116,3 +116,11 @@ def upload_recording_platform_corpus_codes(recording_platform):
 	db.session.flush()
 	db.session.commit()
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_performance_meta_categories(recording_platform):
+	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})
