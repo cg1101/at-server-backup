@@ -14,7 +14,7 @@ import pytz
 from . import database, mode
 from .db import SS
 from lib import DurationField, utcnow
-from lib.metadata_validation import process_received_metadata, resolve_new_metadata
+from lib.metadata_validation import MetaValidator, process_received_metadata, resolve_new_metadata
 from schema import *
 
 log = logging.getLogger(__name__)
@@ -60,6 +60,13 @@ class MetaCategoryMixin(object):
 		An alias for the category ID.
 		"""
 		raise NotImplementedError
+
+	@staticmethod
+	def check_validator(data, key, value):
+		"""
+		MyForm validator to check a meta validator.
+		"""
+		MetaValidator.get_validator(value)
 
 
 class MetaEntityMixin(object):
@@ -1415,7 +1422,7 @@ class RecordingPlatformTypeSerialiser(Schema):
 
 
 # RecordingPlatform
-class RecordingPlatform(Base):
+class RecordingPlatform(Base, ModelMixin):
 	__table__ = t_recording_platforms
 
 	# relationships
@@ -1437,8 +1444,27 @@ class RecordingPlatform(Base):
 		"""
 		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
 
+	@property
+	def metadata_sources(self):
+		"""
+		Returns the metadata sources for the recording platform.
+		This is the combination of the metadata sources of the 
+		associated audio importer (if any) and any custom metadata
+		sources defined in the recording platform config.
+		"""
+		
+		if self.audio_importer and self.audio_importer.metadata_sources:
+			return self.audio_importer.metadata_sources
+
+		return []
+
+	def is_valid_metadata_source(self, source):
+		return source in self.metadata_sources
+
+
 class RecordingPlatformSchema(Schema):
 	audioImporter = fields.Nested("AudioImporterSchema", attribute="audio_importer")
+	metadata_sources = fields.Dict(dump_to="metadataSources")
 	class Meta:
 		additional = ("recordingPlatformId", "storageLocation", "index", "name", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
@@ -1577,6 +1603,7 @@ class AudioImporter(Base):
 	# synonyms
 	audio_importer_id = synonym("audioImporterId")
 	all_performances_incomplete = synonym("allPerformancesIncomplete")
+	metadata_sources = synonym("metadataSources")
 
 
 class AudioImporterSchema(Schema):
@@ -1673,11 +1700,53 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 
 	# synonyms
 	performance_meta_category_id = synonym("performanceMetaCategoryId")
-	audio_collection_id = synonym("audioCollectionId")
+	recording_platform_id = synonym("recordingPlatformId")
 
 	@property
 	def meta_category_id(self):
 		return self.performance_meta_category_id
+
+	@classmethod
+	def check_name_unique(cls, data, key, value):
+		"""
+		MyForm validator for checking that a new
+		performance meta category name is unique 
+		for the	recording platform.
+		"""
+		recording_platform_id = data["recordingPlatformId"]
+		if cls.query.filter_by(recording_platform_id=recording_platform_id, name=value).count():
+			raise ValueError("{0} is already used".format(value))
+
+	def check_other_name_unique(self, data, key, value):
+		"""
+		MyForm validator for checking that an
+		existing performance meta category name 
+		is unique for the recording platform.
+		"""
+		query = self.query.filter(
+			self.__class__.recording_platform_id==self.recording_platform_id,
+			self.__class__.name==value,
+			self.__class__.performance_meta_category_id!=self.performance_meta_category_id,
+		)
+
+		if query.count():
+			raise ValueError("{0} is used by another performance meta category".format(value))
+
+	def check_extractor(self, data, key, value):
+		"""
+		MyForm validator for checking that the
+		extractor is valid for the recording
+		platform.
+		"""
+
+		if not "key" in value:
+			raise ValueError("no key found")
+
+		if not "source" in value:
+			raise ValueError("no source found")
+
+		if not self.recording_platform.is_valid_metadata_source(value["source"]):
+			raise ValueError("{0} is an invalid source".format(value["source"]))
 
 
 class PerformanceMetaCategorySchema(Schema):

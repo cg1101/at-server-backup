@@ -71,9 +71,10 @@ class MetaValidator:
 		# organise by type
 		validators = dict([(validator_cls.VALIDATOR_TYPE, validator_cls) for validator_cls in validators])
 
-		validators = cls.get_validator_cls_dict()
+		meta_type = json_dict.get("type")
 
-		meta_type = json_dict["type"]
+		if meta_type is None:
+			raise ValueError("No meta type specified")
 
 		try:
 			validator_cls = validators[meta_type]
@@ -172,7 +173,7 @@ class CastedValidatorMixin:
 	value being validated.
 	Each subclass should set a 'cast'
 	attribute which is the name of
-	the case function.
+	the cast function.
 	"""
 
 	def cast_value(self, value):
@@ -194,9 +195,13 @@ class EnumValidator(MetaValidator, CastedValidatorMixin):
 		"""
 		Expects a list of allowed MetaValue objects.
 		"""
+		if not allowed_values:
+			raise ValueError("No allowed values given")
+		
 		# organise allowed values by key
 		self.allowed_values = dict([(meta_value.raw, meta_value) for meta_value in allowed_values])
 		self.cast = cast
+
 
 	@classmethod
 	def load(cls, json_dict):
@@ -229,8 +234,7 @@ class RangeValidator(MetaValidator, CastedValidatorMixin):
 	VALIDATOR_TYPE = "range"
 	
 	class Range:
-		def __init__(self, name, minimum=None, maximum=None):
-			self.name = name
+		def __init__(self, minimum=None, maximum=None):
 			self.minimum = minimum
 			self.maximum = maximum
 			assert self.minimum is not None or self.maximum is not None
@@ -250,13 +254,17 @@ class RangeValidator(MetaValidator, CastedValidatorMixin):
 
 		@classmethod
 		def load(cls, json_dict):
-			return cls(**json_dict)
+			return cls(
+				minimum=json_dict.get("minimum"),
+				maximum=json_dict.get("maximum")
+			)
 
 		def to_dict(self):
 			"""
 			Converts to a JSON serializable dict.
 			"""
-			d = {"name": self.name}
+			d = {}
+
 			if self.minimum is not None:
 				d["minimum"] = self.minimum
 
@@ -269,6 +277,9 @@ class RangeValidator(MetaValidator, CastedValidatorMixin):
 		"""
 		Expects a list of Range objects.
 		"""
+		if not ranges:
+			raise ValueError("No ranges given")
+
 		self.ranges = ranges
 		self.cast = cast
 
@@ -290,7 +301,7 @@ class RangeValidator(MetaValidator, CastedValidatorMixin):
 		value = self.cast_value(value)
 		for r in self.ranges:
 			if r.is_within(value):
-				return MetaValue(raw=value, display=r.name)
+				return MetaValue(raw=value, display=value)
 		raise ValueError("Value %s is not within any range" %value)
 
 
