@@ -1120,7 +1120,7 @@ def get_task_supervisors(taskId):
 		# for removed users, remove them from local records
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_supervisors(task)
+		appenIds = tiger.get_task_supervisors(task.globalProjectId)
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()
 			for appenId in appenIds:
@@ -1377,7 +1377,7 @@ def get_task_workers(taskId):
 		# for removed users, remove them from all sub tasks
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_workers(task)
+		appenIds = tiger.get_task_workers(task.globalProjectId)
 		current_app.logger.debug('global returned workers {}'.format(appenIds))
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()

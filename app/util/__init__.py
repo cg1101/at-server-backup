@@ -198,8 +198,8 @@ class TigerAgent(object):
 		self.secret = secret
 	def get_url_root(self):
 		return self.url_root
-	def get_task_workers(self, task):
-		server_path = '/projects/{0}/workers'.format(task.globalProjectId)
+	def get_task_workers(self, global_project_id):
+		server_path = '/projects/{0}/workers'.format(global_project_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
 		canonical_string = url + self.secret
 		token = hashlib.md5(canonical_string).hexdigest()
@@ -212,8 +212,8 @@ class TigerAgent(object):
 		except Exception, e:
 			result = None
 		return result
-	def get_task_supervisors(self, task):
-		server_path = '/projects/{0}/supervisors'.format(task.globalProjectId)
+	def get_task_supervisors(self, global_project_id):
+		server_path = '/projects/{0}/supervisors'.format(global_project_id)
 		url = os.path.join(self.url_root, server_path.lstrip('/'))
 		canonical_string = url + self.secret
 		token = hashlib.md5(canonical_string).hexdigest()
@@ -223,6 +223,18 @@ class TigerAgent(object):
 				result = resp.json()['supervisors']
 			else:
 				result = None
+		except Exception, e:
+			result = None
+		return result
+	def get_user_roles(self, appen_id):
+		server_path = '/project_users/{0}/roles'.format(appen_id)
+		url = os.path.join(self.url_root, server_path.lstrip('/'))
+		canonical_string = url + self.secret
+		token = hashlib.md5(canonical_string).hexdigest()
+		try:
+			resp = requests.get(url, headers={'authorization': token})
+			if resp.status_code == 200:
+				result = resp.json()
 		except Exception, e:
 			result = None
 		return result
