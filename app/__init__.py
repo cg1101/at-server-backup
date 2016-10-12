@@ -219,6 +219,9 @@ def create_app(config_name):
 		me = session['current_user']
 		return jsonify(
 			user=m.User.dump(me, use='full'),
+			caps=session['current_user_caps'],
+			userType=session['current_user_type'],
+			roles=session['current_user_roles'],
 			runtimeEnvironment={
 				'tiger': util.tiger.get_url_root(),
 				'edm': util.edm.get_url_root(),
