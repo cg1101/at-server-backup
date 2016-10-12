@@ -299,7 +299,12 @@ def create_app(config_name):
 			roles = result['project_user_roles']
 			caps = util.tiger.role2caps(user_type)
 		except Exception, e:
-			return make_response(_('error getting user roles {}').format(e), 500)
+			if current_app.config.get('DEBUG'):
+				user_type = util.tiger.GUEST
+				roles = {}
+				caps = util.tiger.role2caps(user_type)
+			else:
+				return make_response(_('error getting user roles {}').format(e), 500)
 
 		# indicate cookie should be updated
 		session['current_user'] = me
@@ -321,16 +326,16 @@ def create_app(config_name):
 		# response.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
 		return response
 
-	@app.errorhandler(404)
-	def default_hander(exc):
-		if request.path.startswith('/static'):
-			return make_response(
-				_('Sorry, the resource you have requested for is not found'),
-				404)
-		if request.path.startswith('/api/'):
-			return make_response(jsonify(error='requested url not found'),
-				404, {})
-		# TODO: only redirect valid urls
-		return redirect('/#%s' % request.path)
+	# @app.errorhandler(404)
+	# def default_hander(exc):
+	# 	if request.path.startswith('/static'):
+	# 		return make_response(
+	# 			_('Sorry, the resource you have requested for is not found'),
+	# 			404)
+	# 	if request.path.startswith('/api/'):
+	# 		return make_response(jsonify(error='requested url not found'),
+	# 			404, {})
+	# 	# TODO: only redirect valid urls
+	# 	return redirect('/#%s' % request.path)
 
 	return app
