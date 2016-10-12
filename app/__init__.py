@@ -5,7 +5,7 @@ import re
 import requests
 from sqlalchemy.orm.exc import NoResultFound
 from flask import Flask, session, request, after_this_request,\
-		redirect, jsonify, make_response, url_for, current_app
+		redirect, jsonify, make_response, url_for, current_app, g
 from flask_oauthlib.client import OAuth
 from flask_cors import CORS
 
@@ -61,66 +61,114 @@ def create_app(config_name):
 
 	@app.before_request
 	def authenticate_request():
-		# current_app.logger.debug('authenticating request {}, {}'.format(request.method, request.url))
-		# current_app.logger.debug('request headers:\n{}'.format(request.headers))
-
-		# no need to authenticate
+		# do not authenticate public urls
 		for p in public_url_patterns:
 			if p.match(request.path):
-				# current_app.logger.debug('this is public, no need to authenticate, proceed')
+				current_app.logger.debug(\
+					'skip authencation for public url: {}'\
+					.format(request.url))
 				return None
 
 		# authenticate by cookie
-		cookie = request.cookies.get(current_app.config['APP_COOKIE_NAME'])
-		if cookie or True:
+		try:
+			cookie_name = current_app.config['APP_COOKIE_NAME']
+			cookie = request.cookies.get(cookie_name)
+			if not cookie:
+				raise RuntimeError('cookie {} not found'\
+					.format(cookie_name))
+
 			secret = current_app.config['APP_COOKIE_SECRET']
 			try:
 				user_dict = auth.decode_cookie(cookie, secret)
-			except:
-				user_dict = None
-
-			if user_dict:
 				user = m.User.query.get(user_dict['REMOTE_USER_ID'])
 				session['current_user'] = user
+				session['current_user_caps'] = user_dict['CAPABILITIES']
+				session['current_user_type'] = user_dict['USER_TYPE']
+				session['current_user_roles'] = user_dict['ROLES']
 				return None
-		# 	else:
-		# 		# cookie corrupted or expired
-		# 		pass
-		# else:
-		# 	# cookie not found
-		# 	pass
+			except:
+				raise RuntimeError('cookie corrupted or expired')
 
-		# current_app.logger.debug('cookie authentication failed')
-		# current_app.logger.debug('try header authentication')
+		except RuntimeError, e:
+			current_app.logger.debug('cookie authentication failed: {}'\
+				.format(e))
+			pass
 
 		# authenticate by header
 		try:
 			authorization_info = request.headers.get('authorization', None)
-			globalId, token = authorization_info.split('~', 1)
-			result = util.go.check_token_for_user(globalId)
-			# current_app.logger.debug('authorization header: {}'.format(authorization_info))
-			# current_app.logger.debug('token info: {}'.format(result))
-			# result = {
-			# 	'token': token,
-			# 	'expires_at': 'something',
-			# 	'appen_id': 15517,
-			# 	'app_id': 'appen_global'
-			# }
-			if result and token == result['token']:
+			current_app.logger.debug('authorization header: {}'\
+				.format(authorization_info))
+			if not authorization_info:
+				raise RuntimeError('authorization header not found')
+			try:
+				globalId, token = authorization_info.split('~', 1)
+			except:
+				raise RuntimeError('unknown header format: {}'\
+						.format(authorization_info))
+			try:
+				result = util.go.check_token_for_user(globalId)
+				current_app.logger.debug('token info: {}'.format(result))
+				# result = {
+				# 	'token': token,
+				# 	'expires_at': 'something',
+				# 	'appen_id': 15517,
+				# 	'app_id': 'appen_global'
+				# }
+			except RuntimeError, e:
+				# token validation failed, return 500 to indicate server error
+				return make_response(jsonify(error=\
+					_('token validation failed: {}').format(e), ), 500)
+
+			token_should_be = result.get('token', None)
+			if token != token_should_be:
+				raise RuntimeError(\
+					'token validation failed: expecting {}, got {}'\
+					.format(token_should_be, token))
+
+			current_app.logger.debug('token validation passed, add user if necessary')
+			try:
+				user = m.User.query.filter(m.User.globalId==globalId).one()
+				current_app.logger.debug('found local user {}'\
+					.format(user.emailAddress))
+			except NoResultFound:
+				SS.rollback()
+				current_app.logger.debug(\
+					'user {} not found, get it from edm'.format(globalId))
 				try:
-					user = m.User.query.filter(m.User.globalId==globalId).one()
-					# current_app.logger.debug('found local user {}'.format(user.emailAddress))
-					session['current_user'] = user
-					return None
-				except NoResultFound:
-					# current_app.logger.debug('user {} not found, get it from edm'.format(globalId))
-					SS.rollback()
 					user = edm.make_new_user(globalId)
 					SS.add(user)
 					SS.flush()
 					SS.commit()
-		except Exception, e:
-			current_app.logger.error('caught unknown error {}'.format(e))
+				except Exception, e:
+					SS.rollback()
+					current_app.logger.error(\
+						'failed to add user locally: {}'.format(e))
+					return make_response(\
+						jsonify(error=_('failed to add user {} locally'\
+							).format(globalId), ), 500)
+			# user exists locally
+			# TODO: query tiger for roles to setup capabilities in cookie
+
+			#
+			# TODO: get user roles from global
+			#
+			try:
+				result = util.tiger.get_user_roles(user.globalId)
+				user_type = result['user']['role']
+				roles = result['project_user_roles']
+				caps = util.tiger.role2caps(user_type)
+			except Exception, e:
+				return make_response(_('error getting user roles {}').format(e), 500)
+
+			session['current_user'] = user
+			session['current_user_caps'] = caps
+			session['current_user_type'] = user_type
+			session['current_user_roles'] = roles
+			g.update_cookie = True
+			return None
+		except RuntimeError, e:
+			current_app.logger.debug('header authentication failed: {}'.format(e))
 			pass
 
 		is_json = False
@@ -142,7 +190,27 @@ def create_app(config_name):
 		return soteria.authorize(callback=callback)
 
 	@app.after_request
-	def clear_current_user(resp):
+	def set_cookie_if_necessary(resp):
+		if g.get('update_cookie', False):
+			current_app.logger.debug('trying to set cookie as instructed')
+			try:
+				me = session['current_user']
+				caps = session['current_user_caps']
+				user_type = session['current_user_type']
+				roles = session['current_user_roles']
+				data = {
+					'REMOTE_USER_ID': me.userId,
+					'REMOTE_USER_NAME': me.userName,
+					'CAPABILITIES': caps,
+					'USER_TYPE': user_type,
+					'ROLES': roles,
+				}
+				value = auth.encode_cookie(data,
+					current_app.config['APP_COOKIE_SECRET'], timeout=0)
+				resp.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
+			except Exception, e:
+				current_app.logger.debug('error setting cookie {}'.format(e))
+				pass
 		session['current_user'] = None
 		return resp
 
@@ -174,18 +242,20 @@ def create_app(config_name):
 		try:
 			resp = soteria.authorized_response()
 		except Exception, e:
-			return make_response(_('error getting access token: {}').format(e), 500)
+			return make_response(_(\
+				'error getting access token: {}').format(e), 500)
 
 		if resp is None:
-			return make_response(_(
+			return make_response(_(\
 				'You need to grant access to continue, error: {}').format(
-				request.args['error']), 400)
+				request.args.get('error')), 400)
 
 		# get user info from Go
 		try:
 			token = resp['access_token']
 		except:
-			return make_response(_('error loading access token {}').format(resp), 500)
+			return make_response(_('error loading access token {}'\
+				).format(resp), 500)
 
 		try:
 			userInfo = requests.get(app.config['AUTHENTICATED_USER_INFO_URL'],
@@ -217,18 +287,35 @@ def create_app(config_name):
 				SS.flush()
 			except Exception, e:
 				SS.rollback()
-				# current_app.logger.error('error creating new user: {}'.format(e))
+				current_app.logger.error('error creating new user: {}'.format(e))
 				return make_response(_('error creating new user {}').format(email), 500)
 
-		data = {
-			'REMOTE_USER_ID': me.userId,
-			'REMOTE_USER_NAME': me.userName,
-			'CAPABILITIES': ['admin']
-		}
-		value = auth.encode_cookie(data,
-			current_app.config['APP_COOKIE_SECRET'], timeout=0)
+		try:
+			result = util.tiger.get_user_roles(me.globalId)
+			user_type = result['user']['role']
+			roles = result['project_user_roles']
+			caps = util.tiger.role2caps(user_type)
+		except Exception, e:
+			return make_response(_('error getting user roles {}').format(e), 500)
+
+		# indicate cookie should be updated
+		session['current_user'] = me
+		session['current_user_caps'] = caps
+		session['current_user_type'] = user_type
+		session['current_user_roles'] = roles
+		g.update_cookie = True
+
 		response = redirect(location=original_url)
-		response.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
+		# data = {
+		# 	'REMOTE_USER_ID': me.userId,
+		# 	'REMOTE_USER_NAME': me.userName,
+		# 	'CAPABILITIES': caps,
+		# 	'USER_TYPE': user_type,
+		# 	'ROLES': roles,
+		# }
+		# value = auth.encode_cookie(data,
+		# 	current_app.config['APP_COOKIE_SECRET'], timeout=0)
+		# response.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
 		return response
 
 	@app.errorhandler(404)

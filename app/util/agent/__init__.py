@@ -62,6 +62,28 @@ class AppAgent(object):
 
 
 class TigerAgent(AppAgent):
+	GUEST = 'guest'
+	WORKER1 = 'worker1'
+	WORKER2 = 'worker2'
+	WORKER3 = 'worker3'
+	WORKER4 = 'worker4'
+	CLIENT = 'client'
+	FINANCE = 'finance'
+	PROJECT_MANAGER = 'project_manager'
+	TENANT_ADMIN = 'tenant_admin'
+	SYS_ADMIN = 'sys_admin'
+	ROLE_CAPS_MAP = {
+		GUEST: [],
+		WORKER1: [],
+		WORKER2: [],
+		WORKER3: [],
+		WORKER4: [],
+		CLIENT: [],
+		FINANCE: [],
+		PROJECT_MANAGER: ['admin'],
+		TENANT_ADMIN: ['admin'],
+		SYS_ADMIN: ['admin'],
+	}
 	@AppAgent.api_auth('/projects/{0}/workers', 'workers')
 	def get_task_workers(self, global_project_id):
 		pass
@@ -71,6 +93,8 @@ class TigerAgent(AppAgent):
 	@AppAgent.api_auth('/project_users/{0}/roles')
 	def get_user_roles(self, appen_id):
 		pass
+	def role2caps(self, global_user_role):
+		return self.ROLE_CAPS_MAP.get(global_user_role, [])
 
 
 class GoAgent(AppAgent):
