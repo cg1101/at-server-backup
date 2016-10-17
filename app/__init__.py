@@ -41,10 +41,12 @@ def create_app(config_name):
 
 	from app.api import api_1_0
 	from app.edm import edm
+	from app.tagimages import tagimages
 	# from app.webservices import webservices
 	from app.views import views
 	app.register_blueprint(api_1_0, url_prefix='/api/1.0/')
 	app.register_blueprint(edm, url_prefix='/edm')
+	app.register_blueprint(tagimages, url_prefix='/tagimages')
 	# app.register_blueprint(webservices, url_prefix='/webservices')
 	app.register_blueprint(views, url_prefix='')
 
@@ -61,13 +63,17 @@ def create_app(config_name):
 
 	@app.before_request
 	def authenticate_request():
+		# current_app.logger.debug('{} {}'.format(request.method, request.url))
+
 		# do not authenticate public urls
 		for p in public_url_patterns:
 			if p.match(request.path):
-				current_app.logger.debug(\
-					'skip authencation for public url: {}'\
-					.format(request.url))
+				# current_app.logger.debug(\
+				# 	'skip authencation for public url: {}'\
+				# 	.format(request.url))
 				return None
+
+		# current_app.logger.debug('{} {}'.format(request.method, request.url))
 
 		# authenticate by cookie
 		try:
@@ -90,15 +96,15 @@ def create_app(config_name):
 				raise RuntimeError('cookie corrupted or expired')
 
 		except RuntimeError, e:
-			current_app.logger.debug('cookie authentication failed: {}'\
-				.format(e))
+			# current_app.logger.debug('cookie authentication failed: {}'\
+			# 	.format(e))
 			pass
 
 		# authenticate by header
 		try:
 			authorization_info = request.headers.get('authorization', None)
-			current_app.logger.debug('authorization header: {}'\
-				.format(authorization_info))
+			# current_app.logger.debug('authorization header: {}'\
+			# 	.format(authorization_info))
 			if not authorization_info:
 				raise RuntimeError('authorization header not found')
 			try:
@@ -168,7 +174,7 @@ def create_app(config_name):
 			g.update_cookie = True
 			return None
 		except RuntimeError, e:
-			current_app.logger.debug('header authentication failed: {}'.format(e))
+			# current_app.logger.debug('header authentication failed: {}'.format(e))
 			pass
 
 		is_json = False
@@ -300,7 +306,7 @@ def create_app(config_name):
 			caps = util.tiger.role2caps(user_type)
 		except Exception, e:
 			if current_app.config.get('DEBUG'):
-				user_type = util.tiger.GUEST
+				user_type = util.tiger.SYS_ADMIN
 				roles = {}
 				caps = util.tiger.role2caps(user_type)
 			else:

@@ -16,6 +16,7 @@ Mako==1.0.4
 MarkupSafe==0.23
 marshmallow==2.7.3
 M2Crypto>=0.25.1
+PIL==1.1.7
 psycopg2==2.6.1
 pycrypto==2.6.1
 python-editor==1.0.1
