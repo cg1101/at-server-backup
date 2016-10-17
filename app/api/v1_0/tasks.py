@@ -1120,7 +1120,11 @@ def get_task_supervisors(taskId):
 		# for removed users, remove them from local records
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_supervisors(task.globalProjectId)
+		try:
+			appenIds = tiger.get_task_supervisors(task.globalProjectId)
+		except Exception, e:
+			current_app.logger.error('error checking supervisors {}'.format(e))
+			appenIds = None
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()
 			for appenId in appenIds:
