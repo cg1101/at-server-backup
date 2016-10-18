@@ -1084,7 +1084,11 @@ class EventTag(Tag):
 	}
 
 class EventTagSchema(TagSchema):
-	pass
+	imageUrl = fields.Method('get_image_url')
+	def get_image_url(self, obj):
+		return '/tagimages/{}.png'.format(obj.tagId)
+	class Meta:
+		additional = ('imageUrl',)
 
 class SpanTag(Tag):
 	__mapper_args__ = {
