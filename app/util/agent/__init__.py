@@ -7,6 +7,8 @@ import hashlib
 import requests
 import jmespath
 
+import db.model as m
+
 
 class JsonObject(dict):
 	def __new__(cls, *args, **kwargs):
