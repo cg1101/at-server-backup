@@ -6,6 +6,7 @@ import re
 import json
 
 from flask import request, session, jsonify, make_response, url_for, current_app
+from sqlalchemy import or_
 from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
@@ -1365,6 +1366,35 @@ def get_task_warnings(taskId):
 	return jsonify(warnings=warnings)
 
 
+@bp.route(_name + '/<int:taskId>/work/', methods=['GET'])
+def get_task_work_queues(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	me = session['current_user']
+	candidates = m.SubTask.query.filter(m.SubTask.subTaskId.in_(
+		SS.query(m.TaskWorker.subTaskId
+			).filter_by(taskId=taskId
+			).filter_by(userId=me.userId
+			).filter(m.TaskWorker.removed==False))).all()
+	subTasks = []
+	for subTask in candidates:
+		if subTask.task.status != m.Task.STATUS_ACTIVE:
+			continue
+		if not [x for x in subTask.task.supervisors if x.receivesFeedback]:
+			continue
+		if not subTask.currentRate:
+			continue
+		if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
+				).filter(or_(m.Batch.userId.is_(None), m.Batch.userId==me.userId)
+				).filter(or_(m.Batch.onHold.is_(None), m.Batch.onHold==False)
+				).filter(or_(m.Batch.onHold.is_(None), m.Batch.notUserId!=me.userId)
+				).order_by(m.Batch.priority.desc()
+				).first():
+			continue
+		subTasks.append(subTask)
+	return jsonify(queues=m.SubTask.dump(subTasks))
+
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
 def get_task_workers(taskId):
 	task = m.Task.query.get(taskId)
@@ -1381,7 +1411,12 @@ def get_task_workers(taskId):
 		# for removed users, remove them from all sub tasks
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_workers(task.globalProjectId)
+		try:
+			appenIds = tiger.get_task_workers(task.globalProjectId)
+		except Exception, e:
+			current_app.logger.error('error checking workers {}'.format(e))
+			appenIds = None
+
 		current_app.logger.debug('global returned workers {}'.format(appenIds))
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()
