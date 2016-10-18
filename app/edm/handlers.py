@@ -281,7 +281,7 @@ def update_person(self):
 	except sqlalchemy.orm.exc.NoResultFound:
 		SS.rollback()
 		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
-		user = edm.make_new_user(globalId)
+		user = util.edm.make_new_user(globalId)
 		SS.add(user)
 		SS.flush()
 		SS.commit()
