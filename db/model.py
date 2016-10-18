@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 # model mixin classes
 class ModelMixin(object):
-	
+
 	@classmethod
 	def check_exists(cls, data, key, value):
 		"""
@@ -76,14 +76,14 @@ class MetaEntityMixin(object):
 
 	# the corresponding meta value model class
 	MetaValueModel = None
-	
+
 	@property
 	def meta_values(self):
 		"""
 		An SQLAlchemy relationship to the meta values.
 		"""
-		raise NotImplementedError	
-	
+		raise NotImplementedError
+
 	def add_meta_value(self, meta_category, new_value):
 		"""
 		Adds a new meta value.
@@ -1084,7 +1084,11 @@ class EventTag(Tag):
 	}
 
 class EventTagSchema(TagSchema):
-	pass
+	imageUrl = fields.Method('get_image_url')
+	def get_image_url(self, obj):
+		return '/tagimages/{}.png'.format(obj.tagId)
+	class Meta:
+		additional = ('imageUrl',)
 
 class SpanTag(Tag):
 	__mapper_args__ = {
@@ -1459,11 +1463,11 @@ class RecordingPlatform(Base, ModelMixin):
 	def metadata_sources(self):
 		"""
 		Returns the metadata sources for the recording platform.
-		This is the combination of the metadata sources of the 
+		This is the combination of the metadata sources of the
 		associated audio importer (if any) and any custom metadata
 		sources defined in the recording platform config.
 		"""
-		
+
 		if self.audio_importer and self.audio_importer.metadata_sources:
 			return self.audio_importer.metadata_sources
 
@@ -1733,7 +1737,7 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 	def check_name_unique(cls, data, key, value, recording_platform):
 		"""
 		MyForm validator for checking that a new
-		performance meta category name is unique 
+		performance meta category name is unique
 		for the	recording platform.
 		"""
 		if cls.query.filter_by(recording_platform=recording_platform, name=value).count():
@@ -1742,7 +1746,7 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 	def check_other_name_unique(self, data, key, value):
 		"""
 		MyForm validator for checking that an
-		existing performance meta category name 
+		existing performance meta category name
 		is unique for the recording platform.
 		"""
 		query = self.query.filter(
@@ -1800,8 +1804,8 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 	def incomplete(self):
 		"""
 		Placeholder for audio importing. To be
-		replaced when queue functionality and 
-		incomplete performance importing is 
+		replaced when queue functionality and
+		incomplete performance importing is
 		added.
 		"""
 		return False  # FIXME
@@ -1833,7 +1837,7 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 		for recording_data in data["recordings"]:
 			recording = Recording.from_import(recording_data, performance)
 			performance.recordings.append(recording)
-		
+
 		return performance
 
 
@@ -1900,11 +1904,11 @@ class Recording(Base, ImportMixin):
 			prompt=data["prompt"],
 			hypothesis=data["hypothesis"]
 		)
-		
+
 		for audio_file_data in data["audioFiles"]:
 			audio_file = AudioFile.from_import(audio_file_data, recording)
 			recording.audio_files.append(audio_file)
-		
+
 		return recording
 
 
@@ -1984,7 +1988,7 @@ class PerformanceFlag(Base):
 		audio_collection_id = data["audioCollectionId"]
 		if cls.query.filter_by(audio_collection_id=audio_collection_id, name=value).count():
 			raise ValueError("{0} is already used".format(value))
-	
+
 	def check_other_name_unique(self, data, key, value):
 		"""
 		MyForm validator for checking that an

@@ -12,7 +12,7 @@ from app.i18n import get_text as _
 from . import api_1_0 as bp
 from .. import InvalidUsage
 
-from app.util import TestManager
+from app.util import TestManager, PolicyChecker
 
 def is_local_address(ipAddress):
 	if ipAddress.startswith('192.168.') or ipAddress.startswith('165.228.178.104'):

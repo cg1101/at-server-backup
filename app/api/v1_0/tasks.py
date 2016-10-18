@@ -6,6 +6,7 @@ import re
 import json
 
 from flask import request, session, jsonify, make_response, url_for, current_app
+from sqlalchemy import or_
 from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
@@ -17,7 +18,7 @@ from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -70,9 +71,31 @@ from .pools import check_task_type_existence
 @api
 @caps()
 def migrate_task(taskId):
-	pdb_task = m.PdbTask.query.get(taskId)
-	if not pdb_task:
-		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	task = m.Task.query.get(taskId)
+	if task:
+		return jsonify(
+			message=_('task {0} already exists').format(taskId),
+			task=m.Task.dump(task),
+		)
+
+	if current_app.config['USE_PDB_API']:
+		pdb_task = pdb.get_task(taskId)
+		if not pdb_task:
+			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+		data = pdb_task
+		class data_holder(object): pass
+		pdb_task = data_holder()
+		for k, v in data.iteritems():
+			setattr(pdb_task, k, v)
+		data = pdb.get_project(pdb_task.projectId)
+		pdb_project = data_holder()
+		for k, v in data.iteritems():
+			setattr(pdb_project, k, v)
+	else:
+		pdb_task = m.PdbTask.query.get(taskId)
+		if not pdb_task:
+			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+		pdb_project = m.PdbProject.query.get(pdb_task.projectId)
 
 	me = session['current_user']
 
@@ -90,40 +113,32 @@ def migrate_task(taskId):
 		]),
 	).get_data(use_args=True)
 
-	task = m.Task.query.get(taskId)
-	if task:
-		return jsonify(
-			message=_('task {0} already exists').format(taskId),
-			task=m.Task.dump(task),
-		)
+	project = m.Project.query.get(pdb_task.projectId)
+	migrate_project = not bool(project)
+	if migrate_project:
+		if not pdb_project:
+			# this should never happen, just in case
+			raise InvalidUsage(_('unable to migrate project {0}'
+				).format(pdb_task.projectId))
+		project = m.Project(projectId=pdb_task.projectId,
+			name=pdb_project.name, _migratedByUser=me)
+		SS.add(project)
+		SS.flush()
+
+	task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
+		taskTypeId=data['taskTypeId'], projectId=project.projectId,
+		_migratedByUser=me, globalProjectId=data['globalProjectId'])
+	SS.add(task)
+
+	# reload task to make sure missing attributes are populated
+	rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
+	if migrate_project:
+		rs['message'] = _('migrated project {0} and task {1} successfully')\
+			.format(task.projectId, taskId)
+		rs['project'] = m.Project.dump(project)
 	else:
-		project = m.Project.query.get(pdb_task.projectId)
-		migrate_project = not bool(project)
-		if migrate_project:
-			pdb_project = m.PdbProject.query.get(pdb_task.projectId)
-			if not pdb_project:
-				# this should never happen, just in case
-				raise InvalidUsage(_('unable to migrate project {0}'
-					).format(pdb_task.projectId))
-			project = m.Project(projectId=pdb_task.projectId,
-				name=pdb_project.name, _migratedByUser=me)
-			SS.add(project)
-			SS.flush()
-
-		task = m.Task(taskId=pdb_task.taskId, name=pdb_task.name,
-			taskTypeId=data['taskTypeId'], projectId=project.projectId,
-			_migratedByUser=me, globalProjectId=data['globalProjectId'])
-		SS.add(task)
-
-		# reload task to make sure missing attributes are populated
-		rs = {'task': m.Task.dump(m.Task.query.get(task.taskId))}
-		if migrate_project:
-			rs['message'] = _('migrated project {0} and task {1} successfully')\
-				.format(task.projectId, taskId)
-			rs['project'] = m.Project.dump(project)
-		else:
-			rs['message'] = _('migrated task {0} successfully').format(taskId)
-		return jsonify(rs)
+		rs['message'] = _('migrated task {0} successfully').format(taskId)
+	return jsonify(rs)
 
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
@@ -1106,7 +1121,11 @@ def get_task_supervisors(taskId):
 		# for removed users, remove them from local records
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_supervisors(task)
+		try:
+			appenIds = tiger.get_task_supervisors(task.globalProjectId)
+		except Exception, e:
+			current_app.logger.error('error checking supervisors {}'.format(e))
+			appenIds = None
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()
 			for appenId in appenIds:
@@ -1347,6 +1366,40 @@ def get_task_warnings(taskId):
 	return jsonify(warnings=warnings)
 
 
+@bp.route(_name + '/<int:taskId>/work/', methods=['GET'])
+def get_task_work_queues(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	subTasks = []
+	if task.status != m.Task.STATUS_ACTIVE:
+		# task status is not active
+		pass
+	elif not [x for x in task.supervisors if x.receivesFeedback]:
+		# no supervisors that receives feedback
+		pass
+	else:	
+		me = session['current_user']
+		candidates = m.SubTask.query.filter(m.SubTask.subTaskId.in_(
+			SS.query(m.TaskWorker.subTaskId
+				).filter_by(taskId=taskId
+				).filter_by(userId=me.userId
+				).filter(m.TaskWorker.removed==False))).all()
+		for subTask in candidates:
+			if not subTask.currentRate:
+				# pay rate not configured
+				continue
+			if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
+					).filter(or_(m.Batch.userId.is_(None), m.Batch.userId==me.userId)
+					).filter(or_(m.Batch.onHold.is_(None), m.Batch.onHold==False)
+					).filter(or_(m.Batch.notUserId.is_(None), m.Batch.notUserId!=me.userId)
+					).order_by(m.Batch.priority.desc()
+					).first():
+				# no batches left
+				continue
+			subTasks.append(subTask)
+	return jsonify(queues=m.SubTask.dump(subTasks))
+
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
 def get_task_workers(taskId):
 	task = m.Task.query.get(taskId)
@@ -1363,7 +1416,12 @@ def get_task_workers(taskId):
 		# for removed users, remove them from all sub tasks
 		# others remain unchanged
 		#
-		appenIds = tiger.get_task_workers(task)
+		try:
+			appenIds = tiger.get_task_workers(task.globalProjectId)
+		except Exception, e:
+			current_app.logger.error('error checking workers {}'.format(e))
+			appenIds = None
+
 		current_app.logger.debug('global returned workers {}'.format(appenIds))
 		if isinstance(appenIds, list):
 			user_ids_tiger = set()

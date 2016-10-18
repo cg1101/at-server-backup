@@ -28,6 +28,8 @@ class Config:
 
 	SNS_AUTHENTICATE_REQUEST = bool(os.environ.get(
 			'SNS_AUTHENTICATE_REQUEST', '').strip())
+	USE_PDB_API = bool(os.environ.get(
+			'USE_PDB_API', '').strip())
 
 	@staticmethod
 	def init_app(app):
