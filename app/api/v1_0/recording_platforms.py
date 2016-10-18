@@ -7,7 +7,9 @@ from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, Track
+from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
+from lib.metadata_validation import MetaValidator
 
 log = logging.getLogger(__name__)
 
@@ -159,3 +161,34 @@ def create_performance_meta_category(recording_platform):
 	db.session.commit()
 
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
+
+
+@bp.route("recording_platforms/<int:recording_platform_id>/performancemetacategories/upload", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def upload_performance_meta_categories(recording_platform):
+
+	if recording_platform.performance_meta_categories:
+		raise InvalidUsage("performance meta categories already exist; unable to upload config file")
+
+	if not "file" in request.files:
+		raise InvalidUsage("no config file provided")
+
+	amr_config_file = AmrConfigFile.load(request.files["file"])
+
+	for amr_category in amr_config_file.demographics:
+		validator = MetaValidator.from_amr_demographic_category(amr_category)
+
+		meta_category = PerformanceMetaCategory(
+			recording_platform=recording_platform,
+			name=amr_category.title,
+			extractor={"source": "Log File", "key": amr_category.id},
+			validator=validator.to_dict(),
+		)
+
+		db.session.add(meta_category)
+
+	db.session.commit()
+
+	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})

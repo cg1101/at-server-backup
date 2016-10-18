@@ -7,9 +7,8 @@ from .. import InvalidUsage
 from app.api import api, caps, get_model
 from db import database as db
 from db.model import AudioCollection, Performance, PerformanceFlag, RecordingPlatform
-from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_import import ImportConfigAudioCollection, validate_import_data
-from lib.metadata_validation import MetaValidator
+
 
 log = logging.getLogger(__name__)
 
@@ -69,30 +68,6 @@ def import_audio_data(audio_collection):
 def get_audio_collection_recording_platforms(audio_collection):
 	recording_platforms = RecordingPlatform.query.filter_by(audio_collection_id=audio_collection.audio_collection_id).all()
 	return jsonify({"recordingPlatforms": RecordingPlatform.dump(recording_platforms)})
-
-
-# TODO move this to recording platforms, or something more general
-@bp.route("audiocollections/<int:audio_collection_id>/metadata/performances/upload", methods=["POST"])
-@api
-@caps()
-def upload_metadata_config_file(audio_collection_id):
-	
-	if not "configFile" in request.files:
-		raise InvalidUsage("No config file provided")
-
-	amr_config_file = AmrConfigFile.load(request.files["configFile"])
-
-	categories = []
-
-	for category in amr_config_file.demographics:
-		validator = MetaValidator.from_amr_demographic_category(category)
-		categories.append({
-			"name": category.title,
-			"extractor": {"key": category.id},
-			"validator": validator.to_dict(),
-		})
-
-	return jsonify(categories=categories)
 
 
 @bp.route("audiocollections/<int:audio_collection_id>/performanceflags", methods=["GET"])
