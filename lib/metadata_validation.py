@@ -65,7 +65,6 @@ class MetaValidator:
 			FloatValidator,
 			StringValidator,
 			EnumValidator,
-			RangeValidator,
 		]
 
 		# organise by type
@@ -97,7 +96,7 @@ class MetaValidator:
 		# select
 		elif demographic_category.TYPE == "select":
 			allowed_values = [MetaValue(id, value) for id, value in demographic_category.options]
-			return EnumValidator(allowed_values, "str")
+			return EnumValidator(allowed_values)
 
 		else:
 			raise ValueError("Unhandled demographic category type: {0}".format(demographic_category.TYPE))
@@ -167,31 +166,14 @@ class StringValidator(SimpleValidator):
 		return MetaValue(raw=value, display=value)
 
 
-class CastedValidatorMixin:
-	"""
-	Adds functionality for casting the 
-	value being validated.
-	Each subclass should set a 'cast'
-	attribute which is the name of
-	the cast function.
-	"""
-
-	def cast_value(self, value):
-		"""
-		Casts the value using the configured cast function.
-		"""
-		cast_func = eval(self.cast)
-		return cast_func(value)
-
-
-class EnumValidator(MetaValidator, CastedValidatorMixin):
+class EnumValidator(MetaValidator):
 	"""
 	Validates enumerated-type metadata
 	i.e. a finite list of allowed values
 	"""
 	VALIDATOR_TYPE = "enum"
 	
-	def __init__(self, allowed_values, cast):
+	def __init__(self, allowed_values):
 		"""
 		Expects a list of allowed MetaValue objects.
 		"""
@@ -200,110 +182,29 @@ class EnumValidator(MetaValidator, CastedValidatorMixin):
 		
 		# organise allowed values by key
 		self.allowed_values = dict([(meta_value.raw, meta_value) for meta_value in allowed_values])
-		self.cast = cast
 
 
 	@classmethod
 	def load(cls, json_dict):
-		allowed_values = [MetaValue.load(value) for value in json_dict["allowed"]]
-		cast = json_dict["cast"]
-		return cls(allowed_values, cast)
+		allowed_values = []
+		
+		for raw, display in json_dict["allowed"].items():
+			allowed_values.append(MetaValue(raw=raw, display=display))
+		
+		return cls(allowed_values)
 
 	def to_dict(self):
-		allowed_values = [meta_value.to_dict() for meta_value in self.allowed_values.values()]
 		return {
 			"type": self.VALIDATOR_TYPE,
-			"allowed": allowed_values,
-			"cast": self.cast,
+			"allowed": dict([(value.raw, value.display) for value in self.allowed_values.values()]),
 		}
 	
 	def __call__(self, value):
-		value = self.cast_value(value)
-		
 		if value not in self.allowed_values:
 			raise ValueError("Unknown meta value: %s" %value)
 		
 		return self.allowed_values[value]
 	
-
-class RangeValidator(MetaValidator, CastedValidatorMixin):
-	"""
-	Validates ranged metadata
-	i.e. a list of min/max bins
-	"""
-	VALIDATOR_TYPE = "range"
-	
-	class Range:
-		def __init__(self, minimum=None, maximum=None):
-			self.minimum = minimum
-			self.maximum = maximum
-			assert self.minimum is not None or self.maximum is not None
-
-		def is_within(self, value):
-			"""
-			Checks if the given value is
-			within the range.
-			"""
-			if self.minimum is not None and value < self.minimum:
-				return False
-
-			if self.maximum is not None and value > self.maximum:
-				return False
-
-			return True
-
-		@classmethod
-		def load(cls, json_dict):
-			return cls(
-				minimum=json_dict.get("minimum"),
-				maximum=json_dict.get("maximum")
-			)
-
-		def to_dict(self):
-			"""
-			Converts to a JSON serializable dict.
-			"""
-			d = {}
-
-			if self.minimum is not None:
-				d["minimum"] = self.minimum
-
-			if self.maximum is not None:
-				d["maximum"] = self.maximum
-
-			return d				
-
-	def __init__(self, ranges, cast):
-		"""
-		Expects a list of Range objects.
-		"""
-		if not ranges:
-			raise ValueError("No ranges given")
-
-		self.ranges = ranges
-		self.cast = cast
-
-	@classmethod
-	def load(cls, json_dict):
-		ranges = [cls.Range.load(range) for range in json_dict["ranges"]]
-		cast = json_dict["cast"]
-		return cls(ranges, cast)
-
-	def to_dict(self):
-		ranges = [range.to_dict() for range in self.ranges]
-		return {
-			"type": self.VALIDATOR_TYPE,
-			"cast": self.cast,
-			"ranges": ranges,
-		}
-	
-	def __call__(self, value):
-		value = self.cast_value(value)
-		for r in self.ranges:
-			if r.is_within(value):
-				return MetaValue(raw=value, display=value)
-		raise ValueError("Value %s is not within any range" %value)
-
 
 def process_received_metadata(received_value_dict, meta_categories):
 	"""
