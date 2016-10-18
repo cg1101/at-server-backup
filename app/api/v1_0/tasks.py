@@ -1371,28 +1371,33 @@ def get_task_work_queues(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	me = session['current_user']
-	candidates = m.SubTask.query.filter(m.SubTask.subTaskId.in_(
-		SS.query(m.TaskWorker.subTaskId
-			).filter_by(taskId=taskId
-			).filter_by(userId=me.userId
-			).filter(m.TaskWorker.removed==False))).all()
 	subTasks = []
-	for subTask in candidates:
-		if subTask.task.status != m.Task.STATUS_ACTIVE:
-			continue
-		if not [x for x in subTask.task.supervisors if x.receivesFeedback]:
-			continue
-		if not subTask.currentRate:
-			continue
-		if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
-				).filter(or_(m.Batch.userId.is_(None), m.Batch.userId==me.userId)
-				).filter(or_(m.Batch.onHold.is_(None), m.Batch.onHold==False)
-				).filter(or_(m.Batch.onHold.is_(None), m.Batch.notUserId!=me.userId)
-				).order_by(m.Batch.priority.desc()
-				).first():
-			continue
-		subTasks.append(subTask)
+	if task.status != m.Task.STATUS_ACTIVE:
+		# task status is not active
+		pass
+	elif not [x for x in task.supervisors if x.receivesFeedback]:
+		# no supervisors that receives feedback
+		pass
+	else:	
+		me = session['current_user']
+		candidates = m.SubTask.query.filter(m.SubTask.subTaskId.in_(
+			SS.query(m.TaskWorker.subTaskId
+				).filter_by(taskId=taskId
+				).filter_by(userId=me.userId
+				).filter(m.TaskWorker.removed==False))).all()
+		for subTask in candidates:
+			if not subTask.currentRate:
+				# pay rate not configured
+				continue
+			if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
+					).filter(or_(m.Batch.userId.is_(None), m.Batch.userId==me.userId)
+					).filter(or_(m.Batch.onHold.is_(None), m.Batch.onHold==False)
+					).filter(or_(m.Batch.notUserId.is_(None), m.Batch.notUserId!=me.userId)
+					).order_by(m.Batch.priority.desc()
+					).first():
+				# no batches left
+				continue
+			subTasks.append(subTask)
 	return jsonify(queues=m.SubTask.dump(subTasks))
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
