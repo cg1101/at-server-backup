@@ -28,6 +28,34 @@ def get_sub_task(subTaskId):
 	})
 
 
+def check_sub_task_existence(data, key, subTaskId):
+	if not m.SubTask.query.get(subTaskId):
+		raise ValueError, _('sub task {0} not found').format(subTaskId)
+
+
+def check_sub_task_type_in(data, key, subTaskId, *workTypes):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask or subTask.workType not in workTypes:
+		raise ValueError, _('sub task {0} must be of type {1}'
+			).format(subTaskId, ','.join(workTypes))
+
+
+def check_sub_task_attribute(data, key, subTaskId, **kwargs):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask:
+		raise ValueError, _('sub task {0} not found')
+	for key, value in kwargs.iteritems():
+		if getattr(subTask, key) != value:
+			raise ValueError, _('unexpected value of {0}, expecting {1}, got {2}'
+				).format(key, value, getattr(subTask, key))
+
+
+from .tasks import check_sub_task_name_uniqueness,\
+	check_work_type_existence,\
+	check_batching_mode_existence,\
+	check_lease_life_minimal_length,\
+	normalize_interval_as_seconds
+
 @bp.route(_name + '/<int:subTaskId>', methods=['PUT'])
 @api
 @caps()
@@ -36,8 +64,75 @@ def update_sub_task(subTaskId):
 	if not subTask:
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 
+	taskId = subTask.taskId
+
 	# TODO: implement this
 	data = MyForm(
+		Field('name', is_mandatory=True, validators=[
+			validators.non_blank,
+			(check_sub_task_name_uniqueness, (taskId, subTask.subTaskId)),
+		]),
+		Field('taskId', is_mandatory=True, default=taskId,
+				normalizer=lambda data, key, value: taskId),
+		Field('workTypeId', is_mandatory=True, validators=[
+			check_work_type_existence,
+		]),
+		Field('maxPageSize', default=20, validators=[
+			(validators.is_number, (), dict(min_value=1)),
+		]),
+		Field('dstDir', is_mandatory=True, default='ltr', validators=[
+			(validators.enum, ('ltr', 'rtl')),
+		]),
+		Field('modeId', is_mandatory=True, validators=[
+			check_batching_mode_existence,
+		]),
+		Field('getPolicy', is_mandatory=True, default='nolimit', validators=[
+			(validators.enum, ('nolimit', 'oneonly')),
+		]),
+		Field('expiryPolicy', is_mandatory=True, default='noextend', validators=[
+			(validators.enum, ('noextend',)),
+		]),
+		Field('allowPageSkip', is_mandatory=True, default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('needItemContext', is_mandatory=False, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('allowEditing', is_mandatory=True, default=True, validators=[
+			validators.is_bool,
+		]),
+		Field('allowAbandon', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('lookAhead', is_mandatory=True, default=0, validators=[
+			(validators.is_number, (), dict(min_value=0)),
+		]),
+		Field('lookBehind', is_mandatory=True, default=0, validators=[
+			(validators.is_number, (), dict(min_value=0)),
+		]),
+		Field('allowCheckout', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('isSecondPassQa', validators=[
+			validators.is_bool,
+		]),
+		Field('defaultLeaseLife', is_mandatory=True, default=7*24*60*60,
+			normalizer=normalize_interval_as_seconds, validators=[
+			(check_lease_life_minimal_length, (datetime.timedelta(seconds=300),)),
+		]),
+		Field('needDynamicTagSet', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('instructionPage'),
+		Field('useQaHistory', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('hideLabels', default=False, validators=[
+			validators.is_bool,
+		]),
+		Field('validators', validators=[
+			validators.is_string,
+		]),
 	).get_data()
 
 	for key in data.keys():
@@ -340,28 +435,6 @@ def get_sub_task_qa_settings(subTaskId):
 	return jsonify({
 		'qaConfig': m.QaConfig.dump(qaConfig),
 	})
-
-
-def check_sub_task_existence(data, key, subTaskId):
-	if not m.SubTask.query.get(subTaskId):
-		raise ValueError, _('sub task {0} not found').format(subTaskId)
-
-
-def check_sub_task_type_in(data, key, subTaskId, *workTypes):
-	subTask = m.SubTask.query.get(subTaskId)
-	if not subTask or subTask.workType not in workTypes:
-		raise ValueError, _('sub task {0} must be of type {1}'
-			).format(subTaskId, ','.join(workTypes))
-
-
-def check_sub_task_attribute(data, key, subTaskId, **kwargs):
-	subTask = m.SubTask.query.get(subTaskId)
-	if not subTask:
-		raise ValueError, _('sub task {0} not found')
-	for key, value in kwargs.iteritems():
-		if getattr(subTask, key) != value:
-			raise ValueError, _('unexpected value of {0}, expecting {1}, got {2}'
-				).format(key, value, getattr(subTask, key))
 
 
 @bp.route(_name + '/<int:subTaskId>/qasettings/', methods=['PUT'])
