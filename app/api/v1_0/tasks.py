@@ -760,7 +760,8 @@ def create_task_utterance_selection(taskId):
 	# TODO: run query, if no result found, notify user, otherwise save in cache
 	rs = Selector.select(selection)
 	if not rs:
-		raise InvalidUsage(_('no result found'))
+		# raise InvalidUsage(_('no result found'))
+		return jsonify(message=_('no result found'))
 
 	SS.add(selection)
 	SS.flush()
