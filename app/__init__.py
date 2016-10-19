@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import re
 
 import requests
@@ -23,6 +24,8 @@ def create_app(config_name):
 	config[config_name].init_app(app)
 	db.init_app(app)
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
+
+	logging.basicConfig(level=app.config["LOG_LEVEL"])
 
 	public_url_patterns = map(re.compile, [
 		'/static/',

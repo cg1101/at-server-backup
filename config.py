@@ -1,4 +1,5 @@
 
+import logging
 import os
 
 class Config:
@@ -30,6 +31,7 @@ class Config:
 			'SNS_AUTHENTICATE_REQUEST', '').strip())
 	USE_PDB_API = bool(os.environ.get(
 			'USE_PDB_API', '').strip())
+	LOG_LEVEL = logging.INFO
 
 	@staticmethod
 	def init_app(app):
@@ -37,6 +39,7 @@ class Config:
 
 class DevelopmentConfig(Config):
 	DEBUG = True
+	LOG_LEVEL = logging.DEBUG
 
 class TestingConfig(Config):
 	TESTING = True
