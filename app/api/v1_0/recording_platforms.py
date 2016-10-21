@@ -144,7 +144,7 @@ def create_performance_meta_category(recording_platform):
 				recording_platform.check_extractor,
 			]
 		),
-		Field('validator', is_mandatory=True,
+		Field('validatorSpec', is_mandatory=True,
 			validators=[
 				PerformanceMetaCategory.check_validator,
 			]
@@ -155,7 +155,7 @@ def create_performance_meta_category(recording_platform):
 		recording_platform=recording_platform,
 		name=data["name"],
 		extractor=data.get("extractor"),
-		validator=data["validator"],
+		validator_spec=data["validatorSpec"],
 	)
 	db.session.add(performance_meta_category)
 	db.session.commit()
@@ -184,7 +184,7 @@ def upload_performance_meta_categories(recording_platform):
 			recording_platform=recording_platform,
 			name=amr_category.title,
 			extractor={"source": "Log File", "key": amr_category.id},
-			validator=validator.to_dict(),
+			validator_spec=validator.to_dict(),
 		)
 
 		db.session.add(meta_category)

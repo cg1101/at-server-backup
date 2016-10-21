@@ -26,7 +26,7 @@ def update_performance_meta_category(performance_meta_category):
 				performance_meta_category.recording_platform.check_extractor
 			]
 		),
-		Field('validator', is_mandatory=True,
+		Field('validatorSpec', is_mandatory=True,
 			validators=[
 				PerformanceMetaCategory.check_validator
 			]
@@ -35,7 +35,7 @@ def update_performance_meta_category(performance_meta_category):
 
 	performance_meta_category.name = data["name"]
 	performance_meta_category.extractor = data.get("extractor")
-	performance_meta_category.validator = data["validator"]
+	performance_meta_category.validator_spec = data["validatorSpec"]
 	db.session.flush()
 
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})

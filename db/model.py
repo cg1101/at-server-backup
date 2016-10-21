@@ -14,7 +14,7 @@ import pytz
 from . import database, mode
 from .db import SS
 from lib import DurationField, utcnow
-from lib.metadata_validation import MetaValidator, process_received_metadata, resolve_new_metadata
+from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *
 
 log = logging.getLogger(__name__)
@@ -60,6 +60,13 @@ class MetaCategoryMixin(object):
 		An alias for the category ID.
 		"""
 		raise NotImplementedError
+
+	@property
+	def validator(self):
+		"""
+		The MetaValidator object for the stored spec.
+		"""
+		return MetaValidator.get_validator(self.validator_spec)
 
 	@staticmethod
 	def check_validator(data, key, value):
@@ -121,6 +128,11 @@ class MetaValueMixin(object):
 		An SQLAlchemy relationship to the meta category.
 		"""
 		raise NotImplementedError
+
+	@property
+	def display_value(self):
+		meta_value = MetaValue.load(self.value)
+		return self.meta_category.validator.get_display_value(meta_value)
 
 
 def set_schema(cls, schema_class, schema_key=None):
@@ -1644,11 +1656,12 @@ class SpeakerMetaCategory(Base):
 	# column synonyms
 	speaker_meta_category_id = synonym("speakerMetaCategoryId")
 	audio_collection_id = synonym("audioCollectionId")
+	validator_spec = synonym("validatorSpec")
 
 
 class SpeakerMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("speakerMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+		fields = ("speakerMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
 
 # SpeakerMetaValue
 class SpeakerMetaValue(Base):
@@ -1684,11 +1697,12 @@ class AlbumMetaCategory(Base):
 	# column synonyms
 	album_meta_category_id = synonym("albumMetaCategoryId")
 	audio_collection_id = synonym("audioCollectionId")
+	validator_spec = synonym("validatorSpec")
 
 
 class AlbumMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("albumMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+		fields = ("albumMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
 
 # AlbumMetaValue
 class AlbumMetaValue(Base):
@@ -1728,6 +1742,7 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 	# synonyms
 	performance_meta_category_id = synonym("performanceMetaCategoryId")
 	recording_platform_id = synonym("recordingPlatformId")
+	validator_spec = synonym("validatorSpec")
 
 	@property
 	def meta_category_id(self):
@@ -1761,7 +1776,7 @@ class PerformanceMetaCategory(Base, MetaCategoryMixin):
 
 class PerformanceMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("performanceMetaCategoryId", "name", "extractor", "validator")
+		fields = ("performanceMetaCategoryId", "name", "extractor", "validatorSpec")
 
 # PerformanceMetaValue
 class PerformanceMetaValue(Base, MetaValueMixin):
@@ -1778,8 +1793,11 @@ class PerformanceMetaValue(Base, MetaValueMixin):
 
 
 class PerformanceMetaValueSchema(Schema):
+	value = fields.Dict(dump_to="savedValue")
+	display_value = fields.String(dump_to="displayValue")
+	meta_category = fields.Nested("PerformanceMetaCategorySchema", dump_to="metaCategory")
 	class Meta:
-		fields = ("performanceMetaValueId", "performanceMetaCategoryId", "performanceId", "value")
+		additional = ("performanceMetaValueId", "performanceId")
 
 # Performance
 class Performance(Base, ImportMixin, MetaEntityMixin):
@@ -1852,11 +1870,12 @@ class RecordingMetaCategory(Base):
 	# column synonyms
 	recording_meta_category_id = synonym("recordingMetaCategoryId")
 	audio_collection_id = synonym("audioCollectionId")
+	validator_spec = synonym("validatorSpec")
 
 
 class RecordingMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("recordingMetaCategoryId", "audioCollectionId", "name", "key", "validator")
+		fields = ("recordingMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
 
 # RecordingMetaValue
 class RecordingMetaValue(Base):

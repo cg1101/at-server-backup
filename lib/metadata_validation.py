@@ -1,22 +1,12 @@
-class MetaValueMixin:
-	
-	def to_dict(self):
-		"""
-		Converts to a JSON serializable dict.
-		"""
-		raise NotImplementedError
-
-
-class MetaValue(MetaValueMixin):
+class MetaValue(object):
 	"""
-	The value of a metadata category for
-	some entity. Contains the raw value
-	and the display value.
+	Saved format of a metadata value.
+	Used to save to the database as JSON.
 	"""
 
-	def __init__(self, raw=None, display=None):
-		self.raw = raw
-		self.display = display
+	def __init__(self, value, invalid=False):
+		self.value = value
+		self.invalid = invalid
 
 	@classmethod
 	def load(cls, json_dict):
@@ -26,29 +16,15 @@ class MetaValue(MetaValueMixin):
 		return cls(**json_dict)
 
 	def to_dict(self):
-		return {
-			"raw" : self.raw,
-			"display" : self.display
-		}
+		d = {"value": self.value}
+		
+		if self.invalid:
+			d.update({"invalid": self.invalid})
+		
+		return d
 
 
-class InvalidMetaValue(MetaValueMixin):
-	"""
-	A submitted meta value that is
-	considered invalid by the validator.
-	"""
-
-	def __init__(self, value):
-		self.value = value
-
-	def to_dict(self):
-		return {
-			"raw" : self.value,
-			"invalid" : True
-		}
-
-
-class MetaValidator:
+class MetaValidator(object):
 	"""
 	Validates raw metadata values.
 	"""
@@ -95,8 +71,8 @@ class MetaValidator:
 
 		# select
 		elif demographic_category.TYPE == "select":
-			allowed_values = [MetaValue(id, value) for id, value in demographic_category.options]
-			return EnumValidator(allowed_values)
+			allowed_values = dict(demographic_category.options)
+			return EnumValidator(**allowed_values)
 
 		else:
 			raise ValueError("Unhandled demographic category type: {0}".format(demographic_category.TYPE))
@@ -108,6 +84,24 @@ class MetaValidator:
 	def to_dict(self):
 		"""
 		Converts to a JSON serializable dict.
+		"""
+		raise NotImplementedError
+
+	def get_display_value(self, meta_value):
+		"""
+		Wrapper around get_valid_display_value
+		that returns None for invalid MetaValue
+		objects.
+		"""
+		if meta_value.invalid:
+			return None
+
+		return self.get_valid_display_value(meta_value)
+	
+	def get_valid_display_value(self, meta_value):
+		"""
+		Returns the display value for a valid
+		MetaValue object.
 		"""
 		raise NotImplementedError
 
@@ -131,6 +125,9 @@ class SimpleValidator(MetaValidator):
 		Converts to a JSON serializable dict.
 		"""
 		return {"type": self.VALIDATOR_TYPE}
+	
+	def get_valid_display_value(self, meta_data_value):
+		return meta_data_value.value
 
 
 class IntValidator(SimpleValidator):
@@ -140,8 +137,7 @@ class IntValidator(SimpleValidator):
 	VALIDATOR_TYPE = "int"
 
 	def __call__(self, value):
-		value = int(value)
-		return MetaValue(raw=value, display=value)
+		return MetaValue(int(value))
 
 
 class FloatValidator(SimpleValidator):
@@ -151,8 +147,7 @@ class FloatValidator(SimpleValidator):
 	VALIDATOR_TYPE = "float"
 	
 	def __call__(self, value):
-		value = float(value)
-		return MetaValue(raw=value, display=value)
+		return MetaValue(float(value))
 
 
 class StringValidator(SimpleValidator):
@@ -162,8 +157,7 @@ class StringValidator(SimpleValidator):
 	VALIDATOR_TYPE = "string"
 	
 	def __call__(self, value):
-		value = str(value)
-		return MetaValue(raw=value, display=value)
+		return MetaValue(str(value))
 
 
 class EnumValidator(MetaValidator):
@@ -173,37 +167,35 @@ class EnumValidator(MetaValidator):
 	"""
 	VALIDATOR_TYPE = "enum"
 	
-	def __init__(self, allowed_values):
+	def __init__(self, **allowed_values):
 		"""
-		Expects a list of allowed MetaValue objects.
+		Expects a dictionary of allowed values.
 		"""
 		if not allowed_values:
 			raise ValueError("No allowed values given")
 		
 		# organise allowed values by key
-		self.allowed_values = dict([(meta_value.raw, meta_value) for meta_value in allowed_values])
+		self.allowed_values = allowed_values
 
 
 	@classmethod
 	def load(cls, json_dict):
-		allowed_values = []
-		
-		for raw, display in json_dict["allowed"].items():
-			allowed_values.append(MetaValue(raw=raw, display=display))
-		
-		return cls(allowed_values)
+		return cls(**json_dict["allowed"])
 
 	def to_dict(self):
 		return {
 			"type": self.VALIDATOR_TYPE,
-			"allowed": dict([(value.raw, value.display) for value in self.allowed_values.values()]),
+			"allowed": self.allowed_values,
 		}
+
+	def get_valid_display_value(self, meta_value):
+		return self.allowed_values[meta_value.value]
 	
 	def __call__(self, value):
 		if value not in self.allowed_values:
 			raise ValueError("Unknown meta value: %s" %value)
 		
-		return self.allowed_values[value]
+		return MetaValue(value)
 	
 
 def process_received_metadata(received_value_dict, meta_categories):
@@ -231,7 +223,7 @@ def process_received_metadata(received_value_dict, meta_categories):
 			try:
 				meta_value = validator(received_value)
 			except ValueError:
-				meta_value = InvalidMetaValue(received_value)
+				meta_value = MetaValue(received_value, invalid=True)
 			
 			meta_values.append((meta_category, meta_value.to_dict()))
 
