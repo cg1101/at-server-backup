@@ -6,12 +6,20 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, Track
+from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
 from lib.metadata_validation import MetaValidator
 
 log = logging.getLogger(__name__)
+
+
+@bp.route("recordingplatformtypes", methods=["GET"])
+@api
+@caps()
+def get_recording_platform_types():
+	recording_platform_types = RecordingPlatformType.query.all()
+	return jsonify({"recordingPlatformTypes": RecordingPlatformType.dump(recording_platform_types)})
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>", methods=["GET"])

@@ -12,6 +12,7 @@ def handle_invalid_usage(error):
 	return response
 
 import audio_collections
+import audio_importers
 import batches
 import corpus_codes
 import errorclasses

@@ -1431,7 +1431,7 @@ class Language(Base):
 ##########################################################################
 
 # RecordingPlatformType
-class RecordingPlatformType(Base):
+class RecordingPlatformType(Base, ModelMixin):
 	__table__ = t_recording_platform_types
 
 	# constants
@@ -1443,7 +1443,7 @@ class RecordingPlatformType(Base):
 	recording_platform_id = synonym("recordingPlatformId")
 
 
-class RecordingPlatformTypeSerialiser(Schema):
+class RecordingPlatformTypeSchema(Schema):
 	class Meta:
 		fields = ("recordingPlatformTypeId", "name")
 
@@ -1455,9 +1455,11 @@ class RecordingPlatform(Base, ModelMixin):
 	# relationships
 	audio_collection = relationship("AudioCollection", backref="recording_platforms")
 	audio_importer = relationship("AudioImporter")
+	recording_platform_type = relationship("RecordingPlatformType")
 
 	# synonyms
 	recording_platform_id = synonym("recordingPlatformId")
+	recording_platform_type_id = synonym("recordingPlatformTypeId")
 	audio_collection_id = synonym("audioCollectionId")
 	audio_importer_id = synonym("audioImporterId")
 	recording_platform_id = synonym("recordingPlatformId")
@@ -1502,10 +1504,11 @@ class RecordingPlatform(Base, ModelMixin):
 
 
 class RecordingPlatformSchema(Schema):
-	audioImporter = fields.Nested("AudioImporterSchema", attribute="audio_importer")
+	audio_importer = fields.Nested("AudioImporterSchema", dump_to="audioImporter")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
+	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	class Meta:
-		additional = ("recordingPlatformId", "storageLocation", "index", "name", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
+		additional = ("recordingPlatformId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
 # AudioCollectionStatusLog
 class AudioCollectionStatusLog(Base):
@@ -1628,7 +1631,7 @@ class AudioFileSchema(Schema):
 		additional = ("audioFileId", "recordingId", "filePath", "audioSpec", "audioDataLocation", "stats")
 
 # AudioImporter
-class AudioImporter(Base):
+class AudioImporter(Base, ModelMixin):
 	__table__ = t_audio_importers
 
 	# constants

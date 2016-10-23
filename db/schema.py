@@ -1297,8 +1297,6 @@ t_recording_platforms = Table("recording_platforms", metadata,
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_type_id", INTEGER, nullable=False, key="recordingPlatformTypeId", doc=""),
 	Column("storage_location", TEXT, key="storageLocation", doc=""),
-	Column("index", INTEGER, nullable=False, key="index", doc=""),
-	Column("name", TEXT, nullable=False, key="name", doc=""),
 	Column("audio_importer_id", INTEGER, key="audioImporterId", doc=""),
 	Column("default_audio_spec", JSONB, key="defaultAudioSpec", doc=""),
 	Column("master_script_file", JSONB, key="masterScriptFile", doc=""),
@@ -1308,9 +1306,6 @@ t_recording_platforms = Table("recording_platforms", metadata,
 	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformTypeId"], ["recording_platform_types.recordingPlatformTypeId"]),
 	ForeignKeyConstraint(["audioImporterId"], ["audio_importers.audioImporterId"]),
-	UniqueConstraint("audioCollectionId", "index"),
-	UniqueConstraint("audioCollectionId", "name"),
-	CheckConstraint('"index" >= 0'),
 )
 Index("recording_platforms_by_audio_collection_id", t_recording_platforms.c.audioCollectionId, unique=False)
 

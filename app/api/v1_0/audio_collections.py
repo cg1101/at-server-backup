@@ -3,10 +3,9 @@ import logging
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from .. import InvalidUsage
-from app.api import api, caps, get_model
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import AudioCollection, Performance, PerformanceFlag, RecordingPlatform
+from db.model import AudioCollection, AudioImporter, Performance, PerformanceFlag, RecordingPlatform, RecordingPlatformType
 from lib.audio_import import ImportConfigAudioCollection, validate_import_data
 
 
@@ -68,6 +67,37 @@ def import_audio_data(audio_collection):
 def get_audio_collection_recording_platforms(audio_collection):
 	recording_platforms = RecordingPlatform.query.filter_by(audio_collection_id=audio_collection.audio_collection_id).all()
 	return jsonify({"recordingPlatforms": RecordingPlatform.dump(recording_platforms)})
+
+
+@bp.route("audiocollections/<int:audio_collection_id>/recordingplatforms", methods=["POST"])
+@api
+@caps()
+@get_model(AudioCollection)
+def create_recording_platform(audio_collection):
+	data = MyForm(
+		Field('recordingPlatformTypeId', is_mandatory=True,
+			validators=[
+				RecordingPlatformType.check_exists
+		]),
+		Field('audioImporterId',
+			validators=[
+				AudioImporter.check_exists
+		]),
+		Field('storageLocation', validators=[
+			validators.is_string,
+		]),
+	).get_data()
+
+	recording_platform = RecordingPlatform(
+		audio_collection=audio_collection,
+		recording_platform_type_id=data["recordingPlatformTypeId"],
+		audio_importer_id=data.get("audioImporterId"),
+		storage_location=data.get("storageLocation")
+	)
+	db.session.add(recording_platform)
+	db.session.commit()
+
+	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
 @bp.route("audiocollections/<int:audio_collection_id>/performanceflags", methods=["GET"])
