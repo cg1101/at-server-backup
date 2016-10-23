@@ -1152,6 +1152,7 @@ t_corpus_codes = Table("corpus_codes", metadata,
 	Column("corpus_code_id", INTEGER, primary_key=True, key="corpusCodeId", doc=""),
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("scripted_corpus_code_group_id", INTEGER, key="scriptedCorpusCodeGroupId", doc=""),
 	Column("code", TEXT, nullable=False, key="code", doc=""),
 	Column("is_scripted", BOOLEAN, nullable=False, default=False, key="isScripted", doc=""),
 	Column("included", BOOLEAN, key="included", doc=""),
@@ -1159,8 +1160,10 @@ t_corpus_codes = Table("corpus_codes", metadata,
 	UniqueConstraint("audioCollectionId", "code"),
 	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	ForeignKeyConstraint(["scriptedCorpusCodeGroupId"], ["scripted_corpus_code_groups.scriptedCorpusCodeGroupId"]),
 )
 Index("corpus_codes_by_audio_collection_id", t_corpus_codes.c.audioCollectionId, unique=False)
+Index("corpus_codes_by_scripted_corpus_code_group_id", t_corpus_codes.c.scriptedCorpusCodeGroupId, unique=False)
 
 
 t_tracks = Table("tracks", metadata,
@@ -1470,6 +1473,17 @@ t_audio_collection_performance_flags = Table("audio_collection_performance_flags
 	CheckConstraint("severity IN ('Info', 'Warning', 'Severe')")
 )
 Index("audio_collection_performance_flags_by_audio_collection_id", t_audio_collection_performance_flags.c.audioCollectionId, unique=False)
+
+
+t_scripted_corpus_code_groups = Table("scripted_corpus_code_groups", metadata,
+	Column("scripted_corpus_code_group_id", INTEGER, primary_key=True, key="scriptedCorpusCodeGroupId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("name", TEXT, nullable=False, key="name", doc=""),
+	Column("selection_size", INTEGER, nullable=False, key="selectionSize", doc=""),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	CheckConstraint('selection_size > 0'),
+)
+Index("scripted_corpus_code_groups_by_recording_platform_id", t_scripted_corpus_code_groups.c.recordingPlatformId, unique=False)
 
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,

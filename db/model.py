@@ -1946,6 +1946,7 @@ class CorpusCode(Base):
 
 	# relationships
 	recording_platform = relationship("RecordingPlatform", backref="corpus_codes")
+	scripted_group = relationship("ScriptedCorpusCodeGroup", backref="corpus_codes")
 
 	# synonyms
 	corpus_code_id = synonym("corpusCodeId")
@@ -2030,6 +2031,23 @@ class PerformanceFlag(Base):
 class PerformanceFlagSchema(Schema):
 	class Meta:
 		fields = ("performanceFlagId", "name", "severity", "enabled")
+
+
+class ScriptedCorpusCodeGroup(Base):
+	__table__ = t_scripted_corpus_code_groups
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="scripted_corpus_code_groups")
+
+	# synonyms
+	scripted_corpus_code_group_id = synonym("scriptedCorpusCodeGroupId")
+	recording_platform_id = synonym("recordingPlatformId")
+	selection_size = synonym("selectionSize")
+
+
+class ScriptedCorpusCodeGroupSchema(Schema):
+	class Meta:
+		fields = ("scriptedCorpusCodeGroupId", "recordingPlatformId", "name", "selectionSize")
 
 
 #
