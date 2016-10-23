@@ -78,9 +78,9 @@ def check_tag_extract_end_required(data, key, extractEnd):
 			raise ValueError, _('must be specified for {0} tag').format(tagType)
 
 
-def check_tag_image_required(data, key, previewId):
+def check_tag_image_required(data, key, previewId, isUpdating):
 	tagType = data.get('tagType')
-	if tagType in (m.Tag.EVENT,):
+	if tagType in (m.Tag.EVENT,) and not isUpdating:
 		if previewId is None:
 			raise ValueError, _('must be specified for {0} tag').format(tagType)
 
@@ -185,7 +185,7 @@ def create_tag(tagSetId):
 			(check_tag_color_uniqueness, (tagSetId, None)),
 		]),
 		Field('previewId', is_mandatory=True, default=lambda: None, validators=[
-			check_tag_image_required,
+			(check_tag_image_required, (False,)),
 			check_tag_image_existence,
 		]),
 		Field('image', is_mandatory=True, default=lambda: None,
@@ -267,16 +267,17 @@ def update_tag(tagSetId, tagId):
 			(check_tag_color_uniqueness, (tagSetId, tagId)),
 		]),
 		Field('previewId', default=lambda: None, validators=[
-			check_tag_image_required,
+			(check_tag_image_required, (True,)),
 			check_tag_image_existence,
 		]),
 		Field('image', default=lambda: None,
 			normalizer=load_tag_preview_image
 		),
 	).get_data()
+	if data['previewId'] is None:
+		del data['image']
 	del data['previewId']
 
-	tag = m.Tag(**data)
 	for key in data.keys():
 		value = data[key]
 		if getattr(tag, key) != value:
