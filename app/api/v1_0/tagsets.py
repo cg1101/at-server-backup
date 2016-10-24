@@ -1,5 +1,6 @@
 
 from flask import request, session, jsonify
+import sqlalchemy.orm
 
 import db.model as m
 from db.db import SS
@@ -78,9 +79,9 @@ def check_tag_extract_end_required(data, key, extractEnd):
 			raise ValueError, _('must be specified for {0} tag').format(tagType)
 
 
-def check_tag_image_required(data, key, previewId):
+def check_tag_image_required(data, key, previewId, isUpdating):
 	tagType = data.get('tagType')
-	if tagType in (m.Tag.EVENT,):
+	if tagType in (m.Tag.EVENT,) and not isUpdating:
 		if previewId is None:
 			raise ValueError, _('must be specified for {0} tag').format(tagType)
 
@@ -185,7 +186,7 @@ def create_tag(tagSetId):
 			(check_tag_color_uniqueness, (tagSetId, None)),
 		]),
 		Field('previewId', is_mandatory=True, default=lambda: None, validators=[
-			check_tag_image_required,
+			(check_tag_image_required, (False,)),
 			check_tag_image_existence,
 		]),
 		Field('image', is_mandatory=True, default=lambda: None,
@@ -197,9 +198,12 @@ def create_tag(tagSetId):
 	tag = m.Tag(**data)
 	SS.add(tag)
 	SS.flush()
+	SS.commit()
+	dbs = sqlalchemy.orm.sessionmaker(bind=SS.bind)()
+	tag = dbs.query(m.Tag).get(tag.tagId)
 	return jsonify({
 		'message': _('created tag {0} successfully').format(tag.name),
-		'tag': m.Tag.dump(tag),
+		'tag': tag.dump(tag),
 	})
 
 
@@ -267,16 +271,17 @@ def update_tag(tagSetId, tagId):
 			(check_tag_color_uniqueness, (tagSetId, tagId)),
 		]),
 		Field('previewId', default=lambda: None, validators=[
-			check_tag_image_required,
+			(check_tag_image_required, (True,)),
 			check_tag_image_existence,
 		]),
 		Field('image', default=lambda: None,
 			normalizer=load_tag_preview_image
 		),
 	).get_data()
+	if data['previewId'] is None:
+		del data['image']
 	del data['previewId']
 
-	tag = m.Tag(**data)
 	for key in data.keys():
 		value = data[key]
 		if getattr(tag, key) != value:
@@ -287,6 +292,6 @@ def update_tag(tagSetId, tagId):
 	return jsonify({
 		'message': _('updated tag {0} successfully').format(tagId),
 		'updatedFields': data.keys(),
-		'tag': m.Tag.dump(tag),
+		'tag': tag.dump(tag),
 	})
 
