@@ -598,7 +598,11 @@ def get_task_raw_pieces(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	rawPieces = m.RawPiece.query.filter_by(taskId=taskId).all()
+	q = m.RawPiece.query.filter_by(taskId=taskId)
+	loadId = request.args.get('loadId')
+	if loadId != None:
+		q = q.filter_by(loadId=loadId)
+	rawPieces = q.all()
 	return jsonify({
 		'rawPieces': m.RawPiece.dump(rawPieces),
 	})
