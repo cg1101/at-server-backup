@@ -1,5 +1,6 @@
 
 from flask import request, session, jsonify
+import sqlalchemy.orm
 
 import db.model as m
 from db.db import SS
@@ -197,9 +198,12 @@ def create_tag(tagSetId):
 	tag = m.Tag(**data)
 	SS.add(tag)
 	SS.flush()
+	SS.commit()
+	dbs = sqlalchemy.orm.sessionmaker(bind=SS.bind)()
+	tag = dbs.query(m.Tag).get(tag.tagId)
 	return jsonify({
 		'message': _('created tag {0} successfully').format(tag.name),
-		'tag': m.Tag.dump(tag),
+		'tag': tag.dump(tag),
 	})
 
 
@@ -288,6 +292,6 @@ def update_tag(tagSetId, tagId):
 	return jsonify({
 		'message': _('updated tag {0} successfully').format(tagId),
 		'updatedFields': data.keys(),
-		'tag': m.Tag.dump(tag),
+		'tag': tag.dump(tag),
 	})
 
