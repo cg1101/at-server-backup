@@ -33,6 +33,16 @@ class ModelMixin(object):
 		if not cls.query.get(value):
 			raise ValueError("{0} {1} does not exist".format(key, value))
 
+	@classmethod
+	def check_all_exists(cls, data, key, value):
+		"""
+		MyForm validator to check that all models
+		in a list exist. Each item in value is assumed
+		to be a primary key.
+		"""
+		for pk in value:
+			cls.check_exists(data, key, pk)
+
 
 class ImportMixin(object):
 	"""
@@ -1941,25 +1951,28 @@ class RecordingSchema(Schema):
 		additional = ("recordingId", "audioCollectionId", "performanceId", "prompt", "hypothesis")
 
 # CorpusCode
-class CorpusCode(Base):
+class CorpusCode(Base, ModelMixin):
 	__table__ = t_corpus_codes
 
 	# relationships
 	recording_platform = relationship("RecordingPlatform", backref="corpus_codes")
+	scripted_group = relationship("ScriptedCorpusCodeGroup", backref="corpus_codes")
 
 	# synonyms
 	corpus_code_id = synonym("corpusCodeId")
 	audio_collection_id = synonym("audioCollectionId")
 	recording_platform_id = synonym("recordingPlatformId")
 	is_scripted = synonym("isScripted")
-	corpus_code_group_id = synonym("corpusCodeGroupId")
+	scripted_corpus_code_group_id = synonym("scriptedCorpusCodeGroupId")
+
 
 class CorpusCodeSchema(Schema):
 	included = fields.Boolean()
 	regex = fields.String()
 	type = fields.Function(lambda obj: "Scripted" if obj.is_scripted else "Spontaneous")
 	class Meta:
-		additional = ("corpusCodeId", "code", "isScripted")
+		additional = ("corpusCodeId", "code", "isScripted", "scriptedCorpusCodeGroupId")
+
 
 # Track
 class Track(Base):
@@ -2030,6 +2043,63 @@ class PerformanceFlag(Base):
 class PerformanceFlagSchema(Schema):
 	class Meta:
 		fields = ("performanceFlagId", "name", "severity", "enabled")
+
+
+class ScriptedCorpusCodeGroup(Base):
+	__table__ = t_scripted_corpus_code_groups
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="scripted_corpus_code_groups")
+
+	# synonyms
+	scripted_corpus_code_group_id = synonym("scriptedCorpusCodeGroupId")
+	recording_platform_id = synonym("recordingPlatformId")
+	selection_size = synonym("selectionSize")
+
+	@classmethod
+	def check_name_unique(cls, data, key, value, recording_platform):
+		"""
+		MyForm validator for checking that a new
+		group name is unique for the recording platform.
+		"""
+		if cls.query.filter_by(recording_platform=recording_platform, name=value).count():
+			raise ValueError("{0} is already used".format(value))
+
+	def check_other_name_unique(self, data, key, value):
+		"""
+		MyForm validator for checking that an
+		existing group name is unique for the 
+		recording platform.
+		"""
+		query = self.query.filter(
+			self.__class__.recording_platform_id==self.recording_platform_id,
+			self.__class__.name==value,
+			self.__class__.scripted_corpus_code_group_id!=self.scripted_corpus_code_group_id,
+		)
+
+		if query.count():
+			raise ValueError("{0} is used by another performance meta category".format(value))
+
+	def assign_corpus_codes(self, corpus_code_ids):
+		"""
+		Assigns the given corpus codes to this group.
+		"""
+	
+		# unassign existing corpus codes
+		assigned = CorpusCode.query.filter_by(scripted_corpus_code_group_id=self.scripted_corpus_code_group_id).all()
+		for corpus_code in assigned:
+			corpus_code.scripted_corpus_code_group_id = None
+
+		# assign new corpus codes
+		for corpus_code_id in corpus_code_ids:
+			corpus_code = CorpusCode.query.get(corpus_code_id)
+			corpus_code.scripted_corpus_code_group_id = self.scripted_corpus_code_group_id
+
+
+class ScriptedCorpusCodeGroupSchema(Schema):
+	corpus_codes = fields.Nested("CorpusCodeSchema", many=True, dump_to="corpusCodes")
+	class Meta:
+		additional = ("scriptedCorpusCodeGroupId", "recordingPlatformId", "name", "selectionSize")
 
 
 #

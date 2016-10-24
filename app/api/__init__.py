@@ -179,6 +179,12 @@ class validators:
 			if not isinstance(value, FileStorage):
 				raise ValueError, _('value must be of type FileStorage')
 
+	@classmethod
+	def is_list(cls, data, key, value):
+		if value is not None:
+			if not isinstance(value, list):
+				raise ValueError("value must be a list")
+
 
 class Field(object):
 	def __init__(self, name, is_mandatory=False, default=None,
