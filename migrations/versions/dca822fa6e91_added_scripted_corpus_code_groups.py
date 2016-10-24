@@ -17,7 +17,6 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 def upgrade():
-
     op.create_table('scripted_corpus_code_groups',
     sa.Column('scripted_corpus_code_group_id', sa.INTEGER(), nullable=False),
     sa.Column('recording_platform_id', sa.INTEGER(), nullable=False),

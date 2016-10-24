@@ -6,7 +6,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
+from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, ScriptedCorpusCodeGroup, Track
 from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
 from lib.metadata_validation import MetaValidator
@@ -25,26 +25,16 @@ def get_recording_platform_types():
 @bp.route("recordingplatforms/<int:recording_platform_id>", methods=["GET"])
 @api
 @caps()
-def get_recording_platform(recording_platform_id):
-	
-	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
-	if not recording_platform:
-		raise InvalidUsage("recording platform {0} not found".format(recording_platform_id), 404)
-	
+@get_model(RecordingPlatform)
+def get_recording_platform(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/tracks", methods=["GET"])
 @api
 @caps()
-def get_recording_platform_tracks(recording_platform_id):
-	
-	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
-	if not recording_platform:
-		raise InvalidUsage("recording platform {0} not found".format(recording_platform_id), 404)
-	
+@get_model(RecordingPlatform)
+def get_recording_platform_tracks(recording_platform):
 	tracks = Track.query.filter_by(recording_platform_id=recording_platform_id).all()
 	return jsonify(tracks=Track.dump(tracks))
 
@@ -52,13 +42,8 @@ def get_recording_platform_tracks(recording_platform_id):
 @bp.route("recordingplatforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
 @api
 @caps()
-def update_audio_cutup_config(recording_platform_id):
-	
-	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
-	if not recording_platform:
-		raise InvalidUsage("recording platform {0} not found".format(recording_platform_id), 404)
-	
+@get_model(RecordingPlatform)
+def update_audio_cutup_config(recording_platform):
 	audio_cutup_config = request.json
 	validate_audio_cutup_config(audio_cutup_config)
 	recording_platform.audio_cutup_config = audio_cutup_config
@@ -68,14 +53,26 @@ def update_audio_cutup_config(recording_platform_id):
 @bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes", methods=["GET"])
 @api
 @caps()
-def get_recording_platform_corpus_codes(recording_platform_id):
-	
-	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
-	if not recording_platform:
-		raise InvalidUsage("recording platform {0} not found".format(recording_platform_id), 404)
-	
-	corpus_codes = CorpusCode.query.filter_by(recording_platform_id=recording_platform_id).all()
+@get_model(RecordingPlatform)
+def get_recording_platform_corpus_codes(recording_platform):
+	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/scripted", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_scripted_recording_platform_corpus_codes(recording_platform):
+	corpus_codes = [corpus_code for corpus_code in recording_platform.corpus_codes if corpus_code.is_scripted]
+	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/spontaneous", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_spontaneous_recording_platform_corpus_codes(recording_platform):
+	corpus_codes = [corpus_code for corpus_code in recording_platform.corpus_codes if not corpus_code.is_scripted]
 	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
 
 
@@ -126,6 +123,54 @@ def upload_recording_platform_corpus_codes(recording_platform):
 	db.session.flush()
 	db.session.commit()
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/scriptedcorpuscodegroups", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_recording_platform_scripted_corpus_code_groups(recording_platform):
+	return jsonify({"scriptedCorpusCodeGroups": ScriptedCorpusCodeGroup.dump(recording_platform.scripted_corpus_code_groups)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/scriptedcorpuscodegroups", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def create_scripted_corpus_code_group(recording_platform):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				(ScriptedCorpusCodeGroup.check_name_unique, (recording_platform,)),
+		]),
+		Field('selectionSize', is_mandatory=True,
+			validators=[
+				(validators.is_number, (), dict(min_value=1)),
+			]
+		),
+		Field('corpusCodes', is_mandatory=True,
+			validators=[
+				validators.is_list,
+				CorpusCode.check_all_exists,
+			]
+		),
+	).get_data()
+
+	# create group
+	scripted_corpus_code_group = ScriptedCorpusCodeGroup(
+		recording_platform=recording_platform,
+		name=data["name"],
+		selection_size=data["selectionSize"],
+	)
+	db.session.add(scripted_corpus_code_group)
+	db.session.flush()
+
+	# assign corpus codes
+	scripted_corpus_code_group.assign_corpus_codes(data["corpusCodes"])
+	db.session.commit()
+	
+	return jsonify({"scriptedCorpusCodeGroup": ScriptedCorpusCodeGroup.dump(scripted_corpus_code_group)})
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["GET"])

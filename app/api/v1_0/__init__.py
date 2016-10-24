@@ -28,6 +28,7 @@ import projects
 import rates
 import recordings
 import recording_platforms
+import scripted_corpus_code_groups
 import sheets
 import subtasks
 import tagsets
