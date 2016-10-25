@@ -1497,6 +1497,14 @@ class RecordingPlatform(Base, ModelMixin):
 
 		return []
 
+	@property
+	def spontaneous_corpus_codes(self):
+		return [corpus_code for corpus_code in self.corpus_codes if not corpus_code.is_scripted]
+
+	@property
+	def scripted_corpus_codes(self):
+		return [corpus_code for corpus_code in self.corpus_codes if corpus_code.is_scripted]
+	
 	def check_extractor(self, data, key, value):
 		"""
 		MyForm validator for checking that the metadata extractor
