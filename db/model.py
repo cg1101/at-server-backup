@@ -1964,14 +1964,14 @@ class CorpusCode(Base, ModelMixin):
 
 	# relationships
 	recording_platform = relationship("RecordingPlatform", backref="corpus_codes")
-	scripted_group = relationship("ScriptedCorpusCodeGroup", backref="corpus_codes")
+	audio_checking_group = relationship("AudioCheckingGroup", backref="corpus_codes")
 
 	# synonyms
 	corpus_code_id = synonym("corpusCodeId")
 	audio_collection_id = synonym("audioCollectionId")
 	recording_platform_id = synonym("recordingPlatformId")
 	is_scripted = synonym("isScripted")
-	scripted_corpus_code_group_id = synonym("scriptedCorpusCodeGroupId")
+	audio_checking_group_id = synonym("audioCheckingGroupId")
 
 
 class CorpusCodeSchema(Schema):
@@ -1979,7 +1979,7 @@ class CorpusCodeSchema(Schema):
 	regex = fields.String()
 	type = fields.Function(lambda obj: "Scripted" if obj.is_scripted else "Spontaneous")
 	class Meta:
-		additional = ("corpusCodeId", "code", "isScripted", "scriptedCorpusCodeGroupId")
+		additional = ("corpusCodeId", "code", "isScripted", "audioCheckingGroupId")
 
 
 # Track
@@ -2053,14 +2053,14 @@ class PerformanceFlagSchema(Schema):
 		fields = ("performanceFlagId", "name", "severity", "enabled")
 
 
-class ScriptedCorpusCodeGroup(Base):
-	__table__ = t_scripted_corpus_code_groups
+class AudioCheckingGroup(Base):
+	__table__ = t_audio_checking_groups
 
 	# relationships
-	recording_platform = relationship("RecordingPlatform", backref="scripted_corpus_code_groups")
+	recording_platform = relationship("RecordingPlatform", backref="audio_checking_groups")
 
 	# synonyms
-	scripted_corpus_code_group_id = synonym("scriptedCorpusCodeGroupId")
+	audio_checking_group_id = synonym("audioCheckingGroupId")
 	recording_platform_id = synonym("recordingPlatformId")
 	selection_size = synonym("selectionSize")
 
@@ -2082,11 +2082,11 @@ class ScriptedCorpusCodeGroup(Base):
 		query = self.query.filter(
 			self.__class__.recording_platform_id==self.recording_platform_id,
 			self.__class__.name==value,
-			self.__class__.scripted_corpus_code_group_id!=self.scripted_corpus_code_group_id,
+			self.__class__.audio_checking_group_id!=self.audio_checking_group_id,
 		)
 
 		if query.count():
-			raise ValueError("{0} is used by another performance meta category".format(value))
+			raise ValueError("{0} is used by another group".format(value))
 
 	def assign_corpus_codes(self, corpus_code_ids):
 		"""
@@ -2094,20 +2094,20 @@ class ScriptedCorpusCodeGroup(Base):
 		"""
 	
 		# unassign existing corpus codes
-		assigned = CorpusCode.query.filter_by(scripted_corpus_code_group_id=self.scripted_corpus_code_group_id).all()
+		assigned = CorpusCode.query.filter_by(audio_checking_group_id=self.audio_checking_group_id).all()
 		for corpus_code in assigned:
-			corpus_code.scripted_corpus_code_group_id = None
+			corpus_code.audio_checking_group_id = None
 
 		# assign new corpus codes
 		for corpus_code_id in corpus_code_ids:
 			corpus_code = CorpusCode.query.get(corpus_code_id)
-			corpus_code.scripted_corpus_code_group_id = self.scripted_corpus_code_group_id
+			corpus_code.audio_checking_group_id = self.audio_checking_group_id
 
 
-class ScriptedCorpusCodeGroupSchema(Schema):
+class AudioCheckingGroupSchema(Schema):
 	corpus_codes = fields.Nested("CorpusCodeSchema", many=True, dump_to="corpusCodes")
 	class Meta:
-		additional = ("scriptedCorpusCodeGroupId", "recordingPlatformId", "name", "selectionSize")
+		additional = ("audioCheckingGroupId", "recordingPlatformId", "name", "selectionSize")
 
 
 # AudioCheckingSection

@@ -11,6 +11,7 @@ def handle_invalid_usage(error):
 	response.status_code = error.status_code
 	return response
 
+import audio_checking_groups
 import audio_checking_sections
 import audio_collections
 import audio_importers
@@ -29,7 +30,6 @@ import projects
 import rates
 import recordings
 import recording_platforms
-import scripted_corpus_code_groups
 import sheets
 import subtasks
 import tagsets

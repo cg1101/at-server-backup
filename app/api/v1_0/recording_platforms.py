@@ -6,7 +6,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import AudioCheckingSection, CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, ScriptedCorpusCodeGroup, Track
+from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
 from lib.metadata_validation import MetaValidator
@@ -125,24 +125,24 @@ def upload_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/scriptedcorpuscodegroups", methods=["GET"])
+@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckinggroups", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
-def get_recording_platform_scripted_corpus_code_groups(recording_platform):
-	return jsonify({"scriptedCorpusCodeGroups": ScriptedCorpusCodeGroup.dump(recording_platform.scripted_corpus_code_groups)})
+def get_recording_platform_audio_checking_groups(recording_platform):
+	return jsonify({"audioCheckingGroups": AudioCheckingGroup.dump(recording_platform.audio_checking_groups)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/scriptedcorpuscodegroups", methods=["POST"])
+@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckinggroups", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
-def create_scripted_corpus_code_group(recording_platform):
+def create_audio_checking_group(recording_platform):
 
 	data = MyForm(
 		Field('name', is_mandatory=True,
 			validators=[
-				(ScriptedCorpusCodeGroup.check_name_unique, (recording_platform,)),
+				(AudioCheckingGroup.check_name_unique, (recording_platform,)),
 		]),
 		Field('selectionSize', is_mandatory=True,
 			validators=[
@@ -158,19 +158,19 @@ def create_scripted_corpus_code_group(recording_platform):
 	).get_data()
 
 	# create group
-	scripted_corpus_code_group = ScriptedCorpusCodeGroup(
+	audio_checking_group = AudioCheckingGroup(
 		recording_platform=recording_platform,
 		name=data["name"],
 		selection_size=data["selectionSize"],
 	)
-	db.session.add(scripted_corpus_code_group)
+	db.session.add(audio_checking_group)
 	db.session.flush()
 
 	# assign corpus codes
-	scripted_corpus_code_group.assign_corpus_codes(data["corpusCodes"])
+	audio_checking_group.assign_corpus_codes(data["corpusCodes"])
 	db.session.commit()
 	
-	return jsonify({"scriptedCorpusCodeGroup": ScriptedCorpusCodeGroup.dump(scripted_corpus_code_group)})
+	return jsonify({"audioCheckingGroup": AudioCheckingGroup.dump(audio_checking_group)})
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["GET"])
