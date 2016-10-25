@@ -566,6 +566,23 @@ def create_task_load(taskId):
 	})
 
 
+@bp.route(_name + '/<int:taskId>/loads/<int:loadId>/rawpieces/', methods=['GET'])
+@api
+@caps()
+def get_task_load_raw_pieces(taskId, loadId):
+	load = m.Load.query.get(loadId)
+	if not load:
+		raise InvalidUsage(_('load {0} not found').format(loadId))
+	if load.taskId != taskId:
+		raise InvalidUsage(_('load {0} does not belong to task {1}'
+			).format(loadId, taskId))
+	rawPieces = m.RawPiece.query.filter_by(taskId=taskId
+		).filter_by(loadId=loadId).all()
+	return jsonify({
+		'rawPieces': m.RawPiece.dump(rawPieces),
+	})
+
+
 @bp.route(_name + '/<int:taskId>/payments/', methods=['GET'])
 @api
 @caps()
@@ -598,11 +615,7 @@ def get_task_raw_pieces(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	q = m.RawPiece.query.filter_by(taskId=taskId)
-	loadId = request.args.get('loadId')
-	if loadId != None:
-		q = q.filter_by(loadId=loadId)
-	rawPieces = q.all()
+	rawPieces = m.RawPiece.query.filter_by(taskId=taskId).all()
 	return jsonify({
 		'rawPieces': m.RawPiece.dump(rawPieces),
 	})
