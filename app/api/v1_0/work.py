@@ -112,7 +112,7 @@ def load_batch_context(batchId):
 		raise InvalidUsage(_('Sorry, you are not assigned to this sub task.'))
 
 	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-	if batch.leaseExpires <= now and not has_cap:
+	if batch.leaseExpires and batch.leaseExpires <= now and not has_cap:
 		# TODO: take back expired batch
 		raise InvalidUsage(_().format('Sorry, you current work lease is expired.',
 			'Please select another item to work on.',
