@@ -1486,6 +1486,20 @@ t_scripted_corpus_code_groups = Table("scripted_corpus_code_groups", metadata,
 Index("scripted_corpus_code_groups_by_recording_platform_id", t_scripted_corpus_code_groups.c.recordingPlatformId, unique=False)
 
 
+t_audio_checking_sections = Table("audio_checking_sections", metadata,
+	Column("audio_checking_section_id", INTEGER, primary_key=True, key="audioCheckingSectionId", doc=""),
+	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
+	Column("start_position", DOUBLE_PRECISION, nullable=False, key="startPosition", doc=""),
+	Column("end_position", DOUBLE_PRECISION, nullable=False, key="endPosition", doc=""),
+	Column("check_percentage", DOUBLE_PRECISION, nullable=False, key="checkPercentage", doc=""),
+	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	CheckConstraint('start_position >= 0 AND start_position < 1'),
+	CheckConstraint('end_position > 0 AND end_position <= 1'),
+	CheckConstraint('check_percentage > 0 AND check_percentage <= 1'),
+)
+Index("audio_checking_sections_by_recording_platform_id", t_audio_checking_sections.c.recordingPlatformId, unique=False)
+
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

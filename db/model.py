@@ -2102,6 +2102,26 @@ class ScriptedCorpusCodeGroupSchema(Schema):
 		additional = ("scriptedCorpusCodeGroupId", "recordingPlatformId", "name", "selectionSize")
 
 
+# AudioCheckingSection
+class AudioCheckingSection(Base):
+	__table__ = t_audio_checking_sections
+
+	# relationships
+	recording_platform = relationship("RecordingPlatform", backref="audio_checking_sections")
+
+	# synonyms
+	audio_checking_section_id = synonym("audioCheckingSectionId")
+	recording_platform_id = synonym("recordingPlatformId")
+	start_position = synonym("startPosition")
+	end_position = synonym("endPosition")
+	check_percentage = synonym("checkPercentage")
+
+
+class AudioCheckingSectionSchema(Schema):
+	class Meta:
+		fields = ("audioCheckingSectionId", "startPosition", "endPosition", "checkPercentage")
+
+
 #
 # Define model class and its schema (if needed) above
 #

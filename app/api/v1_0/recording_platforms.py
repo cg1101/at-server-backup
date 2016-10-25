@@ -6,7 +6,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, ScriptedCorpusCodeGroup, Track
+from db.model import AudioCheckingSection, CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, ScriptedCorpusCodeGroup, Track
 from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
 from lib.metadata_validation import MetaValidator
@@ -222,6 +222,8 @@ def create_performance_meta_category(recording_platform):
 @get_model(RecordingPlatform)
 def upload_performance_meta_categories(recording_platform):
 
+	# TODO check configured audio importer
+
 	if recording_platform.performance_meta_categories:
 		raise InvalidUsage("performance meta categories already exist; unable to upload config file")
 
@@ -236,7 +238,7 @@ def upload_performance_meta_categories(recording_platform):
 		meta_category = PerformanceMetaCategory(
 			recording_platform=recording_platform,
 			name=amr_category.title,
-			extractor={"source": "Log File", "key": amr_category.id},
+			extractor={"source": "Log File", "key": amr_category.id},	# TODO get log file string from audio importer constant
 			validator_spec=validator.to_dict(),
 		)
 
@@ -245,3 +247,44 @@ def upload_performance_meta_categories(recording_platform):
 	db.session.commit()
 
 	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckingsections", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_audio_checking_sections(recording_platform):
+	return jsonify({"audioCheckingSections": AudioCheckingSection.dump(recording_platform.audio_checking_sections)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckingsections", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def create_audio_checking_section(recording_platform):
+
+	data = MyForm(
+		Field("startPosition", is_mandatory=True,
+			validators=[
+				(validators.is_number, (), dict(ge=0, lt=1))
+		]),
+		Field("endPosition", is_mandatory=True,
+			validators=[
+				(validators.is_number, (), dict(gt=0, le=1))
+		]),
+		Field("checkPercentage", is_mandatory=True,
+			validators=[
+				(validators.is_number, (), dict(gt=0, le=1))
+		]),
+	).get_data()
+
+	audio_checking_section = AudioCheckingSection(
+		recording_platform=recording_platform,
+		start_position=data["startPosition"],
+		end_position=data["endPosition"],
+		check_percentage=data["checkPercentage"],
+	)
+	db.session.add(audio_checking_section)
+	db.session.flush()
+
+	return jsonify({"audioCheckingSection": AudioCheckingSection.dump(audio_checking_section)})
