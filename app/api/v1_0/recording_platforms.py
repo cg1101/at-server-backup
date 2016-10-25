@@ -288,3 +288,27 @@ def create_audio_checking_section(recording_platform):
 	db.session.flush()
 
 	return jsonify({"audioCheckingSection": AudioCheckingSection.dump(audio_checking_section)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/spontaneous/include", methods=["PUT"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def include_spontaneous_corpus_codes(recording_platform):
+	data = MyForm(
+		Field('corpusCodes', is_mandatory=True,
+			validators=[
+				validators.is_list,
+				CorpusCode.check_all_exists,
+			]
+		),
+	).get_data()
+
+	included = set(data['corpusCodes'])
+
+	for corpus_code in recording_platform.spontaneous_corpus_codes:
+		corpus_code.included = corpus_code.corpus_code_id in included
+
+	db.session.commit()
+
+	return jsonify(success=True)
