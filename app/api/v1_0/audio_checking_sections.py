@@ -3,7 +3,7 @@ import logging
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators
 from db import database as db
 from db.model import AudioCheckingSection
 
@@ -19,15 +19,15 @@ def update_audio_checking_section(audio_checking_section):
 	data = MyForm(
 		Field("startPosition", is_mandatory=True,
 			validators=[
-				(validators.is_number, (), dict(ge=0, lt=1))
+				simple_validators.is_number(ge=0, lt=1)
 		]),
 		Field("endPosition", is_mandatory=True,
 			validators=[
-				(validators.is_number, (), dict(gt=0, le=1))
+				simple_validators.is_number(gt=0, le=1)
 		]),
 		Field("checkPercentage", is_mandatory=True,
 			validators=[
-				(validators.is_number, (), dict(gt=0, le=1))
+				simple_validators.is_number(gt=0, le=1)
 		]),
 	).get_data()
 

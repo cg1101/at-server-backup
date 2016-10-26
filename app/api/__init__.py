@@ -186,6 +186,35 @@ class validators:
 				raise ValueError("value must be a list")
 
 
+class SimpleValidators(object):
+
+	def is_number(self, max_value=None, min_value=None, le=None, lt=None, gt=None, ge=None):
+		
+		def fn(data, key, value):
+			if max_value is not None and value > max_value:
+				raise ValueError('value {0} must not be greater than {1}'.format(value, max_value))
+
+			if min_value is not None and value < min_value:
+				raise ValueError('value {0} must not be less than {1}'.format(value, min_value))
+
+			if le and not value <= le:
+				raise ValueError('value {0} must be less than or equal to {1}'.format(value, le))
+
+			if lt and not value < lt:
+				raise ValueError('value {0} must be less than {1}'.format(value, lt))
+
+			if ge and not value >= ge:
+				raise ValueError('value {0} must be greater than or equal to {1}'.format(value, ge))
+
+			if gt and not value > gt:
+				raise ValueError('value {0} must be greater than {1}'.format(value, gt))
+
+		return fn
+
+
+simple_validators = SimpleValidators()	
+
+
 class Field(object):
 	def __init__(self, name, is_mandatory=False, default=None,
 			normalizer=None, validators=[]):
