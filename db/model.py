@@ -1510,15 +1510,16 @@ class RecordingPlatform(Base, ModelMixin):
 		MyForm validator for checking that the metadata extractor
 		is valid.
 		"""
+		if value is not None:
 
-		if not "key" in value:
-			raise ValueError("no key found")
+			if not "key" in value:
+				raise ValueError("no key found")
 
-		if not "source" in value:
-			raise ValueError("no source found")
+			if not "source" in value:
+				raise ValueError("no source found")
 
-		if value["source"] not in self.metadata_sources:
-			raise ValueError("{0} is an invalid source".format(value["source"]))
+			if value["source"] not in self.metadata_sources:
+				raise ValueError("{0} is an invalid source".format(value["source"]))
 
 
 class RecordingPlatformSchema(Schema):

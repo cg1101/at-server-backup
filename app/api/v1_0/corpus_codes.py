@@ -23,42 +23,6 @@ def check_corpus_code_uniqueness(data, key, code, recording_platform_id, corpus_
 		raise ValueError("corpus code '{0}' already exists".format(code))
 
 
-@bp.route("corpuscodes", methods=["POST"])
-@api
-@caps()
-def create_corpus_code():
-
-	data = MyForm(
-		Field("code", is_mandatory=True, validators=[
-			validators.non_blank,
-			# TODO need to check code/platform uniqueness
-		]),
-		Field("regex"),
-		Field("isScripted", is_mandatory=True, validators=[
-			validators.is_bool
-		]),
-		Field("recordingPlatformId", is_mandatory=True, validators=[
-			validators.is_number,
-		]),
-	).get_data()
-	
-	recording_platform = RecordingPlatform.query.get(data["recordingPlatformId"])
-	
-	if not recording_platform:
-		raise InvalidUsage("recording platform {0} not found".format(recording_platform_id), 404)
-
-	corpus_code = CorpusCode(
-		audio_collection_id=recording_platform.audio_collection_id,
-		recording_platform=recording_platform,
-		code=data["code"],
-		regex=data.get("regex"),
-		is_scripted=data["isScripted"],
-	)
-	db.session.add(corpus_code)
-	db.session.flush()
-	return jsonify({"corpusCode": CorpusCode.dump(corpus_code)})
-
-
 @bp.route("corpuscodes/<int:corpus_code_id>", methods=["GET"])
 @api
 @caps()

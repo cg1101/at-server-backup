@@ -58,6 +58,35 @@ def get_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
 
 
+@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def create_corpus_code(recording_platform):
+
+	data = MyForm(
+		Field("code", is_mandatory=True, validators=[
+			validators.non_blank,
+			# TODO need to check code/platform uniqueness
+		]),
+		Field("regex"),
+		Field("isScripted", is_mandatory=True, validators=[
+			validators.is_bool
+		]),
+	).get_data()
+	
+	corpus_code = CorpusCode(
+		audio_collection_id=recording_platform.audio_collection_id,
+		recording_platform=recording_platform,
+		code=data["code"],
+		regex=data.get("regex"),
+		is_scripted=data["isScripted"],
+	)
+	db.session.add(corpus_code)
+	db.session.flush()
+	return jsonify({"corpusCode": CorpusCode.dump(corpus_code)})
+
+
 @bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/scripted", methods=["GET"])
 @api
 @caps()
