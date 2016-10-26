@@ -105,5 +105,33 @@ def create_recording_platform(audio_collection):
 @caps()
 @get_model(AudioCollection)
 def get_audio_collection_performance_flags(audio_collection):
-	performance_flags = PerformanceFlag.query.filter_by(audio_collection_id=audio_collection.audio_collection_id).all()
-	return jsonify({"performanceFlags": PerformanceFlag.dump(performance_flags)})
+	return jsonify({"performanceFlags": PerformanceFlag.dump(audio_collection.performance_flags)})
+
+
+@bp.route("audiocollections/<int:audio_collection_id>/performanceflags", methods=["POST"])
+@api
+@caps()
+@get_model(AudioCollection)
+def create_performance_flag(audio_collection):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				PerformanceFlag.check_new_name_unique(audio_collection),
+		]),
+		Field('severity', is_mandatory=True,
+			validators=[
+				PerformanceFlag.check_valid_severity
+		]),
+	).get_data()
+
+	performance_flag = PerformanceFlag(
+		audio_collection=audio_collection,
+		name=data["name"],
+		severity=data["severity"],
+		enabled=True
+	)
+	db.session.add(performance_flag)
+	db.session.commit()
+
+	return jsonify({"performanceFlag": PerformanceFlag.dump(performance_flag)})

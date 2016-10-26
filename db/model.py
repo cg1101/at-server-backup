@@ -3,9 +3,11 @@
 import logging
 import datetime
 
+from functools import wraps
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
 from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
@@ -18,6 +20,40 @@ from lib.metadata_validation import MetaValidator, MetaValue, process_received_m
 from schema import *
 
 log = logging.getLogger(__name__)
+
+
+
+def validator(fn):
+	"""
+	Decorator for wrapping a function that returns a MyForm
+	validator which does not require any external context. 
+	The function itself can be passed to the validator list,
+	rather than the validator that is returned e.g.
+	
+	def get_validator():
+		return validator_fn
+	
+	validators = [
+		get_validator(),	# function is called
+	]
+
+	becomes:
+
+	@validator
+	def get_validator():
+		return validator_fn
+
+	validators = [
+		get_validator,		# function is called later
+	]
+	"""
+
+	@wraps(fn)
+	def decorated(self_or_cls, *args, **kwargs):
+		validator_fn = fn(self_or_cls)
+		return validator_fn(*args, **kwargs)
+
+	return decorated
 
 
 # model mixin classes
@@ -42,6 +78,54 @@ class ModelMixin(object):
 		"""
 		for pk in value:
 			cls.check_exists(data, key, pk)
+
+	@classmethod
+	def check_new_field_unique(cls, field, **context):
+		"""
+		Returns a MyForm validator for checking that
+		a new field value is unique within the given
+		context.
+		"""
+
+		def validator(data, key, value):
+
+			constraints = {field: value}
+			constraints.update(context)
+			query = cls.query.filter_by(**constraints)
+		
+			if query.count():
+				raise ValueError("{0} is already used".format(value))
+
+		return validator
+
+	def check_updated_field_unique(self, field, **context):
+		"""
+		Returns a MyForm validator for checking that 
+		the field being updated is unique within the
+		given context.
+		"""
+
+		def validator(data, key, value):
+
+			# build filtered query
+			constraints = {field: value}
+			constraints.update(context)
+			query = self.query.filter_by(**constraints)
+		
+			# add pk constraint
+			primary_key = inspect(self.__class__).primary_key
+
+			# TODO support composite keys
+			if len(primary_key) > 1:
+				raise NotImplementedError
+
+			primary_key = primary_key[0]
+			query = query.filter(primary_key!=getattr(self, primary_key.name))
+
+			if query.count():
+				raise ValueError("{0} is already used".format(value))
+
+		return validator
 
 
 class ImportMixin(object):
@@ -2001,13 +2085,16 @@ class TrackSchema(Schema):
 
 
 # PerformanceFlag
-class PerformanceFlag(Base):
+class PerformanceFlag(Base, ModelMixin):
 	__table__ = t_audio_collection_performance_flags
 
 	# constants
 	INFO = "Info"
 	WARNING = "Warning"
 	SEVERE = "Severe"
+
+	# relationships
+	audio_collection = relationship("AudioCollection", backref="performance_flags")
 
 	# synonyms
 	performance_flag_id = synonym("performanceFlagId")
@@ -2023,30 +2110,22 @@ class PerformanceFlag(Base):
 			raise ValueError("{0} is not a valid severity".format(value))
 
 	@classmethod
-	def check_name_unique(cls, data, key, value):
+	def check_new_name_unique(cls, audio_collection):
 		"""
-		MyForm validator for checking that a new
-		performance flag name is unique for the
-		audio collection.
-		"""
-		audio_collection_id = data["audioCollectionId"]
-		if cls.query.filter_by(audio_collection_id=audio_collection_id, name=value).count():
-			raise ValueError("{0} is already used".format(value))
-
-	def check_other_name_unique(self, data, key, value):
-		"""
-		MyForm validator for checking that an
-		existing performance flag name is unique
+		Returns a MyForm validator for checking 
+		that a new performance flag name is unique
 		for the audio collection.
 		"""
-		query = self.query.filter(
-			self.__class__.audio_collection_id==self.audio_collection_id,
-			self.__class__.name==value,
-			self.__class__.performance_flag_id!=self.performance_flag_id,
-		)
+		return cls.check_new_field_unique("name", audio_collection=audio_collection)
 
-		if query.count():
-			raise ValueError("{0} is used by another performance flag".format(value))
+	@validator
+	def check_updated_name_unique(self):
+		"""
+		Returns a MyForm validator for checking 
+		that an existing performance flag name 
+		is unique for the audio collection.
+		"""
+		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
 
 
 class PerformanceFlagSchema(Schema):

@@ -190,7 +190,7 @@ class SimpleValidators(object):
 
 	def is_number(self, max_value=None, min_value=None, le=None, lt=None, gt=None, ge=None):
 		
-		def fn(data, key, value):
+		def validator(data, key, value):
 			if max_value is not None and value > max_value:
 				raise ValueError('value {0} must not be greater than {1}'.format(value, max_value))
 
@@ -209,7 +209,7 @@ class SimpleValidators(object):
 			if gt and not value > gt:
 				raise ValueError('value {0} must be greater than {1}'.format(value, gt))
 
-		return fn
+		return validator
 
 
 simple_validators = SimpleValidators()	
@@ -293,6 +293,7 @@ class Field(object):
 			# traceback.print_exc(file=out)
 			# error = out.getvalue()
 			# current_app.logger.error('\033[1;31mERROR caught inside validate():\033[0m\n%s\n' % error)
+			raise
 			raise RuntimeError(_('{0}: {1}').format(key, exc))
 		output[key] = value
 		return
