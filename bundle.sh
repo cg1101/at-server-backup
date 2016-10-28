@@ -1,6 +1,10 @@
 #!/bin/bash
 
-BUNDLE=../gnx_app_bundle.zip
+function abspath() {
+	python -c 'import os,sys;print os.path.abspath(sys.argv[1])' $1
+}
+
+BUNDLE=$(abspath ../gnx_app_bundle.zip)
 
 if [ -e "$BUNDLE" ]; then
 	echo -n "Removing bundle file from previous build ... "
@@ -18,6 +22,56 @@ else
 	zip -r "$BUNDLE" ./.ebextensions -x \*~ >/dev/null
 fi
 echo "done"
+
+if [ "$1" = "prod" ]; then
+	# build client files for prod
+	if [ ! -e "app/index.html" ]; then
+		echo "${0##*/}: can't see index.html in app folder" >&2
+		exit 1
+	fi
+	link=$(readlink app/index.html)
+	if [ "${link:0:1}" = "/" ]; then
+		client_repo_dir=$(dirname "$link")
+	else
+		client_repo_dir=$(dirname "app/$link")
+	fi
+	client_repo_dir=$(abspath "$client_repo_dir/..")
+	while :; do
+		read -t 2 -p "Please input client repo path (Enter for $client_repo_dir) -> "
+		if [ -z "$REPLY" ]; then
+			echo
+			break
+		else
+			user_provided_dir=$(abspath "$REPLY")
+			if [ -d "${user_provided_dir}" ]; then
+				client_repo_dir="${user_provided_dir}"
+				break
+			else
+				echo "${0##*/}: not a valid dir: ${user_provided_dir}, try again ..."
+			fi
+		fi
+	done
+	pushd ${client_repo_dir} >/dev/null
+	# echo "Changing current working directory to $PWD ..."
+	echo "Building files for prod bundle ..."
+	grunt prod >/dev/null
+	result=$?
+	if [ "$result" = "0" ]; then
+		cd build
+		[ -e app ] && rm -rf app
+		mkdir -p app/static
+		cp prod/index.html app
+		cp -r prod/css prod/js app/static
+		zip -d "$BUNDLE" app/index.html app/static/css/\* app/static/js/\* >/dev/null
+		zip -r "$BUNDLE" app >/dev/null
+	fi
+	echo "Distribution bundle updated"
+	popd >/dev/null
+	if [ $result != "0" ]; then
+		echo "${0##*/}: Grunt failed with an error code $result" >&1
+		exit "$result"
+	fi
+fi
 
 echo "Checking eb environment ... "
 
