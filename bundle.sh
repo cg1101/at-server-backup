@@ -4,6 +4,26 @@ function abspath() {
 	python -c 'import os,sys;print os.path.abspath(sys.argv[1])' $1
 }
 
+function usage() {
+	echo "Usage: ${0##*/} { dev | [ prod ] }" >&2
+	exit 2
+}
+
+if (( $# > 1 )); then usage; fi
+
+if (( $# == 0 )); then
+	BUILD_TYPE='prod'
+elif [ "$1" = "prod" ]; then
+	BUILD_TYPE='prod'
+elif [ "$1" = "dev" ]; then
+	BUILD_TYPE='dev'
+else
+	echo "${0##*/}: invalid build type: $1" >&2
+	usage;
+fi
+
+echo -e "Starting building bundle of type \033[1;32m${BUILD_TYPE}\033[0m"
+
 BUNDLE=$(abspath ../gnx_app_bundle.zip)
 
 if [ -e "$BUNDLE" ]; then
@@ -23,7 +43,7 @@ else
 fi
 echo "done"
 
-if [ "$1" = "prod" ]; then
+if [ "${BUILD_TYPE}" = "prod" ]; then
 	# build client files for prod
 	if [ ! -e "app/index.html" ]; then
 		echo "${0##*/}: can't see index.html in app folder" >&2
