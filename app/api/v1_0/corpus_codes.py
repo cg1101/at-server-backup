@@ -3,7 +3,7 @@ import logging
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import CorpusCode, RecordingPlatform
 from lib.audio_cutup import validate_audio_cutup_config
@@ -11,6 +11,7 @@ from lib.audio_cutup import validate_audio_cutup_config
 log = logging.getLogger(__name__)
 
 
+# TODO move to model
 def check_corpus_code_uniqueness(data, key, code, recording_platform_id, corpus_code_id):
 	query = CorpusCode.query.filter_by(
 		code=code,
@@ -26,30 +27,21 @@ def check_corpus_code_uniqueness(data, key, code, recording_platform_id, corpus_
 @bp.route("corpuscodes/<int:corpus_code_id>", methods=["GET"])
 @api
 @caps()
-def get_corpus_code(corpus_code_id):
-
-	corpus_code = CorpusCode.query.get(corpus_code_id)
-	
-	if not corpus_code:
-		raise InvalidUsage("corpus code {0} not found".format(corpus_code_id), 404)
-
+@get_model(CorpusCode)
+def get_corpus_code(corpus_code):
 	return jsonify({"corpusCode": CorpusCode.dump(corpus_code)})
 
 
 @bp.route("corpuscodes/<int:corpus_code_id>", methods=["PUT"])
 @api
 @caps()
-def update_corpus_code(corpus_code_id):
+@get_model(CorpusCode)
+def update_corpus_code(corpus_code):
 
-	corpus_code = CorpusCode.query.get(corpus_code_id)
-	
-	if not corpus_code:
-		raise InvalidUsage("corpus code {0} not found".format(corpus_code_id), 404)
-	
 	data = MyForm(
 		Field("code", is_mandatory=True, validators=[
 			validators.non_blank,
-			(check_corpus_code_uniqueness, (corpus_code.recording_platform_id, corpus_code_id)),
+			(check_corpus_code_uniqueness, (corpus_code.recording_platform_id, corpus_code.corpus_code_id)),
 		]),
 		Field("regex"),
 		Field("isScripted", is_mandatory=True, validators=[
@@ -68,14 +60,8 @@ def update_corpus_code(corpus_code_id):
 @bp.route("corpuscodes/<int:corpus_code_id>", methods=["DELETE"])
 @api
 @caps()
-def delete_corpus_code(corpus_code_id):
-
-	corpus_code = CorpusCode.query.get(corpus_code_id)
-	
-	if not corpus_code:
-		raise InvalidUsage("corpus code {0} not found".format(corpus_code_id), 404)
-	
+@get_model(CorpusCode)
+def delete_corpus_code(corpus_code):
 	db.session.delete(corpus_code)
 	db.session.commit()
-	
 	return jsonify(success=True)
