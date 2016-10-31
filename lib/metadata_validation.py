@@ -217,11 +217,10 @@ def process_received_metadata(received_value_dict, meta_categories):
 		# if received value for this category
 		if meta_category.meta_category_id in received_value_dict:
 			received_value = received_value_dict[meta_category.meta_category_id]
-			validator = MetaValidator.get_validator(meta_category.validator)
 			
 			# validate
 			try:
-				meta_value = validator(received_value)
+				meta_value = meta_category.validator(received_value)
 			except ValueError:
 				meta_value = MetaValue(received_value, invalid=True)
 			
