@@ -2068,7 +2068,7 @@ class CorpusCodeSchema(Schema):
 
 
 # Track
-class Track(Base):
+class Track(Base, ModelMixin):
 	__table__ = t_tracks
 
 	# relationships
@@ -2078,6 +2078,43 @@ class Track(Base):
 	track_id = synonym("trackId")
 	recording_platform_id = synonym("recordingPlatformId")
 	track_index = synonym("trackIndex")
+
+	@classmethod
+	def check_new_index_unique(cls, recording_platform):
+		"""
+		Returns a MyForm validator for checking 
+		that a new track index is unique for the
+		recording platform.
+		"""
+		return cls.check_new_field_unique("track_index", recording_platform=recording_platform)
+
+	@validator
+	def check_updated_index_unique(self):
+		"""
+		Returns a MyForm validator for checking 
+		that an existing track index is unique 
+		for the recording platform.
+		"""
+		return self.check_updated_field_unique("track_index", recording_platform=self.recording_platform)
+
+	@classmethod
+	def check_new_name_unique(cls, recording_platform):
+		"""
+		Returns a MyForm validator for checking 
+		that a new track name is unique for the
+		recording platform.
+		"""
+		return cls.check_new_field_unique("name", recording_platform=recording_platform)
+
+	@validator
+	def check_updated_name_unique(self):
+		"""
+		Returns a MyForm validator for checking 
+		that an existing track name is unique 
+		for the recording platform.
+		"""
+		return self.check_updated_field_unique("name", recording_platform=self.recording_platform)
+
 
 class TrackSchema(Schema):
 	class Meta:

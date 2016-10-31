@@ -4,7 +4,7 @@ import logging
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators, validators
 from db import database as db
 from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.AmrConfigFile import AmrConfigFile
@@ -35,8 +35,35 @@ def get_recording_platform(recording_platform):
 @caps()
 @get_model(RecordingPlatform)
 def get_recording_platform_tracks(recording_platform):
-	tracks = Track.query.filter_by(recording_platform_id=recording_platform_id).all()
-	return jsonify(tracks=Track.dump(tracks))
+	return jsonify(tracks=Track.dump(recording_platform.tracks))
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/tracks", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def create_track(recording_platform):
+
+	data = MyForm(
+		Field("trackIndex", is_mandatory=True, validators=[
+			simple_validators.is_number(min_value=0),
+			Track.check_new_index_unique(recording_platform),
+		]),
+		Field("name", is_mandatory=True, validators=[
+			validators.non_blank,
+			Track.check_new_name_unique(recording_platform),
+		]),
+	).get_data()
+	
+	track = Track(
+		recording_platform=recording_platform,
+		track_index=data["trackIndex"],
+		name=data["name"],
+	)
+	db.session.add(track)
+	db.session.flush()
+
+	return jsonify(track=Track.dump(track))
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
