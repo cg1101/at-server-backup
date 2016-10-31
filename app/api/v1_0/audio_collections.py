@@ -86,13 +86,21 @@ def create_recording_platform(audio_collection):
 		Field('storageLocation', validators=[
 			validators.is_string,
 		]),
+		Field('masterScriptFile', validators=[
+			RecordingPlatform.is_valid_master_file,
+		]),
+		Field('masterHypothesisFile', validators=[
+			RecordingPlatform.is_valid_master_file,
+		]),
 	).get_data()
-
+	
 	recording_platform = RecordingPlatform(
 		audio_collection=audio_collection,
 		recording_platform_type_id=data["recordingPlatformTypeId"],
 		audio_importer_id=data.get("audioImporterId"),
-		storage_location=data.get("storageLocation")
+		storage_location=data.get("storageLocation"),
+		master_script_file=data.get("masterScriptFile"),
+		master_hypothesis_file=data.get("masterHypothesisFile"),
 	)
 	db.session.add(recording_platform)
 	db.session.commit()

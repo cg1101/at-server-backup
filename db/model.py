@@ -1546,6 +1546,9 @@ class RecordingPlatformTypeSchema(Schema):
 class RecordingPlatform(Base, ModelMixin):
 	__table__ = t_recording_platforms
 
+	# constants
+	MASTER_FILE_PARSERS = ["Simple", "Reading Script"]
+
 	# relationships
 	audio_collection = relationship("AudioCollection", backref="recording_platforms")
 	audio_importer = relationship("AudioImporter")
@@ -1559,6 +1562,8 @@ class RecordingPlatform(Base, ModelMixin):
 	recording_platform_id = synonym("recordingPlatformId")
 	storage_location = synonym("storageLocation")
 	audio_cutup_config = synonym("audioCutupConfig")
+	master_script_file = synonym("masterScriptFile")
+	master_hypothesis_file = synonym("masterHypothesisFile")
 
 	@property
 	def importable_performance_meta_categories(self):
@@ -1604,6 +1609,27 @@ class RecordingPlatform(Base, ModelMixin):
 
 			if value["source"] not in self.metadata_sources:
 				raise ValueError("{0} is an invalid source".format(value["source"]))
+
+	@classmethod
+	def is_valid_master_file(cls, data, key, value):
+		"""
+		MyForm validator for checking that the master file
+		parser is valid.
+		"""
+
+		if value is not None:
+			
+			if not isinstance(value, dict):
+				raise ValueError("invalid JSON format")
+
+			if "parser" not in value:
+				raise ValueError("missing parser")
+
+			if "path" not in value:
+				raise ValueError("missing path")
+
+			if value["parser"] not in cls.MASTER_FILE_PARSERS:
+				raise ValueError("invalid parser")
 
 
 class RecordingPlatformSchema(Schema):
