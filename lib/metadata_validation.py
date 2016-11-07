@@ -229,15 +229,15 @@ def process_received_metadata(received_value_dict, meta_categories):
 	return meta_values
 
 
-def resolve_new_metadata(meta_entity, new_meta_values):
+def resolve_new_metadata(meta_entity, new_meta_values, add_change_requests=False, add_history=False):
 	"""
 	Resolves new metadata for a meta entity according to
 	any existing values. If the entity has:
 
 	 * no existing value for the category, a new value is
 	 added
-	 * a differing existing value for the category, a
-	 change request is added
+	 * a differing existing value for the category, the
+	 value is updated or a change request is added
 	
 	All other cases are ignored.
 	"""
@@ -246,14 +246,24 @@ def resolve_new_metadata(meta_entity, new_meta_values):
 	existing_meta_values = dict([(value.meta_category.meta_category_id, value) for value in meta_entity.meta_values])
 	
 	for meta_category, new_value in new_meta_values:
-		
+	
 		# if category has existing value
 		if meta_category.meta_category_id in existing_meta_values:
 			existing_value = existing_meta_values[meta_category.meta_category_id]
 
 			# if existing value is different
-			if existing_value.value["raw"] != new_value["raw"]:
-				meta_entity.add_meta_change_request(meta_category, new_value)
+			if existing_value.value["value"] != new_value["value"]:
+
+				# add change request
+				if add_change_requests:
+					meta_entity.add_meta_change_request(meta_category, new_value)
+
+				# update value
+				else:
+					existing_value.value = new_value
+
+					if add_history:
+						raise NotImplementedError	# TODO
 
 		# no existing value
 		else:
