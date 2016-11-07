@@ -1927,9 +1927,8 @@ class PerformanceMetaValue(Base, MetaValueMixin):
 class PerformanceMetaValueSchema(Schema):
 	value = fields.Dict(dump_to="savedValue")
 	display_value = fields.String(dump_to="displayValue")
-	meta_category = fields.Nested("PerformanceMetaCategorySchema", dump_to="metaCategory")
 	class Meta:
-		additional = ("performanceMetaValueId", "performanceId")
+		additional = ("performanceMetaValueId", "performanceId", "performanceMetaCategoryId")
 
 # Performance
 class Performance(Base, ImportMixin, MetaEntityMixin):
