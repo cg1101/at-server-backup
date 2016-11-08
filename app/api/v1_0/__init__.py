@@ -29,6 +29,7 @@ import pools
 import projects
 import rates
 import recordings
+import recording_flags
 import recording_platforms
 import sheets
 import subtasks

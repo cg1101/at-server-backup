@@ -2272,6 +2272,55 @@ class AudioCheckingSectionSchema(Schema):
 		fields = ("audioCheckingSectionId", "startPosition", "endPosition", "checkPercentage")
 
 
+# RecordingFlag
+class RecordingFlag(Base, ModelMixin):
+	__table__ = t_audio_collection_recording_flags
+
+	# constants
+	INFO = "Info"
+	WARNING = "Warning"
+	SEVERE = "Severe"
+
+	# relationships
+	audio_collection = relationship("AudioCollection", backref="recording_flags")
+
+	# synonyms
+	recording_flag_id = synonym("recordingFlagId")
+	audio_collection_id = synonym("audioCollectionId")
+
+	@classmethod
+	def check_valid_severity(cls, data, key, value):
+		"""
+		MyForm validator for checking a valid
+		severity.
+		"""
+		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
+			raise ValueError("{0} is not a valid severity".format(value))
+
+	@classmethod
+	def check_new_name_unique(cls, audio_collection):
+		"""
+		Returns a MyForm validator for checking 
+		that a new recording flag name is unique
+		for the audio collection.
+		"""
+		return cls.check_new_field_unique("name", audio_collection=audio_collection)
+
+	@validator
+	def check_updated_name_unique(self):
+		"""
+		Returns a MyForm validator for checking 
+		that an existing recording flag name 
+		is unique for the audio collection.
+		"""
+		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
+
+
+class RecordingFlagSchema(Schema):
+	class Meta:
+		fields = ("recordingFlagId", "name", "severity", "enabled")
+
+
 #
 # Define model class and its schema (if needed) above
 #

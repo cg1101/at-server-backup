@@ -5,7 +5,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import AudioCollection, AudioImporter, Performance, PerformanceFlag, RecordingPlatform, RecordingPlatformType
+from db.model import AudioCollection, AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType
 from lib.audio_import import ImportConfigAudioCollection, validate_import_data
 
 
@@ -143,3 +143,41 @@ def create_performance_flag(audio_collection):
 	db.session.commit()
 
 	return jsonify({"performanceFlag": PerformanceFlag.dump(performance_flag)})
+
+
+
+@bp.route("audiocollections/<int:audio_collection_id>/recordingflags", methods=["GET"])
+@api
+@caps()
+@get_model(AudioCollection)
+def get_audio_collection_recording_flags(audio_collection):
+	return jsonify({"recordingFlags": RecordingFlag.dump(audio_collection.recording_flags)})
+
+
+@bp.route("audiocollections/<int:audio_collection_id>/recordingflags", methods=["POST"])
+@api
+@caps()
+@get_model(AudioCollection)
+def create_recording_flag(audio_collection):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				RecordingFlag.check_new_name_unique(audio_collection),
+		]),
+		Field('severity', is_mandatory=True,
+			validators=[
+				RecordingFlag.check_valid_severity
+		]),
+	).get_data()
+
+	recording_flag = RecordingFlag(
+		audio_collection=audio_collection,
+		name=data["name"],
+		severity=data["severity"],
+		enabled=True
+	)
+	db.session.add(recording_flag)
+	db.session.commit()
+
+	return jsonify({"recordingFlag": RecordingFlag.dump(recording_flag)})
