@@ -2083,13 +2083,17 @@ class CorpusCode(Base, ModelMixin):
 	is_scripted = synonym("isScripted")
 	audio_checking_group_id = synonym("audioCheckingGroupId")
 
+	@property
+	def name(self):
+		return self.code or "No Code"
+
 
 class CorpusCodeSchema(Schema):
 	included = fields.Boolean()
 	regex = fields.String()
 	type = fields.Function(lambda obj: "Scripted" if obj.is_scripted else "Spontaneous")
 	class Meta:
-		additional = ("corpusCodeId", "code", "isScripted", "audioCheckingGroupId")
+		additional = ("corpusCodeId", "name", "code", "isScripted", "audioCheckingGroupId")
 
 
 # Track
