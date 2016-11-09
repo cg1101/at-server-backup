@@ -2,6 +2,9 @@
 import logging
 import os
 
+from lib.AudioServer import AudioServer, AudioStageServer, AudioDevServer
+
+
 class Config:
 	SECRET_KEY = os.environ['SECRET_KEY']
 
@@ -32,24 +35,51 @@ class Config:
 	USE_PDB_API = bool(os.environ.get(
 			'USE_PDB_API', '').strip())
 	LOG_LEVEL = logging.INFO
+	AUDIO_SERVER_SECRET = None
+	AUDIO_SERVER_CLS = None
 
 	@staticmethod
 	def init_app(app):
 		pass
 
+
 class DevelopmentConfig(Config):
 	DEBUG = True
 	LOG_LEVEL = logging.DEBUG
+	AUDIO_SERVER_SECRET = "secret"
+	AUDIO_SERVER_CLS = AudioDevServer
+
 
 class TestingConfig(Config):
 	TESTING = True
 
-class ProductionConfig(Config):
+
+class AwsConfig(Config):
+	AUDIO_SERVER_SECRET = os.environ["AUDIO_SERVER_SECRET"]
+
+
+class QaConfig(AwsConfig):
+	DEBUG = True
+	LOG_LEVEL = logging.DEBUG
+	AUDIO_SERVER_CLS = AudioStageServer
+
+
+class StageConfig(AwsConfig):
+	DEBUG = True
+	LOG_LEVEL = logging.DEBUG
+	AUDIO_SERVER_CLS = AudioStageServer
+
+
+class ProductionConfig(AwsConfig):
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
+	AUDIO_SERVER_CLS = AudioServer
+
 
 config = {
 	'development': DevelopmentConfig,
 	'testing': TestingConfig,
+	'qa': QaConfig,
+	'stage': StageConfig,
 	'production': ProductionConfig,
 	'default': DevelopmentConfig,
 }
