@@ -18,11 +18,18 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
+from lib.AudioServer import AudioServer
+
+
+audio_server = AudioServer()
+
+
 def create_app(config_name):
 	app = Flask(__name__)
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
 	db.init_app(app)
+	audio_server.init_app(app)
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
 	logging.basicConfig(level=app.config["LOG_LEVEL"])

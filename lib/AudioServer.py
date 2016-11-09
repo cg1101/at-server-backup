@@ -1,66 +1,46 @@
-# TODO use lr_utilities version when migrated to Python3
+# TODO move to lr_utilities
+import logging
 
-import json
-import os
-import requests
 
-from itsdangerous import URLSafeSerializer
+log = logging.getLogger(__name__)
 
 
 class AudioServer(object):
-	
-	STATUS_URL = "https://audio.appen.com/api/v1/status"
-	API_BASE_URL = "https://audio.appen.com/api/v1"
+	"""
+	Flask wrapper for the AudioServer API library.
+	"""
+	def __init__(self):
+		self._api = None
+		self.checked_status = False
 
-	@classmethod
-	def is_online(cls):
-		response = requests.get(cls.STATUS_URL)
-		return response.status_code == 200
-
-	def __init__(self, secret_key):
-		self.secret_key = secret_key
-
-	def get_url(self, prefix, audio_spec, audio_data_location, file_path, start_at=None, end_at=None):
+	def init_app(self, app):
 		"""
-		Returns the audio server URL.
+		Initializes the API from the app config.
 		"""
-		json_dict = {
-			"audioSpec": audio_spec,
-			"audioDataLocation": audio_data_location,
-			"filePath": file_path,
-		}
-		
-		if start_at is not None:
-			json_dict.update({"startAt": start_at.total_seconds()})
-		
-		if end_at is not None:
-			json_dict.update({"endAt": end_at.total_seconds()})
+		cls = app.config["AUDIO_SERVER_API_CLS"]
+		secret = app.config["AUDIO_SERVER_API_SECRET"]
+		log.debug("init with cls:{0}, secret:{1}".format(cls, secret))
+		self._api = cls(secret)
 
-		json_string = json.dumps(json_dict)
-		data = URLSafeSerializer(self.secret_key).dumps(json_string)
-		return os.path.join(self.API_BASE_URL, prefix, data)
-
-	def get_mp3_url(self, *args, **kwargs):
+	@property
+	def api(self):
 		"""
-		Returns an MP3 URL.
+		Checks that the API has been initialized
+		and is online.
 		"""
-		return self.get_url("mp3", *args, **kwargs)
-	
-	def get_ogg_url(self, *args, **kwargs):
-		"""
-		Returns an Ogg URL.
-		"""
-		return self.get_url("ogg", *args, **kwargs)
+
+		# check initialized
+		if self._api is None:
+			raise RuntimeError("AudioServer API has not been initialized")
+
+		# check online
+		if not self.checked_status:
+			if not self._api.is_online():
+				raise RuntimeError("AudioServer API is not online")
+
+			self.checked_status = True
+
+		return self._api
 
 
-class AudioStageServer(AudioServer):
-	STATUS_URL = "https://audio-stage.appen.com/api/v1/status"
-	API_BASE_URL = "https://audio-stage.appen.com/api/v1"
-
-
-class AudioDevServer(AudioServer):
-	STATUS_URL = "http://localhost:5001/api/v1/status"
-	API_BASE_URL = "http://localhost:5001/api/v1"
-
-
-__all__ = ["AudioServer", "AudioStageServer", "AudioDevServer"]
+__all__ = ["AudioServer"]
