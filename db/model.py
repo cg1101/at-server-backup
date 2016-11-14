@@ -26,13 +26,13 @@ log = logging.getLogger(__name__)
 def validator(fn):
 	"""
 	Decorator for wrapping a function that returns a MyForm
-	validator which does not require any external context. 
+	validator which does not require any external context.
 	The function itself can be passed to the validator list,
 	rather than the validator that is returned e.g.
-	
+
 	def get_validator():
 		return validator_fn
-	
+
 	validators = [
 		get_validator(),	# function is called
 	]
@@ -92,7 +92,7 @@ class ModelMixin(object):
 			constraints = {field: value}
 			constraints.update(context)
 			query = cls.query.filter_by(**constraints)
-		
+
 			if query.count():
 				raise ValueError("{0} is already used".format(value))
 
@@ -100,7 +100,7 @@ class ModelMixin(object):
 
 	def check_updated_field_unique(self, field, **context):
 		"""
-		Returns a MyForm validator for checking that 
+		Returns a MyForm validator for checking that
 		the field being updated is unique within the
 		given context.
 		"""
@@ -111,7 +111,7 @@ class ModelMixin(object):
 			constraints = {field: value}
 			constraints.update(context)
 			query = self.query.filter_by(**constraints)
-		
+
 			# add pk constraint
 			primary_key = inspect(self.__class__).primary_key
 
@@ -1593,7 +1593,7 @@ class RecordingPlatform(Base, ModelMixin):
 	@property
 	def scripted_corpus_codes(self):
 		return [corpus_code for corpus_code in self.corpus_codes if corpus_code.is_scripted]
-	
+
 	def check_extractor(self, data, key, value):
 		"""
 		MyForm validator for checking that the metadata extractor
@@ -1618,7 +1618,7 @@ class RecordingPlatform(Base, ModelMixin):
 		"""
 
 		if value is not None:
-			
+
 			if not isinstance(value, dict):
 				raise ValueError("invalid JSON format")
 
@@ -2111,7 +2111,7 @@ class Track(Base, ModelMixin):
 	@classmethod
 	def check_new_index_unique(cls, recording_platform):
 		"""
-		Returns a MyForm validator for checking 
+		Returns a MyForm validator for checking
 		that a new track index is unique for the
 		recording platform.
 		"""
@@ -2120,8 +2120,8 @@ class Track(Base, ModelMixin):
 	@validator
 	def check_updated_index_unique(self):
 		"""
-		Returns a MyForm validator for checking 
-		that an existing track index is unique 
+		Returns a MyForm validator for checking
+		that an existing track index is unique
 		for the recording platform.
 		"""
 		return self.check_updated_field_unique("track_index", recording_platform=self.recording_platform)
@@ -2129,7 +2129,7 @@ class Track(Base, ModelMixin):
 	@classmethod
 	def check_new_name_unique(cls, recording_platform):
 		"""
-		Returns a MyForm validator for checking 
+		Returns a MyForm validator for checking
 		that a new track name is unique for the
 		recording platform.
 		"""
@@ -2138,8 +2138,8 @@ class Track(Base, ModelMixin):
 	@validator
 	def check_updated_name_unique(self):
 		"""
-		Returns a MyForm validator for checking 
-		that an existing track name is unique 
+		Returns a MyForm validator for checking
+		that an existing track name is unique
 		for the recording platform.
 		"""
 		return self.check_updated_field_unique("name", recording_platform=self.recording_platform)
@@ -2178,7 +2178,7 @@ class PerformanceFlag(Base, ModelMixin):
 	@classmethod
 	def check_new_name_unique(cls, audio_collection):
 		"""
-		Returns a MyForm validator for checking 
+		Returns a MyForm validator for checking
 		that a new performance flag name is unique
 		for the audio collection.
 		"""
@@ -2187,8 +2187,8 @@ class PerformanceFlag(Base, ModelMixin):
 	@validator
 	def check_updated_name_unique(self):
 		"""
-		Returns a MyForm validator for checking 
-		that an existing performance flag name 
+		Returns a MyForm validator for checking
+		that an existing performance flag name
 		is unique for the audio collection.
 		"""
 		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
@@ -2222,7 +2222,7 @@ class AudioCheckingGroup(Base):
 	def check_other_name_unique(self, data, key, value):
 		"""
 		MyForm validator for checking that an
-		existing group name is unique for the 
+		existing group name is unique for the
 		recording platform.
 		"""
 		query = self.query.filter(
@@ -2238,7 +2238,7 @@ class AudioCheckingGroup(Base):
 		"""
 		Assigns the given corpus codes to this group.
 		"""
-	
+
 		# unassign existing corpus codes
 		assigned = CorpusCode.query.filter_by(audio_checking_group_id=self.audio_checking_group_id).all()
 		for corpus_code in assigned:
@@ -2304,7 +2304,7 @@ class RecordingFlag(Base, ModelMixin):
 	@classmethod
 	def check_new_name_unique(cls, audio_collection):
 		"""
-		Returns a MyForm validator for checking 
+		Returns a MyForm validator for checking
 		that a new recording flag name is unique
 		for the audio collection.
 		"""
@@ -2313,8 +2313,8 @@ class RecordingFlag(Base, ModelMixin):
 	@validator
 	def check_updated_name_unique(self):
 		"""
-		Returns a MyForm validator for checking 
-		that an existing recording flag name 
+		Returns a MyForm validator for checking
+		that an existing recording flag name
 		is unique for the audio collection.
 		"""
 		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
