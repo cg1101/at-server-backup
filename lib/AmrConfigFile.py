@@ -1,5 +1,3 @@
-#TODO move to lr_utilities when migrated to Python 3
-
 import logging
 
 from collections import OrderedDict
