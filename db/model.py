@@ -223,11 +223,6 @@ class MetaValueMixin(object):
 		"""
 		raise NotImplementedError
 
-	@property
-	def display_value(self):
-		meta_value = MetaValue.load(self.value)
-		return self.meta_category.validator.get_display_value(meta_value)
-
 
 def set_schema(cls, schema_class, schema_key=None):
 	if not issubclass(schema_class, Schema):
@@ -1925,10 +1920,8 @@ class PerformanceMetaValue(Base, MetaValueMixin):
 
 
 class PerformanceMetaValueSchema(Schema):
-	value = fields.Dict(dump_to="savedValue")
-	display_value = fields.String(dump_to="displayValue")
 	class Meta:
-		additional = ("performanceMetaValueId", "performanceId", "performanceMetaCategoryId")
+		fields = ("performanceMetaValueId", "performanceId", "performanceMetaCategoryId", "value")
 
 # Performance
 class Performance(Base, ImportMixin, MetaEntityMixin):

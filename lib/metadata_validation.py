@@ -87,24 +87,6 @@ class MetaValidator(object):
 		"""
 		raise NotImplementedError
 
-	def get_display_value(self, meta_value):
-		"""
-		Wrapper around get_valid_display_value
-		that returns None for invalid MetaValue
-		objects.
-		"""
-		if meta_value.invalid:
-			return None
-
-		return self.get_valid_display_value(meta_value)
-	
-	def get_valid_display_value(self, meta_value):
-		"""
-		Returns the display value for a valid
-		MetaValue object.
-		"""
-		raise NotImplementedError
-
 	def __call__(self, value):
 		"""
 		Validates the given metadata value. If
@@ -126,9 +108,6 @@ class SimpleValidator(MetaValidator):
 		"""
 		return {"type": self.VALIDATOR_TYPE}
 	
-	def get_valid_display_value(self, meta_data_value):
-		return meta_data_value.value
-
 
 class IntValidator(SimpleValidator):
 	"""
@@ -188,9 +167,6 @@ class EnumValidator(MetaValidator):
 			"allowed": self.allowed_values,
 		}
 
-	def get_valid_display_value(self, meta_value):
-		return self.allowed_values[meta_value.value]
-	
 	def __call__(self, value):
 		if value not in self.allowed_values:
 			raise ValueError("Unknown meta value: %s" %value)
