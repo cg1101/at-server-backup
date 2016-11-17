@@ -92,8 +92,7 @@ def get_recording_platform_corpus_codes(recording_platform):
 def create_corpus_code(recording_platform):
 
 	data = MyForm(
-		Field("code", is_mandatory=True, validators=[
-			validators.non_blank,
+		Field("code", default="", validators=[
 			# TODO need to check code/platform uniqueness
 		]),
 		Field("regex"),
