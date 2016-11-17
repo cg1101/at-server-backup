@@ -1714,13 +1714,11 @@ class AudioFile(Base, ImportMixin):
 	# relationships
 	recording = relationship("Recording", backref="audio_files")
 	track = relationship("Track")
-	audio_collection = relationship("AudioCollection", backref="audio_files")
 	recording_platform = relationship("RecordingPlatform", backref="audio_files")
 
 	# synonyms
 	audio_file_id = synonym("audioFileId")
 	recording_id = synonym("recordingId")
-	audio_collection_id = synonym("audioCollectionId")
 	recording_platform_id = synonym("recordingPlatformId")
 	track_id = synonym("trackId")
 	file_path = synonym("filePath")
@@ -1736,7 +1734,6 @@ class AudioFile(Base, ImportMixin):
 
 		audio_file = AudioFile(
 			recording=recording,
-			audio_collection=recording.audio_collection,
 			recording_platform=recording.recording_platform,
 			track=track,
 			file_path=data["filePath"],
@@ -1929,12 +1926,10 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 
 	# relationships
 	album = relationship("Album", backref="performances")
-	audio_collection = relationship("AudioCollection", backref="performances")
 	recording_platform = relationship("RecordingPlatform", backref="performances")
 
 	# synonyms
 	performance_id = synonym("performanceId")
-	audio_collection_id = synonym("audioCollectionId")
 	album_id = synonym("albumId")
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
@@ -1965,7 +1960,6 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 		# adding a new performance
 		else:
 			performance = cls(
-				audio_collection=recording_platform.audio_collection,
 				recording_platform=recording_platform,
 				name=data["name"],
 				script_id=data["scriptId"],
@@ -1985,7 +1979,7 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 
 class PerformanceSchema(Schema):
 	class Meta:
-		fields = ("performanceId", "audioCollectionId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
+		fields = ("performanceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
@@ -1993,13 +1987,12 @@ class RecordingMetaCategory(Base):
 
 	# column synonyms
 	recording_meta_category_id = synonym("recordingMetaCategoryId")
-	audio_collection_id = synonym("audioCollectionId")
 	validator_spec = synonym("validatorSpec")
 
 
 class RecordingMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("recordingMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
+		fields = ("recordingMetaCategoryId", "name", "key", "validatorSpec")
 
 # RecordingMetaValue
 class RecordingMetaValue(Base):
@@ -2020,14 +2013,12 @@ class Recording(Base, ImportMixin):
 	__table__ = t_recordings
 
 	# relationships
-	audio_collection = relationship("AudioCollection", backref="recordings")
 	recording_platform = relationship("RecordingPlatform", backref="recordings")
 	performance = relationship("Performance", backref="recordings")
 	corpus_code = relationship("CorpusCode", backref="recordings")
 
 	# synonyms
 	recording_id = synonym("recordingId")
-	audio_collection_id = synonym("audioCollectionId")
 	performance_id = synonym("performanceId")
 	corpus_code_id = synonym("corpusCodeId")
 
@@ -2039,7 +2030,6 @@ class Recording(Base, ImportMixin):
 			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(corpus_code.corpus_code_id, performance.recording_platform.record_platform_id))
 
 		recording = cls(
-			audio_collection=performance.audio_collection,
 			recording_platform=performance.recording_platform,
 			performance=performance,
 			corpus_code=corpus_code,
@@ -2059,7 +2049,7 @@ class RecordingSchema(Schema):
 	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
 	duration = DurationField()
 	class Meta:
-		additional = ("recordingId", "audioCollectionId", "performanceId", "prompt", "hypothesis")
+		additional = ("recordingId", "performanceId", "prompt", "hypothesis")
 
 # CorpusCode
 class CorpusCode(Base, ModelMixin):
@@ -2071,7 +2061,6 @@ class CorpusCode(Base, ModelMixin):
 
 	# synonyms
 	corpus_code_id = synonym("corpusCodeId")
-	audio_collection_id = synonym("audioCollectionId")
 	recording_platform_id = synonym("recordingPlatformId")
 	is_scripted = synonym("isScripted")
 	audio_checking_group_id = synonym("audioCheckingGroupId")

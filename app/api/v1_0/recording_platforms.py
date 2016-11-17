@@ -103,7 +103,6 @@ def create_corpus_code(recording_platform):
 	).get_data()
 	
 	corpus_code = CorpusCode(
-		audio_collection_id=recording_platform.audio_collection_id,
 		recording_platform=recording_platform,
 		code=data["code"],
 		regex=data.get("regex"),
@@ -168,7 +167,6 @@ def upload_recording_platform_corpus_codes(recording_platform):
 
 	for data in request.json:
 		corpus_code = CorpusCode(
-			audio_collection_id=recording_platform.audio_collection_id,
 			recording_platform=recording_platform,
 			code=data["code"],
 			regex=data.get("regex"),

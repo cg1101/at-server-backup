@@ -1150,19 +1150,17 @@ Index("audio_collection_supervisors_by_user_id", t_audio_collection_supervisors.
 
 t_corpus_codes = Table("corpus_codes", metadata,
 	Column("corpus_code_id", INTEGER, primary_key=True, key="corpusCodeId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("audio_checking_group_id", INTEGER, key="audioCheckingGroupId", doc=""),
 	Column("code", TEXT, nullable=False, key="code", doc=""),
 	Column("is_scripted", BOOLEAN, nullable=False, default=False, key="isScripted", doc=""),
 	Column("included", BOOLEAN, key="included", doc=""),
 	Column("regex", TEXT, key="regex", doc=""),
-	UniqueConstraint("audioCollectionId", "code"),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("recordingPlatformId", "code"),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 	ForeignKeyConstraint(["audioCheckingGroupId"], ["audio_checking_groups.audioCheckingGroupId"]),
 )
-Index("corpus_codes_by_audio_collection_id", t_corpus_codes.c.audioCollectionId, unique=False)
+Index("corpus_codes_by_recording_platform_id", t_corpus_codes.c.recordingPlatformId, unique=False)
 Index("corpus_codes_by_audio_checking_group_id", t_corpus_codes.c.audioCheckingGroupId, unique=False)
 
 
@@ -1187,7 +1185,6 @@ t_recording_platform_types = Table("recording_platform_types", metadata,
 t_audio_files = Table("audio_files", metadata,
 	Column("audio_file_id", INTEGER, primary_key=True, key="audioFileId", doc=""),
 	Column("recording_id", INTEGER, nullable=False, key="recordingId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("track_id", INTEGER, nullable=False, key="trackId", doc=""),
 	Column("file_path", TEXT, nullable=False, unique=True, key="filePath", doc=""),
@@ -1195,7 +1192,6 @@ t_audio_files = Table("audio_files", metadata,
 	Column("audio_data_location", JSONB, nullable=False, key="audioDataLocation", doc=""),
 	Column("stats", JSONB, nullable=False, key="stats", doc=""),
 	ForeignKeyConstraint(["recordingId"], ["recordings.recordingId"]),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 	ForeignKeyConstraint(["trackId"], ["tracks.trackId"]),
 )
@@ -1204,7 +1200,6 @@ Index("audio_files_by_recording_id", t_audio_files.c.recordingId, unique=False)
 
 t_recordings = Table("recordings", metadata,
 	Column("recording_id", INTEGER, primary_key=True, key="recordingId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("performance_id", INTEGER, nullable=False, key="performanceId", doc=""),
 	Column("corpus_code_id", INTEGER, nullable=False, key="corpusCodeId", doc=""),
@@ -1212,17 +1207,15 @@ t_recordings = Table("recordings", metadata,
 	Column("prompt", TEXT, key="prompt", doc=""),
 	Column("hypothesis", TEXT, key="hypothesis", doc=""),
 	ForeignKeyConstraint(["performanceId"], ["performances.performanceId"]),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["corpusCodeId"], ["corpus_codes.corpusCodeId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 )
-Index("recordings_by_audio_collection_id", t_recordings.c.audioCollectionId, unique=False)
+Index("recordings_by_recording_platform_id", t_recordings.c.recordingPlatformId, unique=False)
 Index("recordings_by_performance_id", t_recordings.c.performanceId, unique=False)
 
 
 t_performances = Table("performances", metadata,
 	Column("performance_id", INTEGER, primary_key=True, key="performanceId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("album_id", INTEGER, key="albumId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("script_id", TEXT, key="scriptId", doc=""),
@@ -1231,10 +1224,8 @@ t_performances = Table("performances", metadata,
 	Column("key", VARCHAR(8), key="key", doc=""),
 	Column("imported_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="importedAt", doc=""),
 	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 )
-Index("performances_by_audio_collection_id", t_performances.c.audioCollectionId, unique=False)
 Index("performances_by_album_id", t_performances.c.albumId, unique=False)
 Index("performances_by_recording_platform_id", t_performances.c.recordingPlatformId, unique=False)
 
@@ -1396,15 +1387,13 @@ Index("performance_meta_values_by_performance_id", t_performance_meta_values.c.p
 
 t_recording_meta_categories = Table("recording_meta_categories", metadata,
 	Column("recording_meta_category_id", INTEGER, primary_key=True, key="recordingMetaCategoryId", doc=""),
-	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("name", TEXT, nullable=False, key="name", doc=""),
 	Column("validator_spec", JSONB, nullable=False, key="validatorSpec", doc=""),
-	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
-	UniqueConstraint("audioCollectionId", "name"),
+	UniqueConstraint("recordingPlatformId", "name"),
 )
-Index("recording_meta_categories_by_audio_collection_id", t_recording_meta_categories.c.audioCollectionId, unique=False)
+Index("recording_meta_categories_by_recording_platform_id", t_recording_meta_categories.c.recordingPlatformId, unique=False)
 
 
 t_recording_meta_values = Table("recording_meta_values", metadata,
