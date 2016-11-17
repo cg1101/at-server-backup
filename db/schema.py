@@ -1452,16 +1452,17 @@ t_database_settings = Table("database_settings", metadata,
 )
 
 
-t_audio_collection_performance_flags = Table("audio_collection_performance_flags", metadata,
+t_performance_flags = Table("performance_flags", metadata,
 	Column("performance_flag_id", INTEGER, primary_key=True, key="performanceFlagId", doc=""),
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("name", TEXT, nullable=False, key="name", doc=""),
 	Column("severity", TEXT, nullable=False, key="severity", doc=""),
 	Column("enabled", BOOLEAN, nullable=False, key="enabled", server_default="true", doc=""),
 	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("audioCollectionId", "name"),
 	CheckConstraint("severity IN ('Info', 'Warning', 'Severe')")
 )
-Index("audio_collection_performance_flags_by_audio_collection_id", t_audio_collection_performance_flags.c.audioCollectionId, unique=False)
+Index("performance_flags_by_audio_collection_id", t_performance_flags.c.audioCollectionId, unique=False)
 
 
 t_audio_checking_groups = Table("audio_checking_groups", metadata,
@@ -1489,16 +1490,17 @@ t_audio_checking_sections = Table("audio_checking_sections", metadata,
 Index("audio_checking_sections_by_recording_platform_id", t_audio_checking_sections.c.recordingPlatformId, unique=False)
 
 
-t_audio_collection_recording_flags = Table("audio_collection_recording_flags", metadata,
+t_recording_flags = Table("recording_flags", metadata,
 	Column("recording_flag_id", INTEGER, primary_key=True, key="recordingFlagId", doc=""),
 	Column("audio_collection_id", INTEGER, nullable=False, key="audioCollectionId", doc=""),
 	Column("name", TEXT, nullable=False, key="name", doc=""),
 	Column("severity", TEXT, nullable=False, key="severity", doc=""),
 	Column("enabled", BOOLEAN, nullable=False, key="enabled", server_default="true", doc=""),
 	ForeignKeyConstraint(["audioCollectionId"], ["audio_collections.audioCollectionId"]),
+	UniqueConstraint("audioCollectionId", "name"),
 	CheckConstraint("severity IN ('Info', 'Warning', 'Severe')")
 )
-Index("audio_collection_recording_flags_by_audio_collection_id", t_audio_collection_recording_flags.c.audioCollectionId, unique=False)
+Index("recording_flags_by_audio_collection_id", t_recording_flags.c.audioCollectionId, unique=False)
 
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,

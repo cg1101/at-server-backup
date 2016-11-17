@@ -1632,7 +1632,7 @@ class RecordingPlatformSchema(Schema):
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	class Meta:
-		additional = ("recordingPlatformId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
+		additional = ("recordingPlatformId", "audioCollectionId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
 # AudioCollectionStatusLog
 class AudioCollectionStatusLog(Base):
@@ -2134,7 +2134,7 @@ class TrackSchema(Schema):
 
 # PerformanceFlag
 class PerformanceFlag(Base, ModelMixin):
-	__table__ = t_audio_collection_performance_flags
+	__table__ = t_performance_flags
 
 	# constants
 	INFO = "Info"
@@ -2260,7 +2260,7 @@ class AudioCheckingSectionSchema(Schema):
 
 # RecordingFlag
 class RecordingFlag(Base, ModelMixin):
-	__table__ = t_audio_collection_recording_flags
+	__table__ = t_recording_flags
 
 	# constants
 	INFO = "Info"
