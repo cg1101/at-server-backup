@@ -18,11 +18,11 @@ from sqlalchemy.dialects import postgresql
 from migrations.seed import add_seed_data, delete_seed_data
 
 def upgrade():
-    op.add_column(u'tasks', sa.Column('archive_info', postgresql.JSONB(), nullable=True))
+	op.add_column(u'tasks', sa.Column('archive_info', postgresql.JSONB(), nullable=True))
 	add_seed_data("tasktypes", {"name" : "audio checking"})
 	add_seed_data("tasktypes", {"name" : "transcription"})
 
 def downgrade():
 	delete_seed_data("tasktypes", "name = :name", name="transcription")
 	delete_seed_data("tasktypes", "name = :name", name="audio checking")
-    op.drop_column(u'tasks', 'archive_info')
+	op.drop_column(u'tasks', 'archive_info')
