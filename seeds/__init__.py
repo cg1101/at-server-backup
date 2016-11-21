@@ -1,5 +1,5 @@
 from db import database as db
-from db.model import AudioCollectionStatus, AudioImporter
+from db.model import AudioCollectionStatus, AudioImporter, TaskType
 from db.schema import t_database_settings
 
 
@@ -17,6 +17,13 @@ models = [
 	AudioImporter(name=AudioImporter.AMR_CONVERSATIONAL),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_SCRIPTED),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_CONVERSATIONAL),
+
+	# task types
+	TaskType(name=TaskType.TRANSLATION),
+	TaskType(name=TaskType.TEXT_COLLECTION),
+	TaskType(name=TaskType.MARKUP),
+	TaskType(name=TaskType.TRANSCRIPTION),
+	TaskType(name=TaskType.AUDIO_CHECKING),
 ]
 
 

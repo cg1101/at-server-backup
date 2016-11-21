@@ -1283,6 +1283,10 @@ class Task(Base):
 	supervisors = relationship('TaskSupervisor')
 	taskErrorTypes = relationship('TaskErrorType')
 	subTasks = relationship('SubTask', back_populates='task')
+
+	# synonyms
+	archive_info = synonym("archiveInfo")
+	
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
@@ -1300,6 +1304,7 @@ class TaskSchema(Schema):
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
 			'globalProjectId')
 		ordered = True
+
 
 # TaskErrorType
 class TaskErrorType(Base):
@@ -1338,7 +1343,10 @@ class TaskSupervisorSchema(Schema):
 class TaskType(Base):
 	TRANSLATION = 'translation'
 	TEXT_COLLECTION = 'text collection'
-	MARUP = 'markup'
+	MARKUP = 'markup'
+	AUDIO_CHECKING = "audio checking"
+	TRANSCRIPTION = "transcription"
+
 	__table__ = t_tasktypes
 
 class TaskTypeSchema(Schema):
