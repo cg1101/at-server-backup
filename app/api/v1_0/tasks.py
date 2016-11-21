@@ -22,6 +22,7 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validator
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
+from lib.audio_load import AudioCheckingLoadConfigSchema, validate_audio_checking_load_data
 
 
 log = logging.getLogger(__name__)
@@ -1624,41 +1625,39 @@ def create_recording_flag(task):
 	return jsonify({"recordingFlag": RecordingFlag.dump(recording_flag)})
 
 
-# TODO audio import into tasks instead of collections
-# from lib.audio_import import ImportConfigAudioCollection, validate_import_data
 
-#@bp.route("audiocollections/<int:audio_collection_id>/importconfig")
-#@api
-#@get_model(AudioCollection)
-#def get_import_config(audio_collection):
-#	"""
-#	Returns the import config for the collection.
-#	"""
-#	if not audio_collection.importable:
-#		raise InvalidUsage("cannot import audio into audio collection {0}".format(audio_collection.audio_collection_id), 400)
-#
-#	schema = ImportConfigAudioCollection()
-#	import_config = schema.dump(audio_collection).data
-#
-#	return jsonify({"importConfig": import_config})
+@bp.route("tasks/<int:task_id>/audioloadconfig")
+@api
+@get_model(Task)
+def get_load_config(task):
+	"""
+	Returns the audio load config for the task.
+	"""
+	if not task.loadable:
+		raise InvalidUsage("cannot load audio into task {0}".format(task.task_id), 400)
+
+	schema = AudioCheckingLoadConfigSchema()
+	load_config = schema.dump(task).data
+
+	return jsonify({"loadConfig": load_config})
 
 
-#@bp.route("audiocollections/<int:audio_collection_id>/import", methods=["POST"])
-#@api
-#@get_model(AudioCollection)
-#def import_audio_data(audio_collection):
-#	audio_import_data = request.json
-#	validate_import_data(audio_import_data)
-#	recording_platform_id = audio_import_data["recordingPlatformId"]
-#	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-#	
-#	if not recording_platform:
-#		raise InvalidUsage("unknown recording platform: {0}".format(recording_platform_id))
-#
-#	if recording_platform.audio_collection_id != audio_collection.audio_collection_id:
-#		raise InvalidUsage("invalid recording platform ({0}) for audio collection {1}".format(recording_platform_id, audio_collection.audio_collection_id))
-#		
-#	performance = Performance.from_import(audio_import_data, recording_platform)
-#	db.session.add(performance)
-#	db.session.commit()
-#	return jsonify(success=True)
+@bp.route("tasks/<int:task_id>/loadaudio", methods=["POST"])
+@api
+@get_model(Task)
+def load_audio_data(task):
+	load_data = request.json
+	validate_audio_checking_load_data(load_data)
+	recording_platform_id = load_data["recordingPlatformId"]
+	recording_platform = RecordingPlatform.query.get(recording_platform_id)
+	
+	if not recording_platform:
+		raise InvalidUsage("unknown recording platform: {0}".format(recording_platform_id))
+
+	if recording_platform.task_id != task.task_id:
+		raise InvalidUsage("invalid recording platform ({0}) for task {1}".format(recording_platform_id, task.task_id))
+		
+	performance = Performance.from_import(load_data, recording_platform)
+	db.session.add(performance)
+	db.session.commit()
+	return jsonify(success=True)

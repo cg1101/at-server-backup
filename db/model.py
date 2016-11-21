@@ -1285,6 +1285,7 @@ class Task(Base):
 	subTasks = relationship('SubTask', back_populates='task')
 
 	# synonyms
+	task_id = synonym("taskId")
 	archive_info = synonym("archiveInfo")
 	
 	@property
@@ -1293,12 +1294,12 @@ class Task(Base):
 
 	# TODO audio checking tasks only
 	@property
-	def importable(self):
-		return bool(self.importable_recording_platforms)
+	def loadable(self):
+		return bool(self.loadable_recording_platforms)
 
 	# TODO audio checking tasks only
 	@property
-	def importable_recording_platforms(self):
+	def loadable_recording_platforms(self):
 		return [rp for rp in self.recording_platforms if rp.audio_importer]
 
 class TaskSchema(Schema):
@@ -1579,9 +1580,9 @@ class RecordingPlatform(Base, ModelMixin):
 	master_hypothesis_file = synonym("masterHypothesisFile")
 
 	@property
-	def importable_performance_meta_categories(self):
+	def loadable_performance_meta_categories(self):
 		"""
-		Meta categories that are populated during audio import.
+		Meta categories that are populated during loading.
 		"""
 		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
 
@@ -1886,7 +1887,7 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 	@property
 	def incomplete(self):
 		"""
-		Placeholder for audio importing. To be
+		Placeholder for audio loading. To be
 		replaced when queue functionality and
 		incomplete performance importing is
 		added.

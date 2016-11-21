@@ -42,8 +42,8 @@ def create_app(config_name):
 		'/logout',
 		'/authorization_response',
 		'/api/1.0/status',
-		'/api/1.0/audiocollections/\d+/importconfig',
-		'/api/1.0/audiocollections/\d+/import',
+		'/api/1.0/tasks/\d+/audioloadconfig',
+		'/api/1.0/tasks/\d+/loadaudio',
 	])
 	json_url_patterns = map(re.compile, [
 		'/api'

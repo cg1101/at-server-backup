@@ -5,7 +5,7 @@ from marshmallow import Schema, fields
 from db.model import TrackSchema, CorpusCodeSchema, PerformanceMetaCategorySchema, ProjectSchema
 
 
-AUDIO_IMPORT_SCHEMA = {
+AUDIO_CHECKING_LOAD_DATA_SCHEMA = {
 	"type": "object",
 	"required": ["recordingPlatformId", "performanceId", "name", "scriptId", "recordings", "metadata"],
 	"properties": {
@@ -75,14 +75,14 @@ AUDIO_IMPORT_SCHEMA = {
 }
 
 
-class ImportConfigAudioCollection(Schema):
-	audioCollectionId = fields.Integer()
+class AudioCheckingLoadConfigSchema(Schema):
+	taskId = fields.Integer()
 	name = fields.String()
-	project = fields.Nested(ProjectSchema, only=("projectId", "name"))
-	recordingPlatforms = fields.Nested("ImportConfigRecordingPlatform", attribute="importable_recording_platforms", many=True)
+	taskType = fields.String()
+	recordingPlatforms = fields.Nested("AudioLoadRecordingPlatformSchema", attribute="loadable_recording_platforms", many=True)
 
 
-class ImportConfigRecordingPlatform(Schema):
+class AudioLoadRecordingPlatformSchema(Schema):
 	recordingPlatformId = fields.Integer()
 	storageLocation = fields.String()
 	masterHypothesisFile = fields.Dict()
@@ -104,7 +104,7 @@ class ImportConfigRecordingPlatform(Schema):
 	)
 	performanceMetaCategories = fields.Nested(
 		PerformanceMetaCategorySchema,
-		attribute="importable_performance_meta_categories",
+		attribute="loadable_performance_meta_categories",
 		many=True,
 		only=("performanceMetaCategoryId", "extractor")
 	)
@@ -114,10 +114,12 @@ class ImportConfigRecordingPlatform(Schema):
 		Returns a list of completed performance names.
 		"""
 		completed = []
+
 		if not obj.audio_importer.all_performances_incomplete:
 			for performance in obj.performances:
 				if not performance.incomplete:
 					completed.append(performance.name)
+
 		return completed
 
 	def get_incomplete_performances(self, obj):
@@ -128,7 +130,7 @@ class ImportConfigRecordingPlatform(Schema):
 			{
 				"performanceId": 1,
 				"name": "ExamplePerformance",
-				"importedFiles": [
+				"loadedFiles": [
 					"/path/to/audio/file/1",
 					"/path/to/audio/file/2",
 					"/path/to/audio/file/3",
@@ -146,22 +148,22 @@ class ImportConfigRecordingPlatform(Schema):
 			if obj.audio_importer.all_performances_incomplete or performance.incomplete:
 				
 				# get list of imported filenames
-				imported_files = []
+				loaded_files = []
 				for recording in performance.recordings:
 					for audio_file in recording.audio_files:
-						imported_files.append(audio_file.file_path)
+						loaded_files.append(audio_file.file_path)
 
 				incomplete.append({
 					"performanceId": performance.performance_id,
 					"name": performance.name,
-					"importedFiles": imported_files,
+					"loadedFiles": loaded_files,
 				})
 		return incomplete
 
 
-def validate_import_data(import_data):
+def validate_audio_checking_load_data(load_data):
 	"""
 	Validates the import data according 
-	to the AUDIO_IMPORT_SCHEMA.
+	to the AUDIO_CHECKING_LOAD_DATA_SCHEMA.
 	"""
-	jsonschema.validate(import_data, AUDIO_IMPORT_SCHEMA)
+	jsonschema.validate(load_data, AUDIO_CHECKING_LOAD_DATA_SCHEMA)
