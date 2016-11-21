@@ -1291,6 +1291,16 @@ class Task(Base):
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
 
+	# TODO audio checking tasks only
+	@property
+	def importable(self):
+		return bool(self.importable_recording_platforms)
+
+	# TODO audio checking tasks only
+	@property
+	def importable_recording_platforms(self):
+		return [rp for rp in self.recording_platforms if rp.audio_importer]
+
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
 	labelSet = fields.Nested('LabelSetSchema')
@@ -1553,14 +1563,14 @@ class RecordingPlatform(Base, ModelMixin):
 	MASTER_FILE_PARSERS = ["Simple", "Reading Script"]
 
 	# relationships
-	audio_collection = relationship("AudioCollection", backref="recording_platforms")
+	task = relationship("Task", backref="recording_platforms")
 	audio_importer = relationship("AudioImporter")
 	recording_platform_type = relationship("RecordingPlatformType")
 
 	# synonyms
 	recording_platform_id = synonym("recordingPlatformId")
 	recording_platform_type_id = synonym("recordingPlatformTypeId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 	audio_importer_id = synonym("audioImporterId")
 	recording_platform_id = synonym("recordingPlatformId")
 	storage_location = synonym("storageLocation")
@@ -1640,80 +1650,8 @@ class RecordingPlatformSchema(Schema):
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	class Meta:
-		additional = ("recordingPlatformId", "audioCollectionId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
+		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
-# AudioCollectionStatusLog
-class AudioCollectionStatusLog(Base):
-	__table__ = t_audio_collection_status_log
-
-	# column synonyms
-	log_entry_id = synonym("logEntryId")
-	audio_collection_id = synonym("audioCollectionId")
-	from_audio_collection_status_id = synonym("fromAudioCollectionStatusId")
-	to_audio_collection_status_id = synonym("toAudioCollectionStatusId")
-	changed_by = synonym("changedBy")
-	changed_at = synonym("changedAt")
-
-
-class AudioCollectionStatusLogSchema(Schema):
-	class Meta:
-		fields = ("logEntryId", "audioCollectionId", "fromAudioCollectionStatusId", "toAudioCollectionStatusId", "changedBy", "changedAt")
-
-# AudioCollectionStatus
-class AudioCollectionStatus(Base):
-	__table__ = t_audio_collection_statuses
-
-	# constants
-	OPEN = "Open"
-	CLOSED = "Closed"
-	ARCHIVED = "Archived"
-
-	# synonyms
-	audio_collection_status_id = synonym("audioCollectionStatusId")
-
-
-class AudioCollectionStatusSchema(Schema):
-	class Meta:
-		fields = ("audioCollectionStatusId", "name")
-
-# AudioCollectionSupervisor
-class AudioCollectionSupervisor(Base):
-	__table__ = t_audio_collection_supervisors
-
-	# column synonyms
-	audio_collection_id = synonym("audioCollectionId")
-	user_id = synonym("userId")
-
-
-class AudioCollectionSupervisorSchema(Schema):
-	class Meta:
-		fields = ("audioCollectionId", "userId")
-
-# AudioCollection
-class AudioCollection(Base, ModelMixin):
-	__table__ = t_audio_collections
-
-	# relationships
-	project = relationship("Project", backref="audio_collections")
-
-	# synonyms
-	audio_collection_id = synonym("audioCollectionId")
-	project_id = synonym("projectId")
-	audio_collection_status_id = synonym("audioCollectionStatusId")
-	archive_file = synonym("archiveFile")
-
-	@property
-	def importable(self):
-		return bool(self.importable_recording_platforms)
-
-	@property
-	def importable_recording_platforms(self):
-		return [rp for rp in self.recording_platforms if rp.audio_importer]
-
-
-class AudioCollectionSchema(Schema):
-	class Meta:
-		fields = ("audioCollectionId", "projectId", "name", "key", "audioCollectionStatusId", "archiveFile")
 
 # AudioFile
 class AudioFile(Base, ImportMixin):
@@ -1787,13 +1725,13 @@ class SpeakerMetaCategory(Base):
 
 	# column synonyms
 	speaker_meta_category_id = synonym("speakerMetaCategoryId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 	validator_spec = synonym("validatorSpec")
 
 
 class SpeakerMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("speakerMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
+		fields = ("speakerMetaCategoryId", "taskId", "name", "key", "validatorSpec")
 
 # SpeakerMetaValue
 class SpeakerMetaValue(Base):
@@ -1815,12 +1753,12 @@ class Speaker(Base):
 
 	# synonyms
 	speaker_id = synonym("speakerId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 
 
 class SpeakerSchema(Schema):
 	class Meta:
-		fields = ("speakerId", "audioCollectionId", "identifier")
+		fields = ("speakerId", "taskId", "identifier")
 
 # AlbumMetaCategory
 class AlbumMetaCategory(Base):
@@ -1828,13 +1766,13 @@ class AlbumMetaCategory(Base):
 
 	# column synonyms
 	album_meta_category_id = synonym("albumMetaCategoryId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 	validator_spec = synonym("validatorSpec")
 
 
 class AlbumMetaCategorySchema(Schema):
 	class Meta:
-		fields = ("albumMetaCategoryId", "audioCollectionId", "name", "key", "validatorSpec")
+		fields = ("albumMetaCategoryId", "taskId", "name", "key", "validatorSpec")
 
 # AlbumMetaValue
 class AlbumMetaValue(Base):
@@ -1856,13 +1794,13 @@ class Album(Base):
 
 	# synonyms
 	album_id = synonym("albumId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 	speaker_id = synonym("speakerId")
 
 
 class AlbumSchema(Schema):
 	class Meta:
-		fields = ("albumId", "audioCollectionId", "speakerId")
+		fields = ("albumId", "taskId", "speakerId")
 
 # PerformanceMetaCategory
 class PerformanceMetaCategory(Base, MetaCategoryMixin):
@@ -2150,11 +2088,11 @@ class PerformanceFlag(Base, ModelMixin):
 	SEVERE = "Severe"
 
 	# relationships
-	audio_collection = relationship("AudioCollection", backref="performance_flags")
+	task = relationship("Task", backref="performance_flags")
 
 	# synonyms
 	performance_flag_id = synonym("performanceFlagId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 
 	@classmethod
 	def check_valid_severity(cls, data, key, value):
@@ -2166,22 +2104,22 @@ class PerformanceFlag(Base, ModelMixin):
 			raise ValueError("{0} is not a valid severity".format(value))
 
 	@classmethod
-	def check_new_name_unique(cls, audio_collection):
+	def check_new_name_unique(cls, task):
 		"""
 		Returns a MyForm validator for checking
 		that a new performance flag name is unique
-		for the audio collection.
+		for the task.
 		"""
-		return cls.check_new_field_unique("name", audio_collection=audio_collection)
+		return cls.check_new_field_unique("name", task=task)
 
 	@validator
 	def check_updated_name_unique(self):
 		"""
 		Returns a MyForm validator for checking
 		that an existing performance flag name
-		is unique for the audio collection.
+		is unique for the task.
 		"""
-		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
+		return self.check_updated_field_unique("name", task=self.task)
 
 
 class PerformanceFlagSchema(Schema):
@@ -2276,11 +2214,11 @@ class RecordingFlag(Base, ModelMixin):
 	SEVERE = "Severe"
 
 	# relationships
-	audio_collection = relationship("AudioCollection", backref="recording_flags")
+	task = relationship("Task", backref="recording_flags")
 
 	# synonyms
 	recording_flag_id = synonym("recordingFlagId")
-	audio_collection_id = synonym("audioCollectionId")
+	task_id = synonym("taskId")
 
 	@classmethod
 	def check_valid_severity(cls, data, key, value):
@@ -2292,22 +2230,22 @@ class RecordingFlag(Base, ModelMixin):
 			raise ValueError("{0} is not a valid severity".format(value))
 
 	@classmethod
-	def check_new_name_unique(cls, audio_collection):
+	def check_new_name_unique(cls, task):
 		"""
 		Returns a MyForm validator for checking
 		that a new recording flag name is unique
-		for the audio collection.
+		for the task.
 		"""
-		return cls.check_new_field_unique("name", audio_collection=audio_collection)
+		return cls.check_new_field_unique("name", task=task)
 
 	@validator
 	def check_updated_name_unique(self):
 		"""
 		Returns a MyForm validator for checking
 		that an existing recording flag name
-		is unique for the audio collection.
+		is unique for the task.
 		"""
-		return self.check_updated_field_unique("name", audio_collection=self.audio_collection)
+		return self.check_updated_field_unique("name", task=self.task)
 
 
 class RecordingFlagSchema(Schema):

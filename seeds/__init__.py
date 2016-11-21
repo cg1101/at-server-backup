@@ -1,14 +1,9 @@
 from db import database as db
-from db.model import AudioCollectionStatus, AudioImporter, TaskType
+from db.model import AudioImporter, TaskType
 from db.schema import t_database_settings
 
 
 models = [
-
-	# audio collection statuses
-	AudioCollectionStatus(name=AudioCollectionStatus.OPEN),
-	AudioCollectionStatus(name=AudioCollectionStatus.CLOSED),
-	AudioCollectionStatus(name=AudioCollectionStatus.ARCHIVED),
 
 	# audio importers
 	AudioImporter(name=AudioImporter.UNSTRUCTURED, all_performances_incomplete=True),

@@ -13,7 +13,6 @@ def handle_invalid_usage(error):
 
 import audio_checking_groups
 import audio_checking_sections
-import audio_collections
 import audio_files
 import audio_importers
 import batches

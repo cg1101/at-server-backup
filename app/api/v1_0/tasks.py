@@ -4,6 +4,7 @@ import glob
 import datetime
 import re
 import json
+import logging
 
 from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy import or_
@@ -15,11 +16,15 @@ import pytz
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, MyForm, Field, validators
+from db import database as db
+from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, Task
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
 
+
+log = logging.getLogger(__name__)
 _name = __file__.split('/')[-1].split('.')[0]
 
 
@@ -1497,3 +1502,163 @@ def unassign_all_task_workers(taskId):
 		'message': _('removed all workers from task {0}').format(taskId),
 	})
 
+
+@bp.route("tasks/<int:task_id>/recordingplatforms")
+@api
+@caps()
+@get_model(Task)
+def get_recording_platforms(task):
+	return jsonify({"recordingPlatforms": RecordingPlatform.dump(task.recording_platforms)})
+
+
+@bp.route("tasks/<int:task_id>/recordingplatforms", methods=["POST"])
+@api
+@caps()
+@get_model(Task)
+def create_recording_platform(task):
+	data = MyForm(
+		Field('recordingPlatformTypeId', is_mandatory=True,
+			validators=[
+				RecordingPlatformType.check_exists
+		]),
+		Field('audioImporterId',
+			validators=[
+				AudioImporter.check_exists
+		]),
+		Field('storageLocation', validators=[
+			validators.is_string,
+		]),
+		Field('masterScriptFile', validators=[
+			RecordingPlatform.is_valid_master_file,
+		]),
+		Field('masterHypothesisFile', validators=[
+			RecordingPlatform.is_valid_master_file,
+		]),
+	).get_data()
+	
+	recording_platform = RecordingPlatform(
+		task=task,
+		recording_platform_type_id=data["recordingPlatformTypeId"],
+		audio_importer_id=data.get("audioImporterId"),
+		storage_location=data.get("storageLocation"),
+		master_script_file=data.get("masterScriptFile"),
+		master_hypothesis_file=data.get("masterHypothesisFile"),
+	)
+	db.session.add(recording_platform)
+	db.session.commit()
+
+	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
+
+
+@bp.route("tasks/<int:task_id>/performanceflags", methods=["GET"])
+@api
+@caps()
+@get_model(Task)
+def get_performance_flags(task):
+	return jsonify({"performanceFlags": PerformanceFlag.dump(task.performance_flags)})
+
+
+@bp.route("tasks/<int:task_id>/performanceflags", methods=["POST"])
+@api
+@caps()
+@get_model(Task)
+def create_performance_flag(task):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				PerformanceFlag.check_new_name_unique(task),
+		]),
+		Field('severity', is_mandatory=True,
+			validators=[
+				PerformanceFlag.check_valid_severity
+		]),
+	).get_data()
+
+	performance_flag = PerformanceFlag(
+		task=task,
+		name=data["name"],
+		severity=data["severity"],
+		enabled=True
+	)
+	db.session.add(performance_flag)
+	db.session.commit()
+
+	return jsonify({"performanceFlag": PerformanceFlag.dump(performance_flag)})
+
+
+@bp.route("tasks/<int:task_id>/recordingflags", methods=["GET"])
+@api
+@caps()
+@get_model(Task)
+def get_recording_flags(task):
+	return jsonify({"recordingFlags": RecordingFlag.dump(task.recording_flags)})
+
+
+@bp.route("tasks/<int:task_id>/recordingflags", methods=["POST"])
+@api
+@caps()
+@get_model(Task)
+def create_recording_flag(task):
+
+	data = MyForm(
+		Field('name', is_mandatory=True,
+			validators=[
+				RecordingFlag.check_new_name_unique(task),
+		]),
+		Field('severity', is_mandatory=True,
+			validators=[
+				RecordingFlag.check_valid_severity
+		]),
+	).get_data()
+
+	recording_flag = RecordingFlag(
+		task=task,
+		name=data["name"],
+		severity=data["severity"],
+		enabled=True
+	)
+	db.session.add(recording_flag)
+	db.session.commit()
+
+	return jsonify({"recordingFlag": RecordingFlag.dump(recording_flag)})
+
+
+# TODO audio import into tasks instead of collections
+# from lib.audio_import import ImportConfigAudioCollection, validate_import_data
+
+#@bp.route("audiocollections/<int:audio_collection_id>/importconfig")
+#@api
+#@get_model(AudioCollection)
+#def get_import_config(audio_collection):
+#	"""
+#	Returns the import config for the collection.
+#	"""
+#	if not audio_collection.importable:
+#		raise InvalidUsage("cannot import audio into audio collection {0}".format(audio_collection.audio_collection_id), 400)
+#
+#	schema = ImportConfigAudioCollection()
+#	import_config = schema.dump(audio_collection).data
+#
+#	return jsonify({"importConfig": import_config})
+
+
+#@bp.route("audiocollections/<int:audio_collection_id>/import", methods=["POST"])
+#@api
+#@get_model(AudioCollection)
+#def import_audio_data(audio_collection):
+#	audio_import_data = request.json
+#	validate_import_data(audio_import_data)
+#	recording_platform_id = audio_import_data["recordingPlatformId"]
+#	recording_platform = RecordingPlatform.query.get(recording_platform_id)
+#	
+#	if not recording_platform:
+#		raise InvalidUsage("unknown recording platform: {0}".format(recording_platform_id))
+#
+#	if recording_platform.audio_collection_id != audio_collection.audio_collection_id:
+#		raise InvalidUsage("invalid recording platform ({0}) for audio collection {1}".format(recording_platform_id, audio_collection.audio_collection_id))
+#		
+#	performance = Performance.from_import(audio_import_data, recording_platform)
+#	db.session.add(performance)
+#	db.session.commit()
+#	return jsonify(success=True)
