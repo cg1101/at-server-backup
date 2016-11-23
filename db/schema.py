@@ -1460,6 +1460,19 @@ t_recording_flags = Table("recording_flags", metadata,
 Index("recording_flags_by_task_id", t_recording_flags.c.taskId, unique=False)
 
 
+t_transitions = Table("transitions", metadata,
+	Column("transition_id", INTEGER, primary_key=True, key="transitionId", doc=""),
+	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
+	Column("source_id", INTEGER, nullable=False, key="sourceId", doc=""),
+	Column("destination_id", INTEGER, nullable=False, key="destinationId", doc=""),
+	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
+	ForeignKeyConstraint(["sourceId"], ["subtasks.subTaskId"]),
+	ForeignKeyConstraint(["destinationId"], ["subtasks.subTaskId"]),
+	UniqueConstraint("sourceId", "destinationId"),
+)
+Index("transitions_by_task_id", t_transitions.c.taskId, unique=False)
+
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

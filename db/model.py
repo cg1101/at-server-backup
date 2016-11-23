@@ -1065,7 +1065,7 @@ class SelectionFilterPieceSchema(Schema):
 		ordered = True
 
 # SubTask
-class SubTask(Base):
+class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
 	POLICY_ONE_ONLY = 'oneonly'
 	__table__ = t_subtasks
@@ -1078,12 +1078,31 @@ class SubTask(Base):
 	workType = association_proxy('_workType', 'name')
 	qaConfig = relationship('QaConfig', primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
 		uselist=False)
+
+	# synonyms
+	task_id = synonym("taskId")
+
 	@property
 	def currentRate(self):
 		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId
 			).filter(SubTaskRate.validFrom<=func.now()
 			).order_by(SubTaskRate.validFrom.desc()
 			).first()
+
+	@classmethod
+	def for_task(cls, task):
+		"""
+		Returns a MyForm validator to check that
+		the sub task belongs to the given task.
+		"""
+		def validator(data, key, value):
+			sub_task = cls.query.get(value)
+
+			if sub_task.task_id != task.task_id:
+				raise ValueError("sub task {0} does not belong to task {1}".format(value, task.task_id))
+
+		return validator
+
 
 class SubTaskSchema(Schema):
 	class Meta:
@@ -2265,6 +2284,29 @@ class RecordingFlag(Base, ModelMixin):
 class RecordingFlagSchema(Schema):
 	class Meta:
 		fields = ("recordingFlagId", "name", "severity", "enabled")
+
+
+# Transition
+class Transition(Base, ModelMixin):
+	__table__ = t_transitions
+	
+	# relationships
+	task = relationship("Task", backref="transitions")
+	source = relationship("SubTask", foreign_keys=[t_transitions.c.sourceId])
+	destination = relationship("SubTask", foreign_keys=[t_transitions.c.destinationId])
+
+	# synonyms
+	transition_id = synonym("transitionId")
+	task_id = synonym("taskId")
+	source_id = synonym("sourceId")
+	destination_id = synonym("destinationId")
+
+class TransitionSchema(Schema):
+	source = fields.Nested("SubTaskSchema")
+	destination = fields.Nested("SubTaskSchema")
+
+	class Meta:
+		additional = ("transitionId", "taskId")
 
 
 #

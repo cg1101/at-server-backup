@@ -37,6 +37,7 @@ import tagsets
 import tasks
 import tests
 import tracks
+import transitions
 
 # workflow control apis
 import work

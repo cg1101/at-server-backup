@@ -17,7 +17,7 @@ import pytz
 import db.model as m
 from db.db import SS
 from db import database as db
-from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, Task, TaskType
+from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, SubTask, Transition, Task, TaskType
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
@@ -1668,3 +1668,60 @@ def import_performance(task):
 	db.session.add(performance)
 	db.session.commit()
 	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/transitions", methods=["GET"])
+@api
+@get_model(Task)
+def get_transitions(task):
+	
+	if not task.is_type(TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("sub task transitions only available for audio checking tasks", 400)
+
+	return jsonify(transitions=Transition.dump(task.transitions))
+
+
+@bp.route("tasks/<int:task_id>/transitions", methods=["POST"])
+@api
+@get_model(Task)
+def create_transition(task):
+	
+	if not task.is_type(TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("sub task transitions only available for audio checking tasks", 400)
+
+	data = MyForm(
+		Field('sourceId', is_mandatory=True,
+			validators=[
+				validators.is_number,
+				SubTask.check_exists,
+				SubTask.for_task(task),
+		]),
+		Field('destinationId', is_mandatory=True,
+			validators=[
+				validators.is_number,
+				SubTask.check_exists,
+				SubTask.for_task(task),
+		]),
+	).get_data()
+
+	# TODO move to models
+	if data["sourceId"] == data["destinationId"]:
+		raise InvalidUsage("unable to create a self transition", 400)
+
+	# TODO move to models
+	existing = Transition.query.filter_by(
+		source_id=data["sourceId"],
+		destination_id=data["destinationId"]
+	)
+	if existing.count():
+		raise InvalidUsage("transition already exists", 400)
+		
+	transition = Transition(
+		task=task,
+		source_id=data["sourceId"],
+		destination_id=data["destinationId"],
+	)
+	db.session.add(transition)
+	db.session.flush()
+
+	return jsonify(transition=Transition.dump(transition))
