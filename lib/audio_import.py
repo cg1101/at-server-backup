@@ -5,7 +5,8 @@ from marshmallow import Schema, fields
 from db.model import TrackSchema, CorpusCodeSchema, PerformanceMetaCategorySchema, ProjectSchema
 
 
-AUDIO_CHECKING_LOAD_DATA_SCHEMA = {
+# for audio checking tasks
+PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
 	"required": ["recordingPlatformId", "performanceId", "name", "scriptId", "recordings", "metadata"],
 	"properties": {
@@ -75,14 +76,14 @@ AUDIO_CHECKING_LOAD_DATA_SCHEMA = {
 }
 
 
-class AudioCheckingLoadConfigSchema(Schema):
+class ImportConfigSchema(Schema):
 	taskId = fields.Integer()
 	name = fields.String()
 	taskType = fields.String()
-	recordingPlatforms = fields.Nested("AudioLoadRecordingPlatformSchema", attribute="loadable_recording_platforms", many=True)
+	recordingPlatforms = fields.Nested("CustomRecordingPlatformSchema", attribute="importable_recording_platforms", many=True)
 
 
-class AudioLoadRecordingPlatformSchema(Schema):
+class CustomRecordingPlatformSchema(Schema):
 	recordingPlatformId = fields.Integer()
 	storageLocation = fields.String()
 	masterHypothesisFile = fields.Dict()
@@ -104,7 +105,7 @@ class AudioLoadRecordingPlatformSchema(Schema):
 	)
 	performanceMetaCategories = fields.Nested(
 		PerformanceMetaCategorySchema,
-		attribute="loadable_performance_meta_categories",
+		attribute="importable_performance_meta_categories",
 		many=True,
 		only=("performanceMetaCategoryId", "extractor")
 	)
@@ -130,7 +131,7 @@ class AudioLoadRecordingPlatformSchema(Schema):
 			{
 				"performanceId": 1,
 				"name": "ExamplePerformance",
-				"loadedFiles": [
+				"existingFiles": [
 					"/path/to/audio/file/1",
 					"/path/to/audio/file/2",
 					"/path/to/audio/file/3",
@@ -147,23 +148,22 @@ class AudioLoadRecordingPlatformSchema(Schema):
 			# if performance is incomplete
 			if obj.audio_importer.all_performances_incomplete or performance.incomplete:
 				
-				# get list of imported filenames
-				loaded_files = []
+				# get list of existing filenames
+				existing_files = []
 				for recording in performance.recordings:
 					for audio_file in recording.audio_files:
-						loaded_files.append(audio_file.file_path)
+						existing_files.append(audio_file.file_path)
 
 				incomplete.append({
 					"performanceId": performance.performance_id,
 					"name": performance.name,
-					"loadedFiles": loaded_files,
+					"existingFiles": existing_files,
 				})
 		return incomplete
 
 
-def validate_audio_checking_load_data(load_data):
+def validate_import_performance_data(data):
 	"""
-	Validates the import data according 
-	to the AUDIO_CHECKING_LOAD_DATA_SCHEMA.
+	Validates the import data.
 	"""
-	jsonschema.validate(load_data, AUDIO_CHECKING_LOAD_DATA_SCHEMA)
+	jsonschema.validate(data, PERFORMANCE_DATA_SCHEMA)

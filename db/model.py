@@ -1267,7 +1267,7 @@ class TagSetSchema(Schema):
 
 
 # Task
-class Task(Base):
+class Task(Base, ModelMixin):
 	STATUS_ACTIVE = 'active'
 	STATUS_DISABLED = 'disabled'
 	STATUS_FINISHED = 'finished'
@@ -1286,20 +1286,28 @@ class Task(Base):
 
 	# synonyms
 	task_id = synonym("taskId")
+	task_type = synonym("taskType")
 	archive_info = synonym("archiveInfo")
 	
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
 
-	# TODO audio checking tasks only
-	@property
-	def loadable(self):
-		return bool(self.loadable_recording_platforms)
+	def is_type(self, task_type):
+		return self.task_type == task_type
 
-	# TODO audio checking tasks only
 	@property
-	def loadable_recording_platforms(self):
+	def importable(self):
+		if not self.is_type(TaskType.AUDIO_CHECKING):
+			raise RuntimeError
+		
+		return bool(self.importable_recording_platforms)
+
+	@property
+	def importable_recording_platforms(self):
+		if not self.is_type(TaskType.AUDIO_CHECKING):
+			raise RuntimeError
+
 		return [rp for rp in self.recording_platforms if rp.audio_importer]
 
 class TaskSchema(Schema):
@@ -1580,9 +1588,9 @@ class RecordingPlatform(Base, ModelMixin):
 	master_hypothesis_file = synonym("masterHypothesisFile")
 
 	@property
-	def loadable_performance_meta_categories(self):
+	def importable_performance_meta_categories(self):
 		"""
-		Meta categories that are populated during loading.
+		Meta categories that are populated during import.
 		"""
 		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
 

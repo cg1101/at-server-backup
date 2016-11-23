@@ -17,12 +17,12 @@ import pytz
 import db.model as m
 from db.db import SS
 from db import database as db
-from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, Task
+from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, Task, TaskType
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
-from lib.audio_load import AudioCheckingLoadConfigSchema, validate_audio_checking_load_data
+from lib.audio_import import ImportConfigSchema, validate_import_performance_data
 
 
 log = logging.getLogger(__name__)
@@ -1626,29 +1626,36 @@ def create_recording_flag(task):
 
 
 
-@bp.route("tasks/<int:task_id>/audioloadconfig")
+@bp.route("tasks/<int:task_id>/importconfig")
 @api
 @get_model(Task)
-def get_load_config(task):
+def get_import_config(task):
 	"""
 	Returns the audio load config for the task.
 	"""
-	if not task.loadable:
-		raise InvalidUsage("cannot load audio into task {0}".format(task.task_id), 400)
+	if not task.is_type(TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("import config only available for audio checking tasks", 400)
 
-	schema = AudioCheckingLoadConfigSchema()
-	load_config = schema.dump(task).data
+	if not task.importable:
+		raise InvalidUsage("cannot import audio for task {0}".format(task.task_id), 400)
 
-	return jsonify({"loadConfig": load_config})
+	schema = ImportConfigSchema()
+	import_config = schema.dump(task).data
+
+	return jsonify({"importConfig": import_config})
 
 
-@bp.route("tasks/<int:task_id>/loadaudio", methods=["POST"])
+@bp.route("tasks/<int:task_id>/importperformance", methods=["POST"])
 @api
 @get_model(Task)
-def load_audio_data(task):
-	load_data = request.json
-	validate_audio_checking_load_data(load_data)
-	recording_platform_id = load_data["recordingPlatformId"]
+def import_performance(task):
+	
+	if not task.is_type(TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("import performance only available for audio checking tasks", 400)
+
+	data = request.json
+	validate_import_performance_data(data)
+	recording_platform_id = data["recordingPlatformId"]
 	recording_platform = RecordingPlatform.query.get(recording_platform_id)
 	
 	if not recording_platform:
@@ -1657,7 +1664,7 @@ def load_audio_data(task):
 	if recording_platform.task_id != task.task_id:
 		raise InvalidUsage("invalid recording platform ({0}) for task {1}".format(recording_platform_id, task.task_id))
 		
-	performance = Performance.from_import(load_data, recording_platform)
+	performance = Performance.from_import(data, recording_platform)
 	db.session.add(performance)
 	db.session.commit()
 	return jsonify(success=True)
