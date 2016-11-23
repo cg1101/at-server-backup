@@ -292,12 +292,17 @@ class PdbTaskSchema(Schema):
 
 # WorkType
 class WorkType(Base):
+	__table__ = t_worktypes
+
 	WORK = 'Work'
 	QA = 'QA'
 	REWORK = 'Rework'
 	SECOND_PASS_WORK = '2ndPass_work'
 	SECOND_PASS_REWORK = '2ndPass_rework'
-	__table__ = t_worktypes
+
+	# synonyms
+	modifies_transcription = synonym("modifiesTranscription")
+
 
 class WorkTypeSchema(Schema):
 	class Meta:

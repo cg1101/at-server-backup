@@ -1,5 +1,5 @@
 from db import database as db
-from db.model import AudioImporter, TaskType
+from db.model import AudioImporter, TaskType, WorkType
 from db.schema import t_database_settings
 
 
@@ -19,6 +19,13 @@ models = [
 	TaskType(name=TaskType.MARKUP),
 	TaskType(name=TaskType.TRANSCRIPTION),
 	TaskType(name=TaskType.AUDIO_CHECKING),
+
+	# work types
+	WorkType(name=WorkType.WORK, modifies_transcription=True),
+	WorkType(name=WorkType.QA, modifies_transcription=False),
+	WorkType(name=WorkType.REWORK, modifies_transcription=True),
+	WorkType(name=WorkType.SECOND_PASS_WORK, modifies_transcription=True),
+	WorkType(name=WorkType.SECOND_PASS_REWORK, modifies_transcription=True),
 ]
 
 
