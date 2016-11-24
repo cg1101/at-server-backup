@@ -1402,7 +1402,7 @@ def get_task_work_queues(taskId):
 	elif not [x for x in task.supervisors if x.receivesFeedback]:
 		# no supervisors that receives feedback
 		pass
-	else:	
+	else:
 		me = session['current_user']
 		candidates = m.SubTask.query.filter(m.SubTask.subTaskId.in_(
 			SS.query(m.TaskWorker.subTaskId
@@ -1536,7 +1536,7 @@ def create_recording_platform(task):
 			RecordingPlatform.is_valid_master_file,
 		]),
 	).get_data()
-	
+
 	recording_platform = RecordingPlatform(
 		task=task,
 		recording_platform_type_id=data["recordingPlatformTypeId"],
@@ -1654,7 +1654,7 @@ def get_import_config(task):
 @api
 @get_model(Task)
 def import_performance(task):
-	
+
 	if not task.is_type(TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("import performance only available for audio checking tasks", 400)
 
@@ -1669,7 +1669,7 @@ def import_performance(task):
 @api
 @get_model(Task)
 def get_transitions(task):
-	
+
 	if not task.is_type(TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("sub task transitions only available for audio checking tasks", 400)
 
@@ -1680,7 +1680,7 @@ def get_transitions(task):
 @api
 @get_model(Task)
 def create_transition(task):
-	
+
 	if not task.is_type(TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("sub task transitions only available for audio checking tasks", 400)
 
@@ -1710,7 +1710,7 @@ def create_transition(task):
 	)
 	if existing.count():
 		raise InvalidUsage("transition already exists", 400)
-		
+
 	transition = Transition(
 		task=task,
 		source_id=data["sourceId"],

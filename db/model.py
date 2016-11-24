@@ -1333,7 +1333,7 @@ class Task(Base, ModelMixin):
 	task_type = synonym("taskType")
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
-	
+
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
@@ -1345,7 +1345,7 @@ class Task(Base, ModelMixin):
 	def importable(self):
 		if not self.is_type(TaskType.AUDIO_CHECKING):
 			raise RuntimeError
-		
+
 		return bool(self.importable_recording_platforms)
 
 	@property
@@ -1361,7 +1361,7 @@ class Task(Base, ModelMixin):
 		a single Work sub task.
 		"""
 		work_type = WorkType.from_name(WorkType.WORK)
-		
+
 		try:
 			sub_task = SubTask.query.filter_by(
 				task=self,
@@ -1374,14 +1374,14 @@ class Task(Base, ModelMixin):
 
 	def import_data(self, data):
 		"""
-		Imports audio data to associated recording 
-		platforms. If importing for an existing 
+		Imports audio data to associated recording
+		platforms. If importing for an existing
 		performance, returns the Performance object,
 		with newly added data. If importing for a
 		new Performance, returns the Batch object
 		containing the new performance.
 		"""
-		
+
 		if not self.is_type(TaskType.AUDIO_CHECKING):
 			raise RuntimeError
 
@@ -1389,13 +1389,13 @@ class Task(Base, ModelMixin):
 		validate_import_performance_data(data)
 		recording_platform_id = data["recordingPlatformId"]
 		recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
+
 		if not recording_platform:
 			raise ValueError("unknown recording platform: {0}".format(recording_platform_id))
 
 		if recording_platform.task_id != self.task_id:
 			raise ValueError("invalid recording platform ({0}) for task {1}".format(recording_platform_id, self.task_id))
-	
+
 		# if adding new data to an existing performance
 		if data["rawPieceId"]:
 			performance = Performance.query.get(data["rawPieceId"])
@@ -1408,13 +1408,13 @@ class Task(Base, ModelMixin):
 
 		# adding a new performance
 		else:
-			
+
 			# get import sub task
 			sub_task = self.get_import_sub_task()
-			
+
 			# create performance
 			performance = Performance.from_import(data, recording_platform)
-			
+
 			# add batch to import sub task
 			from app.util import Batcher
 			batches = Batcher.batch(sub_task, [performance])
@@ -2023,7 +2023,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 		Adds data for the performance from
 		audio import.
 		"""
-		
+
 		# add new recordings
 		for recording_data in data["recordings"]:
 			recording = Recording.from_import(recording_data, self)
@@ -2388,7 +2388,7 @@ class RecordingFlagSchema(Schema):
 # Transition
 class Transition(Base, ModelMixin):
 	__table__ = t_transitions
-	
+
 	# relationships
 	task = relationship("Task", backref="transitions")
 	source = relationship("SubTask", foreign_keys=[t_transitions.c.sourceId])

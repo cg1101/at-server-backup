@@ -189,7 +189,7 @@ class validators:
 class SimpleValidators(object):
 
 	def is_number(self, max_value=None, min_value=None, le=None, lt=None, gt=None, ge=None):
-		
+
 		def validator(data, key, value):
 			if max_value is not None and value > max_value:
 				raise ValueError('value {0} must not be greater than {1}'.format(value, max_value))
@@ -212,7 +212,7 @@ class SimpleValidators(object):
 		return validator
 
 
-simple_validators = SimpleValidators()	
+simple_validators = SimpleValidators()
 
 
 class Field(object):
