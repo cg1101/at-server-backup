@@ -2,6 +2,7 @@
 
 import logging
 import datetime
+import time
 
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError
@@ -1040,6 +1041,9 @@ class RawPiece(Base, ModelMixin):
 	# relationships
 	task = relationship("Task")
 
+	# synonyms
+	assembly_context = synonym("assemblyContext")
+
 	__mapper_args__ = {
 		"polymorphic_identity": None,
 		"polymorphic_on": t_rawpieces.c.type
@@ -1328,6 +1332,7 @@ class Task(Base, ModelMixin):
 	task_id = synonym("taskId")
 	task_type = synonym("taskType")
 	archive_info = synonym("archiveInfo")
+	raw_pieces = synonym("rawPieces")
 	
 	@property
 	def displayName(self):
@@ -1349,6 +1354,23 @@ class Task(Base, ModelMixin):
 			raise RuntimeError
 
 		return [rp for rp in self.recording_platforms if rp.audio_importer]
+
+	def get_import_sub_task(self):
+		"""
+		Gets the import sub task. Expects
+		a single Work sub task.
+		"""
+		work_type = WorkType.from_name(WorkType.WORK)
+		
+		try:
+			sub_task = SubTask.query.filter_by(
+				task=self,
+				work_type_id=work_type.work_type_id,
+			).one()
+		except SQLAlchemyError:
+			raise RuntimeError("unable to find import sub task")
+
+		return sub_task
 
 	def import_data(self, data):
 		"""
@@ -1387,17 +1409,10 @@ class Task(Base, ModelMixin):
 		# adding a new performance
 		else:
 			
-			# find import sub task - expecting a single Work sub task
-			work_type = WorkType.from_name(WorkType.WORK)
-		
-			try:
-				sub_task = SubTask.query.filter_by(
-					task=recording_platform.task,
-					work_type_id=work_type.work_type_id,
-				).one()
-			except SQLAlchemyError:
-				raise RuntimeError("unable to find import sub task")
-
+			# get import sub task
+			sub_task = self.get_import_sub_task()
+			
+			# create performance
 			performance = Performance.from_import(data, recording_platform)
 			
 			# add batch to import sub task
@@ -2024,6 +2039,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 		# create performance
 		performance = cls(
 			task=recording_platform.task,
+			assembly_context="{0}_{1}".format(data["name"], int(time.time())),	# TODO shouldnt be required
 			recording_platform=recording_platform,
 			name=data["name"],
 			script_id=data["scriptId"],

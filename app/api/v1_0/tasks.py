@@ -1639,6 +1639,11 @@ def get_import_config(task):
 	if not task.importable:
 		raise InvalidUsage("cannot import audio for task {0}".format(task.task_id), 400)
 
+	try:
+		task.get_import_sub_task()
+	except RuntimeError:
+		raise InvalidUsage("unable to find import sub task", 400)
+
 	schema = ImportConfigSchema()
 	import_config = schema.dump(task).data
 
