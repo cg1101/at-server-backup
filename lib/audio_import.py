@@ -2,7 +2,6 @@ import jsonschema
 import os
 
 from marshmallow import Schema, fields
-from db.model import TrackSchema, CorpusCodeSchema, PerformanceMetaCategorySchema, ProjectSchema
 
 
 # for audio checking tasks
@@ -80,10 +79,28 @@ class ImportConfigSchema(Schema):
 	taskId = fields.Integer()
 	name = fields.String()
 	taskType = fields.String()
-	recordingPlatforms = fields.Nested("CustomRecordingPlatformSchema", attribute="importable_recording_platforms", many=True)
+	recordingPlatforms = fields.Nested("ImportRecordingPlatformSchema", attribute="importable_recording_platforms", many=True)
 
 
-class CustomRecordingPlatformSchema(Schema):
+class ImportTrackSchema(Schema):
+	track_id = fields.Integer(dump_to="trackId")
+	name = fields.String()
+	track_index = fields.Integer(dump_to="trackIndex")
+
+
+class ImportCorpusCodeSchema(Schema):
+	corpus_code_id = fields.Integer(dump_to="corpusCodeId")
+	code = fields.String()
+	is_scripted = fields.Boolean(dump_to="isScripted")
+	regex = fields.String()
+
+
+class ImportPerformanceMetaCategorySchema(Schema):
+	performance_meta_category_id = fields.Integer(dump_to="performanceMetaCategoryId")
+	extractor = fields.Dict()
+
+
+class ImportRecordingPlatformSchema(Schema):
 	recordingPlatformId = fields.Integer()
 	storageLocation = fields.String()
 	masterHypothesisFile = fields.Dict()
@@ -92,23 +109,9 @@ class CustomRecordingPlatformSchema(Schema):
 	config = fields.Dict()
 	completedPerformances = fields.Method("get_completed_performances")
 	incompletePerformances = fields.Method("get_incomplete_performances")
-	tracks = fields.Nested(
-		TrackSchema,
-		many=True,
-		only=("trackId", "name", "trackIndex")
-	)
-	corpusCodes = fields.Nested(
-		CorpusCodeSchema,
-		attribute="corpus_codes",
-		many=True,
-		only=("corpusCodeId", "code", "isScripted", "regex")
-	)
-	performanceMetaCategories = fields.Nested(
-		PerformanceMetaCategorySchema,
-		attribute="importable_performance_meta_categories",
-		many=True,
-		only=("performanceMetaCategoryId", "extractor")
-	)
+	tracks = fields.Nested(ImportTrackSchema, many=True)
+	corpus_codes = fields.Nested(ImportCorpusCodeSchema, many=True, dump_to="corpusCodes")
+	importable_performance_meta_categories = fields.Nested(ImportPerformanceMetaCategorySchema, many=True, dump_to="performanceMetaCategories")
 
 	def get_completed_performances(self, obj):
 		"""

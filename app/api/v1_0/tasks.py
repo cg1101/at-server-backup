@@ -22,7 +22,7 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validator
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
-from lib.audio_import import ImportConfigSchema, validate_import_performance_data
+from lib.audio_import import ImportConfigSchema
 
 
 log = logging.getLogger(__name__)
@@ -1654,18 +1654,8 @@ def import_performance(task):
 		raise InvalidUsage("import performance only available for audio checking tasks", 400)
 
 	data = request.json
-	validate_import_performance_data(data)
-	recording_platform_id = data["recordingPlatformId"]
-	recording_platform = RecordingPlatform.query.get(recording_platform_id)
-	
-	if not recording_platform:
-		raise InvalidUsage("unknown recording platform: {0}".format(recording_platform_id))
-
-	if recording_platform.task_id != task.task_id:
-		raise InvalidUsage("invalid recording platform ({0}) for task {1}".format(recording_platform_id, task.task_id))
-		
-	performance = Performance.from_import(data, recording_platform)
-	db.session.add(performance)
+	import_model = task.import_data(data)
+	db.session.add(import_model)
 	db.session.commit()
 	return jsonify(success=True)
 

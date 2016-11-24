@@ -4,6 +4,7 @@ import logging
 import datetime
 
 from functools import wraps
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -16,6 +17,7 @@ import pytz
 from . import database, mode
 from .db import SS
 from lib import DurationField, utcnow
+from lib.audio_import import validate_import_performance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *
 
@@ -302,6 +304,11 @@ class WorkType(Base):
 
 	# synonyms
 	modifies_transcription = synonym("modifiesTranscription")
+	work_type_id = synonym("workTypeId")
+
+	@classmethod
+	def from_name(cls, name):
+		return cls.query.filter_by(name=name).one()
 
 
 class WorkTypeSchema(Schema):
@@ -1089,6 +1096,7 @@ class SubTask(Base, ModelMixin):
 
 	# synonyms
 	task_id = synonym("taskId")
+	work_type_id = synonym("workTypeId")
 
 	@property
 	def currentRate(self):
@@ -1341,6 +1349,63 @@ class Task(Base, ModelMixin):
 			raise RuntimeError
 
 		return [rp for rp in self.recording_platforms if rp.audio_importer]
+
+	def import_data(self, data):
+		"""
+		Imports audio data to associated recording 
+		platforms. If importing for an existing 
+		performance, returns the Performance object,
+		with newly added data. If importing for a
+		new Performance, returns the Batch object
+		containing the new performance.
+		"""
+		
+		if not self.is_type(TaskType.AUDIO_CHECKING):
+			raise RuntimeError
+
+		# validate import data
+		validate_import_performance_data(data)
+		recording_platform_id = data["recordingPlatformId"]
+		recording_platform = RecordingPlatform.query.get(recording_platform_id)
+	
+		if not recording_platform:
+			raise ValueError("unknown recording platform: {0}".format(recording_platform_id))
+
+		if recording_platform.task_id != self.task_id:
+			raise ValueError("invalid recording platform ({0}) for task {1}".format(recording_platform_id, self.task_id))
+	
+		# if adding new data to an existing performance
+		if data["rawPieceId"]:
+			performance = Performance.query.get(data["rawPieceId"])
+
+			if performance.recording_platform != recording_platform:
+				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, recording_platform.record_platform_id))
+
+			performance.import_data(data)
+			return performance
+
+		# adding a new performance
+		else:
+			
+			# find import sub task - expecting a single Work sub task
+			work_type = WorkType.from_name(WorkType.WORK)
+		
+			try:
+				sub_task = SubTask.query.filter_by(
+					task=recording_platform.task,
+					work_type_id=work_type.work_type_id,
+				).one()
+			except SQLAlchemyError:
+				raise RuntimeError("unable to find import sub task")
+
+			performance = Performance.from_import(data, recording_platform)
+			
+			# add batch to import sub task
+			from app.util import Batcher
+			batches = Batcher.batch(sub_task, [performance])
+			assert len(batches) == 1
+			return batches[0]
+
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -1938,34 +2003,39 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 		"""
 		return False  # FIXME
 
-	@classmethod
-	def from_import(cls, data, recording_platform):
-
-		# if adding new data to an existing performance
-		if data["rawPieceId"]:
-			performance = cls.query.get(data["rawPieceId"])
-
-			if performance.recording_platform != recording_platform:
-				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, recording_platform.record_platform_id))
-
-		# adding a new performance
-		else:
-			performance = cls(
-				task=recording_platform.task,
-				recording_platform=recording_platform,
-				name=data["name"],
-				script_id=data["scriptId"],
-				imported_at=utcnow()
-			)
-
-			meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
-			resolve_new_metadata(performance, meta_values)
-
+	def import_data(self, data):
+		"""
+		Adds data for the performance from
+		audio import.
+		"""
+		
 		# add new recordings
 		for recording_data in data["recordings"]:
-			recording = Recording.from_import(recording_data, performance)
-			performance.recordings.append(recording)
+			recording = Recording.from_import(recording_data, self)
+			self.recordings.append(recording)
 
+	@classmethod
+	def from_import(cls, data, recording_platform):
+		"""
+		Creates a new performance during audio
+		import.
+		"""
+
+		# create performance
+		performance = cls(
+			task=recording_platform.task,
+			recording_platform=recording_platform,
+			name=data["name"],
+			script_id=data["scriptId"],
+			imported_at=utcnow()
+		)
+
+		# add metadata
+		meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
+		resolve_new_metadata(performance, meta_values)
+
+		# add import data
+		performance.import_data(data)
 		return performance
 
 
