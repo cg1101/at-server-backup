@@ -76,10 +76,10 @@ PERFORMANCE_DATA_SCHEMA = {
 
 
 class ImportConfigSchema(Schema):
-	taskId = fields.Integer()
+	task_id = fields.Integer(dump_to="taskId")
 	name = fields.String()
-	taskType = fields.String()
-	recordingPlatforms = fields.Nested("ImportRecordingPlatformSchema", attribute="importable_recording_platforms", many=True)
+	task_type = fields.String(dump_to="taskType")
+	importable_recording_platforms = fields.Nested("ImportRecordingPlatformSchema", dump_to="recordingPlatforms", many=True)
 
 
 class ImportTrackSchema(Schema):
@@ -101,14 +101,14 @@ class ImportPerformanceMetaCategorySchema(Schema):
 
 
 class ImportRecordingPlatformSchema(Schema):
-	recordingPlatformId = fields.Integer()
-	storageLocation = fields.String()
-	masterHypothesisFile = fields.Dict()
-	masterScriptFile = fields.Dict()
+	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
+	storage_location = fields.String(dump_to="storageLocation")
+	master_hypothesis_file = fields.Dict(dump_to="masterHypothesisFile")
+	master_script_file = fields.Dict(dump_to="masterScriptFile")
 	importer = fields.Function(lambda obj: obj.audio_importer.name)
 	config = fields.Dict()
-	completedPerformances = fields.Method("get_completed_performances")
-	incompletePerformances = fields.Method("get_incomplete_performances")
+	completed_performances = fields.Method("get_completed_performances", dump_to="completedPerformances")
+	incomplete_performances = fields.Method("get_incomplete_performances", dump_to="incompletePerformances")
 	tracks = fields.Nested(ImportTrackSchema, many=True)
 	corpus_codes = fields.Nested(ImportCorpusCodeSchema, many=True, dump_to="corpusCodes")
 	importable_performance_meta_categories = fields.Nested(ImportPerformanceMetaCategorySchema, many=True, dump_to="performanceMetaCategories")
