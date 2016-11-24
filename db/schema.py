@@ -839,7 +839,7 @@ Index('pagesbybatchid', t_pages.c.batchId, unique=False)
 t_rawpieces =  Table('rawpieces', metadata,
 	Column(u'rawpieceid', INTEGER, primary_key=True, nullable=False, key=u'rawPieceId', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
-	Column(u'rawtext', TEXT, nullable=False, key=u'rawText', doc=''),
+	Column(u'rawtext', TEXT, key=u'rawText', doc=''),
 	Column(u'assemblycontext', TEXT, nullable=False, server_default=text(u"''::text"), key=u'assemblyContext', doc=''),
 	Column(u'allocationcontext', TEXT, nullable=False, server_default=text(u"''::text"), key=u'allocationContext', doc=''),
 	Column(u'meta', TEXT, key=u'meta', doc=''),
@@ -847,7 +847,8 @@ t_rawpieces =  Table('rawpieces', metadata,
 	Column(u'hypothesis', TEXT, key=u'hypothesis', doc=''),
 	Column(u'words', INTEGER, server_default=text(u'0'), key=u'words', doc=''),
 	Column(u'groupid', INTEGER, key=u'groupId', doc=''),
-	Column(u'loadid', INTEGER, nullable=False, key=u'loadId', doc=''),
+	Column(u'loadid', INTEGER, key=u'loadId', doc=''),
+	Column("type", TEXT, key="type", doc=""),
 	# UniqueConstraint(u'taskId', u'assemblyContext'),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 	ForeignKeyConstraint([u'groupId'], [u'postprocessingutterancegroups.groupId']),
@@ -1193,21 +1194,21 @@ Index("audio_files_by_recording_id", t_audio_files.c.recordingId, unique=False)
 t_recordings = Table("recordings", metadata,
 	Column("recording_id", INTEGER, primary_key=True, key="recordingId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
-	Column("performance_id", INTEGER, nullable=False, key="performanceId", doc=""),
+	Column("rawpieceid", INTEGER, nullable=False, key="rawPieceId", doc=""),
 	Column("corpus_code_id", INTEGER, nullable=False, key="corpusCodeId", doc=""),
 	Column("duration", INTERVAL, nullable=False, key="duration", doc=""),
 	Column("prompt", TEXT, key="prompt", doc=""),
 	Column("hypothesis", TEXT, key="hypothesis", doc=""),
-	ForeignKeyConstraint(["performanceId"], ["performances.performanceId"]),
+	ForeignKeyConstraint(["rawPieceId"], ["performances.rawPieceId"]),
 	ForeignKeyConstraint(["corpusCodeId"], ["corpus_codes.corpusCodeId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 )
 Index("recordings_by_recording_platform_id", t_recordings.c.recordingPlatformId, unique=False)
-Index("recordings_by_performance_id", t_recordings.c.performanceId, unique=False)
+Index("recordings_by_rawpieceid", t_recordings.c.rawPieceId, unique=False)
 
 
 t_performances = Table("performances", metadata,
-	Column("performance_id", INTEGER, primary_key=True, key="performanceId", doc=""),
+	Column("rawpieceid", INTEGER, primary_key=True, key="rawPieceId", doc=""),
 	Column("album_id", INTEGER, key="albumId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("script_id", TEXT, key="scriptId", doc=""),
@@ -1215,6 +1216,7 @@ t_performances = Table("performances", metadata,
 	Column("data", JSONB, key="data", doc=""),
 	Column("key", VARCHAR(8), key="key", doc=""),
 	Column("imported_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="importedAt", doc=""),
+	ForeignKeyConstraint(["rawPieceId"], ["rawpieces.rawPieceId"]),
 	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
 )
@@ -1332,14 +1334,14 @@ Index("performance_meta_categories_by_recording_platform_id", t_performance_meta
 t_performance_meta_values = Table("performance_meta_values", metadata,
 	Column("performance_meta_value_id", INTEGER, primary_key=True, key="performanceMetaValueId", doc=""),
 	Column("performance_meta_category_id", INTEGER, nullable=False, key="performanceMetaCategoryId", doc=""),
-	Column("performance_id", INTEGER, nullable=False, key="performanceId", doc=""),
+	Column("rawpieceid", INTEGER, nullable=False, key="rawPieceId", doc=""),
 	Column("value", JSONB, nullable=False, key="value", doc=""),
 	ForeignKeyConstraint(["performanceMetaCategoryId"], ["performance_meta_categories.performanceMetaCategoryId"]),
-	ForeignKeyConstraint(["performanceId"], ["performances.performanceId"]),
-	UniqueConstraint("performanceMetaCategoryId", "performanceId"),
+	ForeignKeyConstraint(["rawPieceId"], ["performances.rawPieceId"]),
+	UniqueConstraint("performanceMetaCategoryId", "rawPieceId"),
 )
 Index("performance_meta_values_by_performance_meta_category_id", t_performance_meta_values.c.performanceMetaCategoryId, unique=False)
-Index("performance_meta_values_by_performance_id", t_performance_meta_values.c.performanceId, unique=False)
+Index("performance_meta_values_by_rawpieceid", t_performance_meta_values.c.rawPieceId, unique=False)
 
 
 t_recording_meta_categories = Table("recording_meta_categories", metadata,

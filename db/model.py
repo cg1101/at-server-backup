@@ -1027,8 +1027,16 @@ class RatePointSchema(Schema):
 		fields = ('value', 'accuracy')
 
 # RawPiece
-class RawPiece(Base):
+class RawPiece(Base, ModelMixin):
 	__table__ = t_rawpieces
+
+	# relationships
+	task = relationship("Task")
+
+	__mapper_args__ = {
+		"polymorphic_identity": None,
+		"polymorphic_on": t_rawpieces.c.type
+	}
 
 class RawPieceSchema(Schema):
 	class Meta:
@@ -1892,15 +1900,15 @@ class PerformanceMetaValue(Base, MetaValueMixin):
 	# synonyms
 	performance_meta_value_id = synonym("performanceMetaValueId")
 	performance_meta_category_id = synonym("performanceMetaCategoryId")
-	performance_id = synonym("performanceId")
+	raw_piece_id = synonym("rawPieceId")
 
 
 class PerformanceMetaValueSchema(Schema):
 	class Meta:
-		fields = ("performanceMetaValueId", "performanceId", "performanceMetaCategoryId", "value")
+		fields = ("performanceMetaValueId", "rawPieceId", "performanceMetaCategoryId", "value")
 
 # Performance
-class Performance(Base, ImportMixin, MetaEntityMixin):
+class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	__table__ = t_performances
 
 	# relationships
@@ -1908,13 +1916,17 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 	recording_platform = relationship("RecordingPlatform", backref="performances")
 
 	# synonyms
-	performance_id = synonym("performanceId")
+	raw_piece_id = synonym("rawPieceId")
 	album_id = synonym("albumId")
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
 	imported_at = synonym("importedAt")
 
 	MetaValueModel = PerformanceMetaValue
+
+	__mapper_args__ = {
+		"polymorphic_identity": "performance",
+	}
 
 	@property
 	def incomplete(self):
@@ -1930,15 +1942,16 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 	def from_import(cls, data, recording_platform):
 
 		# if adding new data to an existing performance
-		if data["performanceId"]:
-			performance = cls.query.get(data["performanceId"])
+		if data["rawPieceId"]:
+			performance = cls.query.get(data["rawPieceId"])
 
 			if performance.recording_platform != recording_platform:
-				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.performance_id, recording_platform.record_platform_id))
+				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, recording_platform.record_platform_id))
 
 		# adding a new performance
 		else:
 			performance = cls(
+				task=recording_platform.task,
 				recording_platform=recording_platform,
 				name=data["name"],
 				script_id=data["scriptId"],
@@ -1958,7 +1971,7 @@ class Performance(Base, ImportMixin, MetaEntityMixin):
 
 class PerformanceSchema(Schema):
 	class Meta:
-		fields = ("performanceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
+		fields = ("rawPieceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
@@ -1998,7 +2011,7 @@ class Recording(Base, ImportMixin):
 
 	# synonyms
 	recording_id = synonym("recordingId")
-	performance_id = synonym("performanceId")
+	raw_piece_id = synonym("rawPieceId")
 	corpus_code_id = synonym("corpusCodeId")
 
 	@classmethod
@@ -2028,7 +2041,7 @@ class RecordingSchema(Schema):
 	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
 	duration = DurationField()
 	class Meta:
-		additional = ("recordingId", "performanceId", "prompt", "hypothesis")
+		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis")
 
 # CorpusCode
 class CorpusCode(Base, ModelMixin):

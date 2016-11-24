@@ -11,7 +11,7 @@ from lib.metadata_validation import process_received_metadata, resolve_new_metad
 log = logging.getLogger(__name__)
 
 
-@bp.route("performances/<int:performance_id>", methods=["GET"])
+@bp.route("performances/<int:raw_piece_id>", methods=["GET"])
 @api
 @caps()
 @get_model(Performance)
@@ -19,7 +19,7 @@ def get_performance(performance):
 	return jsonify(performance=Performance.dump(performance))
 
 
-@bp.route("performances/<int:performance_id>/recordings", methods=["GET"])
+@bp.route("performances/<int:raw_piece_id>/recordings", methods=["GET"])
 @api
 @caps()
 @get_model(Performance)
@@ -27,7 +27,7 @@ def get_performance_recordings(performance):
 	return jsonify(recordings=Recording.dump(performance.recordings))
 	
 	
-@bp.route("performances/<int:performance_id>/metavalues", methods=["GET"])
+@bp.route("performances/<int:raw_piece_id>/metavalues", methods=["GET"])
 @api
 @caps()
 @get_model(Performance)
@@ -35,7 +35,7 @@ def get_performance_meta_values(performance):
 	return jsonify({"metaValues": PerformanceMetaValue.dump(performance.meta_values)})
 
 
-@bp.route("performances/<int:performance_id>/metavalues", methods=["PUT"])
+@bp.route("performances/<int:raw_piece_id>/metavalues", methods=["PUT"])
 @api
 @caps()
 @get_model(Performance)

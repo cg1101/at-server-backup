@@ -8,12 +8,12 @@ from db.model import TrackSchema, CorpusCodeSchema, PerformanceMetaCategorySchem
 # for audio checking tasks
 PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
-	"required": ["recordingPlatformId", "performanceId", "name", "scriptId", "recordings", "metadata"],
+	"required": ["recordingPlatformId", "rawPieceId", "name", "scriptId", "recordings", "metadata"],
 	"properties": {
 		"recordingPlatformId": {
 			"type": "integer"
 		},
-		"performanceId": {
+		"rawPieceId": {
 			"type": ["integer", "null"]
 		},
 		"name": {
@@ -129,7 +129,7 @@ class CustomRecordingPlatformSchema(Schema):
 		Example:
 		[
 			{
-				"performanceId": 1,
+				"rawPieceId": 1,
 				"name": "ExamplePerformance",
 				"existingFiles": [
 					"/path/to/audio/file/1",
@@ -155,7 +155,7 @@ class CustomRecordingPlatformSchema(Schema):
 						existing_files.append(audio_file.file_path)
 
 				incomplete.append({
-					"performanceId": performance.performance_id,
+					"rawPieceId": performance.raw_piece_id,
 					"name": performance.name,
 					"existingFiles": existing_files,
 				})
