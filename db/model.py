@@ -615,7 +615,13 @@ class PageMember(Base):
 		'polymorphic_on': j_pagemembers.c.workType,
 		'polymorphic_identity': 'generic',
 	}
+
+	# synonyms
+	raw_piece_id = synonym("rawPieceId")
+
+	# relationships
 	batch = relationship('Batch', primaryjoin='PageMember.batchId==Batch.batchId', foreign_keys='Batch.batchId', uselist=False)
+	sub_task = relationship("SubTask", primaryjoin="PageMember.subTaskId==SubTask.subTaskId", foreign_keys="SubTask.subTaskId", uselist=False)
 
 class PageMemberSchema(Schema):
 	pageId = fields.Integer()
@@ -2009,6 +2015,11 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	}
 
 	@property
+	def sub_task(self):
+		page_member = PageMember.query.filter_by(raw_piece_id=self.raw_piece_id).one()
+		return page_member.sub_task
+
+	@property
 	def incomplete(self):
 		"""
 		Placeholder for audio loading. To be
@@ -2056,8 +2067,10 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 
 
 class PerformanceSchema(Schema):
+	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
+
 	class Meta:
-		fields = ("rawPieceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
+		additional = ("rawPieceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
