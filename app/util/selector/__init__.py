@@ -451,7 +451,7 @@ def filter_qa_severity(task, isMoreThan, score, isCorrect):
 		score = float(score)
 	except:
 		raise ValueError(_('invalid score value: {}').format(score))
-	
+
 	if isMoreThan:
 		if isCorrect:
 			predicate = lambda qaErrorSum: qaErrorSum == None or (1 - qaErrorSum) > score
@@ -559,7 +559,7 @@ def filter_custom_group(task, groupId):
 		).distinct(m.CustomUtteranceGroupMember.rawPieceId
 		).join(m.CustomUtteranceGroup
 		).filter(m.CustomUtteranceGroup.taskId==task.taskId)
-	
+
 	if groupId == MyFilter.ANY:
 		pass
 	else:
@@ -625,7 +625,7 @@ def filter_sub_task_batching(task, subTaskId):
 			subTaskId = int(subTaskId)
 		except:
 			raise ValueError(_('invalid sub task id'.format(subTaskId)))
-		
+
 		subTask = m.SubTask.query.get(subTaskId)
 		if not subTask or subTaskId != task.taskId:
 			return set()
