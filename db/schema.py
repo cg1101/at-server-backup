@@ -799,6 +799,7 @@ t_abnormalusage =  Table('abnormalusage', metadata,
 	ForeignKeyConstraint([u'tagId'], [u'tags.tagId']),
 	CheckConstraint('tagid IS NOT NULL AND labelid IS NULL OR tagid IS NULL AND labelid IS NOT NULL'),
 	CheckConstraint('degree <> 0'),
+	PrimaryKeyConstraint(u'metricId', u'tagId', u'labelId'),
 )
 Index('abnormalusagebymetricid', t_abnormalusage.c.metricId, unique=False)
 

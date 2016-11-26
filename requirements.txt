@@ -16,6 +16,7 @@ Mako==1.0.4
 MarkupSafe==0.23
 marshmallow==2.7.3
 M2Crypto>=0.25.1
+numpy>=1.11.1
 Pillow==3.4.1
 psycopg2==2.6.1
 pycrypto==2.6.1
