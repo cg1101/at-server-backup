@@ -1367,7 +1367,7 @@ def get_task_warnings(taskId):
 	root = '/audio2/AppenText'
 	path = os.path.join(root, 'instructions', str(taskId))
 	if not os.path.exists(path):
-		warnings.non_critical(_('The default instructions directory for this task doesn\'t exists.'))
+		warnings.non_critical(_('The default instructions directory for this task doesn\'t exist.'))
 
 	subTaskNames = [subTask.name for subTask in
 			filter(lambda x: x.workType == m.WorkType.WORK, task.subTasks)
