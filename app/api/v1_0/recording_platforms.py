@@ -6,7 +6,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators, validators
 from db import database as db
-from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
+from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, Performance, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.AmrConfigFile import AmrConfigFile
 from lib.audio_cutup import validate_audio_cutup_config
 from lib.metadata_validation import MetaValidator
@@ -365,3 +365,11 @@ def include_spontaneous_corpus_codes(recording_platform):
 	db.session.commit()
 
 	return jsonify(success=True)
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/performances", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_performances(recording_platform):
+	return jsonify(performances=Performance.dump(recording_platform.performances))

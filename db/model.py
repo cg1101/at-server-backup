@@ -2070,7 +2070,7 @@ class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
 
 	class Meta:
-		additional = ("rawPieceId", "albumId", "recordingPlatformId", "scriptId", "key", "importedAt")
+		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
