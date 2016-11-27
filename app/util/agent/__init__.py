@@ -3,9 +3,12 @@ import functools
 import json
 import os
 import hashlib
+import random
+import string
 
 import requests
 import jmespath
+from lxml import etree
 
 import db.model as m
 
@@ -34,7 +37,8 @@ class AppAgent(object):
 				canonical_string = url + self.secret
 				api_token = hashlib.md5(canonical_string).hexdigest()
 				try:
-					resp = requests.get(url, headers={'authorization': api_token})
+					resp = requests.get(url, headers={'authorization':
+						api_token})
 					if resp.status_code != 200:
 						resp.raise_for_status()
 					result = JsonObject.load(resp.text)
@@ -42,7 +46,8 @@ class AppAgent(object):
 						try:
 							result = jmespath.search(query, result)
 						except:
-							raise RuntimeError('error getting {} from {}'.format(query, resp.text))
+							raise RuntimeError('error getting {} from {}'.\
+								format(query, resp.text))
 				except requests.exceptions.ConnectionError, e:
 					raise RuntimeError('connection error: {}'.format(e))
 				except requests.exceptions.HTTPError, e:
@@ -52,7 +57,8 @@ class AppAgent(object):
 				except requests.exceptions.TooManyRedirects, e:
 					raise RuntimeError('too many redirects: {}'.format(e))
 				except requests.exceptions.RequestException, e:
-					raise RuntimeError('other request exception: {}'.format(e))
+					raise RuntimeError('other request exception: {}'.\
+						format(e))
 				return result
 			return decorated
 		return customized_decorator
@@ -193,7 +199,8 @@ class PdbAgent(object):
 		if self.token:
 			server_path = '/api/v1/projects/{}'.format(projectId)
 			url = os.path.join(self.url_root, server_path.lstrip('/'))
-			resp = requests.get(url, headers={'Authorization': self.token['accessToken']})
+			resp = requests.get(url, headers={'Authorization':
+				self.token['accessToken']})
 			if resp.status_code == 200:
 				data = resp.json()
 				return data['result']
@@ -203,13 +210,78 @@ class PdbAgent(object):
 		if self.token:
 			server_path = '/api/v1/tasks/{}'.format(taskId)
 			url = os.path.join(self.url_root, server_path.lstrip('/'))
-			resp = requests.get(url, headers={'Authorization': self.token['accessToken']})
+			resp = requests.get(url, headers={'Authorization':
+				self.token['accessToken']})
 			if resp.status_code == 200:
 				data = resp.json()
 				return data['result']
+
+
+class AppenOnlineAgent(object):
+	PAYROLL_ATTR_MAP = {
+		'status': 'status',
+		'startdate': 'startDate',
+		'enddate': 'endDate',
+		'opened': 'opened',
+		'migrated': 'migrated',
+		'processing': 'processing',
+		'paid': 'paid',
+		'next': 'next',
+		'closed': 'closed',
+		'approved': 'approved',
+		'name': 'name',
+		'id': 'payrollId',
+	}
+	def __init__(self, url_root, api_secret):
+		self.url_root = url_root
+		self.api_secret = api_secret
+	@classmethod
+	def generate_salt(cls, length=5):
+		return ''.join(random.choice(string.printable)
+				for _ in xrange(length))
+	def generate_key(self, salt):
+		m = hashlib.sha512()
+		m.update(self.api_secret)
+		m.update(salt)
+		return m.hexdigest()
+	def generate_pair(self):
+		salt = self.generate_salt()
+		key = self.generate_key(salt)
+		return (salt, key)
+	def get_payroll(self):
+		url = os.path.join(self.url_root, 'get_payrolls')
+		salt, key = self.generate_pair()
+		resp = requests.get(url, params={'salt': salt,
+				'key': key, 'addPayroll': 'True'})
+		if resp.status_code != 200:
+			resp.raise_for_status()
+		try:
+			root = etree.XML(resp.text)
+			entry = root.xpath('entry')[0]
+			result = {}
+			for i in entry.xpath('data'):
+				name = i.attrib['name']
+				type_ = i.attrib['type']
+				key = self.PAYROLL_ATTR_MAP[name]
+				if type_ == 'boolean':
+					value = eval(i.attrib['value'])
+				elif type_ == 'integer':
+					value = int(i.attrib['value'])
+				elif type_ == 'string':
+					value = i.attrib['value']
+				elif type_ == 'NoneType':
+					assert i.attrib['value'] == ''
+					value = None
+				result[key] = value
+		except Exception, e:
+			print etree.tostring(i, encoding=unicode)
+			raise
+			raise RuntimeError('unable to decode response')
+		return result
 
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
 go = GoAgent(os.environ['GO_URL'], os.environ['APPEN_API_SECRET_KEY'])
 edm = EdmAgent(os.environ['EDM_URL'], os.environ['APPEN_API_SECRET_KEY'])
 pdb = PdbAgent(os.environ['PDB_API_URL'], os.environ['PDB_API_KEY'], os.environ['PDB_API_SECRET'])
+ao = AppenOnlineAgent(os.environ['AO_WEB_SERVICES_URL'], os.environ['AO_WEB_SERVICES_KEY'])

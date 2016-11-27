@@ -776,6 +776,9 @@ class PaymentTypeSchema(Schema):
 		fields = ('paymentTypeId', 'name', 'created')
 
 # Payroll
+class BasicPayroll(Base):
+	__table__ = t_payrolls
+
 class Payroll(Base):
 	__table__ = j_payrolls
 	payrollId = column_property(t_payrolls.c.payrollId, t_ao_payrolls.c.payrollId)

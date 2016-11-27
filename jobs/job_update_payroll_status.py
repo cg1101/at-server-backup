@@ -5,6 +5,7 @@ import traceback
 
 from db.db import SS
 import db.model as m
+from app.util.agent import ao
 
 
 log = logging.getLogger(__name__)
@@ -130,7 +131,12 @@ class SubTaskHelper(object):
 
 def update_payroll_status(task):
 	# TODO: query AO to get next payroll to use
-	payrollId = 168
+	payroll_data = ao.get_payroll()
+	payrollId = payroll_data['payrollId']
+	payroll = m.BasicPayroll.get(payrollId)
+	if not payroll:
+		payroll = m.BasicPayroll(payrollId=payrollId)
+		SS.add(payroll)
 	for subTask in task.subTasks:
 		SubTaskHelper(subTask.subTaskId).calculate_payment(payrollId)
 
