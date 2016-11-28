@@ -326,6 +326,10 @@ class Batch(Base):
 	task = relationship('Task')
 	subTask = relationship('SubTask')
 
+	# synonyms
+	sub_task = synonym("subTask")
+	sub_task_id = synonym("subTaskId")
+
 	@property
 	def isExpired(self):
 		if self.leaseExpires is None:
@@ -1105,6 +1109,7 @@ class SubTask(Base, ModelMixin):
 		uselist=False)
 
 	# synonyms
+	sub_task_id = synonym("subTaskId")
 	task_id = synonym("taskId")
 	work_type_id = synonym("workTypeId")
 
@@ -1116,7 +1121,7 @@ class SubTask(Base, ModelMixin):
 			).first()
 
 	@classmethod
-	def for_task(cls, task):
+	def for_task(cls, task_id):
 		"""
 		Returns a MyForm validator to check that
 		the sub task belongs to the given task.
@@ -1124,8 +1129,8 @@ class SubTask(Base, ModelMixin):
 		def validator(data, key, value):
 			sub_task = cls.query.get(value)
 
-			if sub_task.task_id != task.task_id:
-				raise ValueError("sub task {0} does not belong to task {1}".format(value, task.task_id))
+			if sub_task.task_id != task_id:
+				raise ValueError("sub task {0} does not belong to task {1}".format(value, task_id))
 
 		return validator
 
@@ -2015,9 +2020,13 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	}
 
 	@property
-	def sub_task(self):
+	def batch(self):
 		page_member = PageMember.query.filter_by(raw_piece_id=self.raw_piece_id).one()
-		return page_member.sub_task
+		return page_member.batch
+
+	@property
+	def sub_task(self):
+		return self.batch.sub_task
 
 	@property
 	def incomplete(self):
@@ -2404,7 +2413,7 @@ class Transition(Base, ModelMixin):
 
 	# relationships
 	task = relationship("Task", backref="transitions")
-	source = relationship("SubTask", foreign_keys=[t_transitions.c.sourceId])
+	source = relationship("SubTask", foreign_keys=[t_transitions.c.sourceId], backref="transitions")
 	destination = relationship("SubTask", foreign_keys=[t_transitions.c.destinationId])
 
 	# synonyms
@@ -2413,9 +2422,28 @@ class Transition(Base, ModelMixin):
 	source_id = synonym("sourceId")
 	destination_id = synonym("destinationId")
 
+	@classmethod
+	def is_valid_destination(cls, source_id):
+		"""
+		Returns a MyForm validator to check that
+		a transition from the source to the 
+		destination is valid.
+		"""
+		def validator(data, key, value):
+			count = cls.query.filter_by(
+				source_id=source_id,
+				destination_id=value,
+			).count()
+
+			if not count:
+				raise ValueError("transition between sub task {0} and sub task {1} is not valid".format(source_id, value))
+
+		return validator
+
+
 class TransitionSchema(Schema):
-	source = fields.Nested("SubTaskSchema")
-	destination = fields.Nested("SubTaskSchema")
+	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
+	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
 
 	class Meta:
 		additional = ("transitionId", "taskId")

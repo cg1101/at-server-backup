@@ -5,7 +5,7 @@ from flask import jsonify, request
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import Performance, PerformanceMetaValue, Recording
+from db.model import Performance, PerformanceMetaValue, Recording, SubTask, Transition
 from lib.metadata_validation import process_received_metadata, resolve_new_metadata
 
 log = logging.getLogger(__name__)
@@ -44,3 +44,22 @@ def update_performance_meta_values(performance):
 	resolve_new_metadata(performance, meta_values)
 	db.session.flush()
 	return jsonify({"metaValues": PerformanceMetaValue.dump(performance.meta_values)})
+
+
+@bp.route("performances/<int:raw_piece_id>/move", methods=["PUT"])
+@api
+@caps()
+@get_model(Performance)
+def move_performance(performance):
+	data = MyForm(
+		Field('subTaskId', is_mandatory=True,
+			validators=[
+				SubTask.check_exists,
+				SubTask.for_task(performance.sub_task.task.task_id),
+				Transition.is_valid_destination(performance.sub_task.sub_task_id),
+		]),
+	).get_data()
+
+	performance.batch.sub_task_id = data["subTaskId"]
+	db.session.flush()
+	return jsonify(performance=Performance.dump(performance))

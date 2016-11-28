@@ -1689,13 +1689,13 @@ def create_transition(task):
 			validators=[
 				validators.is_number,
 				SubTask.check_exists,
-				SubTask.for_task(task),
+				SubTask.for_task(task.task_id),
 		]),
 		Field('destinationId', is_mandatory=True,
 			validators=[
 				validators.is_number,
 				SubTask.check_exists,
-				SubTask.for_task(task),
+				SubTask.for_task(task.task_id),
 		]),
 	).get_data()
 

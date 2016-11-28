@@ -8,7 +8,8 @@ import pytz
 
 import db.model as m
 from db.db import SS
-from app.api import api, caps, MyForm, Field, validators
+from db.model import SubTask, Transition
+from app.api import api, caps, MyForm, Field, validators, get_model
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Warnings
@@ -680,3 +681,11 @@ def update_sub_task_worker_settings(subTaskId, userId):
 		'worker': m.TaskWorker.dump(worker),
 	})
 
+
+# TODO check audio checking task
+@bp.route("subtasks/<int:sub_task_id>/transitions", methods=["GET"])
+@api
+@caps()
+@get_model(SubTask)
+def get_sub_task_transitions(sub_task):
+	return jsonify(transitions=Transition.dump(sub_task.transitions))
