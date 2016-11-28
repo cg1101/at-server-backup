@@ -38,7 +38,7 @@ class QaGenerator(object):
 		except ZeroDevisionError:
 			samples = 0
 		return int(samples)
-	
+
 	def iter_sub_tasks(self, taskId):
 		q = m.SubTask.query.\
 			filter(m.SubTask.taskId==taskId).\
@@ -103,7 +103,7 @@ class QaGenerator(object):
 		all_qaed = set([i.qaedEntryId for i in q_qaed.all()])
 
 		planned = all_planned & entryIds
-		qaed = all_qaed & entryIds		
+		qaed = all_qaed & entryIds
 
 		to_add = samples_needed - len(qaed) - len(planned)
 		if to_add <= 0:

@@ -5,6 +5,7 @@ import os
 import hashlib
 import random
 import string
+from collections import OrderedDict
 
 import requests
 import jmespath
@@ -251,7 +252,7 @@ class AppenOnlineAgent(object):
 	def get_payroll(self):
 		url = os.path.join(self.url_root, 'get_payrolls')
 		salt, key = self.generate_pair()
-		resp = requests.get(url, params={'salt': salt,
+		resp = requests.post(url, params={'salt': salt,
 				'key': key, 'addPayroll': 'True'})
 		if resp.status_code != 200:
 			resp.raise_for_status()
@@ -274,11 +275,83 @@ class AppenOnlineAgent(object):
 					value = None
 				result[key] = value
 		except Exception, e:
-			print etree.tostring(i, encoding=unicode)
-			raise
-			raise RuntimeError('unable to decode response')
+			raise RuntimeError('error decoding response: {}'.format(e))
 		return result
+	def send_payments(self, payments):
+		if not payments:
+			return
+		# TODO: move code that compiles link to somewhere more appropriate
+		app_root = os.environ['APP_ROOT_URL']
 
+		task_by_id = {}
+		for cp in payments:
+			task_by_id.setdefault(cp.taskId, m.Task.query.get(cp.taskId))
+
+		links = []
+		supervisors = []
+		for index, taskId in enumerate(sorted(task_by_id)):
+			task = task_by_id[taskId]
+			# TODO: use globalProjectId?
+			links.append((taskId, '%s/#/tasks/%s' % (app_root, taskId)))
+			for supervisor in task.supervisors:
+				supervisors.append((taskId, supervisor.userId))
+
+		data = OrderedDict()
+		for index, (taskId, link) in enumerate(links):
+			key = 'link_{}_{}'.format(taskId, index)
+			data[key] = link
+		for index, (taskId, userId) in enumerate(supervisors):
+			key = 'supervisor_{}_{}'.format(taskId, index)
+			data[key] = str(userId)
+		for index, cp in enumerate(payments):
+			p_item = cp.dump(cp, use='postage')
+			try:
+				assert p_item['units'] > 0
+			except:
+				raise RuntimeError('CalculatedPayment#{} has zero units')
+			for attr, value in p_item.iteritems():
+				key = 'payment_{}_{}'.format(attr, index)
+				data[key] = value
+
+		salt, key = self.generate_pair()
+
+		data['salt'] = salt
+		data['key'] = key
+		data['_system'] = 'GNX'
+
+		url = os.path.join(self.url_root, 'send_payments')
+		resp = requests.post(url, data=data)
+		if resp.status_code != 200:
+			resp.raise_for_status()
+		'''<root>
+			<entry><original>1000152</original><receipt>163990</receipt></entry>
+			<entry><original>1000153</original><receipt>163991</receipt></entry>
+			<entry><original>1000154</original><receipt>163992</receipt></entry>
+			<entry><original>1000155</original><receipt>163993</receipt></entry>
+			<entry><original>1000156</original><receipt>163994</receipt></entry>
+			<entry><original>1000157</original><receipt>163995</receipt></entry>
+			<entry><original>1000158</original><receipt>163996</receipt></entry>
+		</root>'''
+		try:
+			root = etree.XML(resp.text)
+			if root.tag == 'error':
+				raise RuntimeError('error: {}'.format(root.text))
+			receipt_entries = root.xpath('entry')
+			try:
+				assert len(receipt_entries)
+			except:
+				raise RuntimeError('invalid response returned from server')
+			receipts = {}
+			for entry in receipt_entries:
+				original, receipt = map(lambda x: int(x.text), entry)
+				assert original not in receipts
+				receipts[original] = receipt
+		except Exception, e:
+			raise RuntimeError('error decoding response:\n{}'.format(e))
+		return receipts
+
+
+assert os.environ['APP_ROOT_URL']
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
 go = GoAgent(os.environ['GO_URL'], os.environ['APPEN_API_SECRET_KEY'])
