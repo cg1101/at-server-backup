@@ -656,7 +656,7 @@ t_batches =  Table('batches', metadata,
 	Column(u'subtaskid', INTEGER, nullable=False, key=u'subTaskId', doc=''),
 	Column(u'userid', INTEGER, key=u'userId', doc=''),
 	Column(u'priority', INTEGER, nullable=False, server_default=text(u'5'), key=u'priority', doc=''),
-	Column(u'onhold', BOOLEAN, server_default=text(u'false'), key=u'onHold', doc=''),
+	Column(u'onhold', BOOLEAN, nullable=False, server_default=text(u'false'), key=u'onHold', doc=''),
 	Column(u'leasegranted', TIMESTAMP(timezone=True), key=u'leaseGranted', doc=''),
 	Column(u'leaseexpires', TIMESTAMP(timezone=True), key=u'leaseExpires', doc=''),
 	Column(u'notuserid', INTEGER, key=u'notUserId', doc=''),
@@ -799,6 +799,7 @@ t_abnormalusage =  Table('abnormalusage', metadata,
 	ForeignKeyConstraint([u'tagId'], [u'tags.tagId']),
 	CheckConstraint('tagid IS NOT NULL AND labelid IS NULL OR tagid IS NULL AND labelid IS NOT NULL'),
 	CheckConstraint('degree <> 0'),
+	PrimaryKeyConstraint(u'metricId', u'tagId', u'labelId'),
 )
 Index('abnormalusagebymetricid', t_abnormalusage.c.metricId, unique=False)
 

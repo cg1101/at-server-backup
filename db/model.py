@@ -358,45 +358,6 @@ class Batch(Base):
 					count += 1
 		return count
 
-	def expire(self):
-		"""
-		Expires the lease on the batch.
-		"""
-		if self.userId:
-			log.debug("revoking batch {0}, owned by {1}".format(self.batchId, self.userId))
-			self.log_event("revoked")
-			self.reset_ownership()
-			self.increase_priority()
-
-		else:
-			log.debug("batch {0} is not owned by anyone".format(self.batchId))
-
-	def reset_ownership(self):
-		"""
-		Resets the ownership of the batch.
-		"""
-		self.userId = None
-		self.leaseGranted = None
-		self.leaseExpires = None
-		self.checkedOut = False
-
-	def increase_priority(self, increase_by=1):
-		"""
-		Increases the batch priority.
-		"""
-		self.priority += increase_by
-
-	def log_event(self, event):
-		"""
-		Adds an event to the batch log.
-		"""
-		query = t_batchhistory.insert({
-			"batchId": self.batchId,
-			"userId": self.userId,
-			"event": event,
-		})
-		SS.execute(query)
-
 
 class BatchSchema(Schema):
 	user = fields.Method('get_user')
@@ -819,6 +780,9 @@ class PaymentTypeSchema(Schema):
 		fields = ('paymentTypeId', 'name', 'created')
 
 # Payroll
+class BasicPayroll(Base):
+	__table__ = t_payrolls
+
 class Payroll(Base):
 	__table__ = j_payrolls
 	payrollId = column_property(t_payrolls.c.payrollId, t_ao_payrolls.c.payrollId)
@@ -1105,20 +1069,26 @@ class SubTask(Base, ModelMixin):
 	batchingMode = association_proxy('_batchingMode', 'name')
 	_workType = relationship('WorkType')
 	workType = association_proxy('_workType', 'name')
-	qaConfig = relationship('QaConfig', primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
+	qaConfig = relationship('QaConfig',
+		primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
 		uselist=False)
-
+	workIntervals = relationship('WorkInterval',
+		primaryjoin='SubTask.subTaskId==WorkInterval.subTaskId',
+		order_by='WorkInterval.startTime')
 	# synonyms
 	sub_task_id = synonym("subTaskId")
 	task_id = synonym("taskId")
 	work_type_id = synonym("workTypeId")
-
 	@property
 	def currentRate(self):
 		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId
 			).filter(SubTaskRate.validFrom<=func.now()
 			).order_by(SubTaskRate.validFrom.desc()
 			).first()
+	@property
+	def payByUnit(self):
+		return self.taskType in (TaskType.TRANSLATION,\
+			TaskType.TEXT_COLLECTION) and self.workType != WorkType.QA
 
 	@classmethod
 	def for_task(cls, task_id):
@@ -1164,6 +1134,8 @@ class SubTaskContentEventSchema(Schema):
 # SubTaskMetric
 class SubTaskMetric(Base):
 	__table__ = t_subtaskmetrics
+	abnormalUsageEntries = relationship('AbnormalUsageEntry')
+	errorEntries = relationship('SubTaskMetricErrorEntry')
 
 class SubTaskMetricSchema(Schema):
 	class Meta:
@@ -1573,6 +1545,15 @@ class WorkEntry(Base):
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
 	rawPiece = relationship('RawPiece')
+	@property
+	def utcTime(self):
+		return self.created.astimezone(pytz.utc)
+	@property
+	def workDate(self):
+		return self.utcTime.strftime('%Y-%m-%d')
+	@property
+	def timeSlotKey(self):
+		return (self.workDate, self.utcTime.hour, self.utcTime.minute / 15)
 
 class WorkEntrySchema(Schema):
 	entryId = fields.Integer()
@@ -1619,6 +1600,9 @@ class QaTypeEntry(WorkEntry):
 	@property
 	def errors(self):
 		return [e.errorTypeId for e in self.appliedErrors]
+	@property
+	def qaScore(self):
+		return 1 - min(1, sum([e.severity for e in self.appliedErrors]))
 
 class QaTypeEntrySchema(WorkEntrySchema):
 	class Meta:
@@ -1652,6 +1636,22 @@ class WorkIntervalSchema(Schema):
 	class Meta:
 		fields = ('workIntervalId', 'taskId', 'subTaskId', 'status', 'startTime', 'endTime')
 		ordered = True
+
+# AbnormalUsageEntry
+class AbnormalUsageEntry(Base):
+	__table__ = t_abnormalusage
+
+class AbnormalUsageEntrySchema(Schema):
+	class Meta:
+		fields = ('metricId', 'tagId', 'labelId', 'degree')
+
+# SubTaskMetricErrorEntry
+class SubTaskMetricErrorEntry(Base):
+	__table__ = t_subtaskmetricerrors
+
+class SubTaskMetricErrorEntrySchema(Schema):
+	class Meta:
+		fields = ('metricId', 'errorTypeId', 'occurrences')
 
 ##########################################################################
 

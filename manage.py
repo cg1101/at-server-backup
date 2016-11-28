@@ -9,13 +9,11 @@ from flask_migrate import Migrate, MigrateCommand
 
 from application import application as app
 from db import database as db
-from jobs import JobCommand
 
 manager = Manager(app)
 migrate = Migrate(app, db)
 
 manager.add_command('db', MigrateCommand)
-manager.add_command("job", JobCommand)
 
 # def make_shell_context():
 # 	return dict(app=app, db=db, User=User, Role=Role)
