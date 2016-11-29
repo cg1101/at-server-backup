@@ -336,7 +336,6 @@ class Batch(Base):
 			return False
 		else:
 			return self.leaseExpires <= datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-
 	@property
 	def isFinished(self):
 		if self.userId is None:
@@ -346,7 +345,6 @@ class Batch(Base):
 				if not member.saved:
 					return False
 		return True
-
 	@property
 	def unfinishedCount(self):
 		if self.userId is None:
@@ -357,6 +355,45 @@ class Batch(Base):
 				if not member.saved:
 					count += 1
 		return count
+	def log_event(self, event, operatorId=None):
+		if operatorId is None:
+			operatorId = self.userId
+		SS.execute(t_batchhistory.insert(dict(
+			batchId=self.batchId,
+			userId=operatorId,
+			event=event,
+		)))
+	def reset_ownership(self):
+		self.userId = None
+		self.leaseGranted = None
+		self.leaseExpires = None
+		self.checkedOut = False
+	def increase_priority(self, increase_by=1):
+		self.priority += increase_by
+	def revoke(self, revoked_by):
+		self.log_event('revoked', revoked_by)
+		self.reset_ownership()
+		self.increase_priority()
+	def abandon(self):
+		self.log_event('abandoned')
+		self.reset_ownership()
+		self.increase_priority()
+	def submit(self):
+		self.log_event('submitted')
+		rawPieceIds = []
+		for p in self.pages:
+		# 	for member in p.members:
+		# 		SS.delete(member)
+			for memberEntry in p.memberEntries:
+				if memberEntry.rawPieceId:
+					rawPieceIds.append(memberEntry.rawPieceId)
+				SS.delete(memberEntry)
+			SS.delete(p)
+		SS.delete(self)
+		for rawPieceId in rawPieceIds:
+			rawPiece = RawPiece.query.get(rawPieceId)
+			rawPiece.isNew = False
+		SS.flush()
 
 
 class BatchSchema(Schema):

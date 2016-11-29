@@ -27,17 +27,7 @@ def reclaim_expired_batches(task):
 	operatorId = os.environ['CURRENT_USER_ID']
 
 	for batch in expired_batches:
-		query = t_batchhistory.insert(dict(
-			batchId=batch.batchId,
-			userId=operatorId,
-			event='revoked',
-		))
-		SS.execute(query)
-		batch.userId = None
-		batch.leaseGranted = None
-		batch.leaseExpires = None
-		batch.checkedOut = False
-		batch.priority = batch.priority + 1
+		batch.revoke(revoked_by=operatorId)
 
 
 def main(taskId=None):
