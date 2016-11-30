@@ -1475,6 +1475,32 @@ t_transitions = Table("transitions", metadata,
 )
 Index("transitions_by_task_id", t_transitions.c.taskId, unique=False)
 
+t_audio_checking_change_methods = Table("audio_checking_change_methods", metadata,
+	Column("change_method_id", INTEGER, primary_key=True, key="changeMethodId", doc=""),
+	Column("name", TEXT, unique=True, nullable=False, key="name", doc=""),
+)
+
+t_performance_feedback = Table("performance_feedback", metadata,
+	Column("performance_feedback_entry_id", INTEGER, primary_key=True, key="performanceFeedbackEntryId", doc=""),
+	Column("rawpieceid", INTEGER, nullable=False, key="rawPieceId", doc=""),
+	Column("userid", INTEGER, nullable=False, key="userId", doc=""),
+	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
+	Column("comment", TEXT, key="comment", doc=""),
+	Column("saved_at", TIMESTAMP, nullable=False, key="savedAt", server_default="now()", doc=""),
+	ForeignKeyConstraint(["rawPieceId"], ["performances.rawPieceId"]),
+	ForeignKeyConstraint(["userId"], ["users.userId"]),
+	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
+)
+Index("performance_feedback_by_rawpieceid", t_performance_feedback.c.rawPieceId, unique=False)
+
+t_performance_feedback_flags = Table("performance_feeback_flags", metadata,
+	Column("performance_feedback_entry_id", INTEGER, nullable=False, key="performanceFeedbackEntryId", doc=""),
+	Column("performance_flag_id", INTEGER, nullable=False, key="performanceFlagId", doc=""),
+	ForeignKeyConstraint(["performanceFeedbackEntryId"], ["performance_feedback.performanceFeedbackEntryId"]),
+	ForeignKeyConstraint(["performanceFlagId"], ["performance_flags.performanceFlagId"]),
+	PrimaryKeyConstraint("performanceFeedbackEntryId", "performanceFlagId"),
+)
+Index("performance_feedback_flags_by_performance_feedback_entry_id", t_performance_feedback_flags.c.performanceFeedbackEntryId, unique=False)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(

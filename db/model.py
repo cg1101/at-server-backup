@@ -2512,6 +2512,59 @@ class TransitionSchema(Schema):
 		additional = ("transitionId", "taskId")
 
 
+# AudioCheckingChangeMethod
+class AudioCheckingChangeMethod(Base, ModelMixin):
+	__table__ = t_audio_checking_change_methods
+
+	# constants
+	ADMIN = "Admin"
+	WORK_PAGE = "Work Page"
+
+
+class AudioCheckingChangeMethodSchema(Schema):
+	class Meta:
+		fields = ("changeMethodId", "name")
+
+
+# PerformanceFeedbackEntry
+class PerformanceFeedbackEntry(Base, ModelMixin):
+	__table__ = t_performance_feedback
+
+	# relationships
+	performance = relationship("Performance", backref="feedback_entries", order_by="desc(savedAt)")
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
+	raw_piece_id = synonym("rawPieceId")
+	user_id = synonym("userId")
+	saved_at = synonym("savedAt")
+
+
+class PerformanceFeedbackEntrySchema(Schema):
+	user = fields.Nested("UserSchema")
+	flags = fields.Nested("PerformanceFlagSchema", many=True)
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
+
+
+# PerformanceFeedbackEntryFlag
+class PerformanceFeedbackEntryFlag(Base, ModelMixin):
+	__table__ = t_performance_feedback_flags
+
+	# relationships
+	feedback_entry = relationship("PerformanceFeedbackEntry", backref="flags")
+	flag = relationship("PerformanceFlag")
+
+	# synonyms
+	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
+	performance_flag_id = synonym("performanceFlagId")
+
+
+
 #
 # Define model class and its schema (if needed) above
 #
