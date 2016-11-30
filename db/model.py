@@ -2531,7 +2531,7 @@ class PerformanceFeedbackEntry(Base, ModelMixin):
 	__table__ = t_performance_feedback
 
 	# relationships
-	performance = relationship("Performance", backref="feedback_entries", order_by="desc(savedAt)")
+	performance = relationship("Performance", backref="feedback_entries")
 	user = relationship("User")
 	change_method = relationship("AudioCheckingChangeMethod")
 
