@@ -17,6 +17,7 @@ import pytz
 
 from . import database, mode
 from .db import SS
+from .db import database as db
 from lib import DurationField, utcnow
 from lib.audio_import import validate_import_performance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
@@ -129,6 +130,19 @@ class ModelMixin(object):
 				raise ValueError("{0} is already used".format(value))
 
 		return validator
+
+	@classmethod
+	def get_list(cls, *ids):
+		"""
+		Returns a list of models, one for each
+		id provided.
+		"""
+		models = []
+
+		for id in ids:
+			models.append(cls.query.get(id))
+
+		return models
 
 
 class ImportMixin(object):
@@ -2068,6 +2082,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	# relationships
 	album = relationship("Album", backref="performances")
 	recording_platform = relationship("RecordingPlatform", backref="performances")
+	raw_piece = relationship("RawPiece")
 
 	# synonyms
 	raw_piece_id = synonym("rawPieceId")
@@ -2075,6 +2090,9 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
 	imported_at = synonym("importedAt")
+
+	# associations
+	task_id = association_proxy("raw_piece", "taskId")
 
 	MetaValueModel = PerformanceMetaValue
 
@@ -2140,6 +2158,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 
 class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
+	task_id = fields.Integer(dump_to="taskId")
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
@@ -2520,6 +2539,19 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 	ADMIN = "Admin"
 	WORK_PAGE = "Work Page"
 
+	@classmethod
+	def is_valid(cls, data, key, value):
+		"""
+		MyForm validator for checking that the
+		name is valid.
+		"""
+		if value not in (cls.ADMIN, cls.WORK_PAGE):
+			raise ValueError("{0} is not a valid change method".format(value))
+
+	@classmethod
+	def from_name(cls, name):
+		return cls.query.filter_by(name=name).one()
+
 
 class AudioCheckingChangeMethodSchema(Schema):
 	class Meta:
@@ -2541,6 +2573,31 @@ class PerformanceFeedbackEntry(Base, ModelMixin):
 	user_id = synonym("userId")
 	saved_at = synonym("savedAt")
 
+	@property
+	def flags(self):
+		query = t_performance_feedback_flags.select()
+		query = query.where(
+			t_performance_feedback_flags.c.performanceFeedbackEntryId==self.performance_feedback_entry_id
+		)
+		result = db.session.execute(query)
+		rows = result.fetchall()
+		
+		models = []
+		
+		for row in rows:
+			performance_flag_id = row[1]
+			models.append(PerformanceFlag.query.get(performance_flag_id))
+		
+		return models
+
+	def add_flags(self, flags):
+		for performance_flag in flags:
+			values = {
+				"performanceFeedbackEntryId": self.performance_feedback_entry_id,
+				"performanceFlagId": performance_flag.performance_flag_id,
+			}
+			db.session.execute(t_performance_feedback_flags.insert(values))
+
 
 class PerformanceFeedbackEntrySchema(Schema):
 	user = fields.Nested("UserSchema")
@@ -2549,20 +2606,6 @@ class PerformanceFeedbackEntrySchema(Schema):
 
 	class Meta:
 		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
-
-
-# PerformanceFeedbackEntryFlag
-class PerformanceFeedbackEntryFlag(Base, ModelMixin):
-	__table__ = t_performance_feedback_flags
-
-	# relationships
-	feedback_entry = relationship("PerformanceFeedbackEntry", backref="flags")
-	flag = relationship("PerformanceFlag")
-
-	# synonyms
-	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
-	performance_flag_id = synonym("performanceFlagId")
-
 
 
 #

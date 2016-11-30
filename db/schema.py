@@ -1486,17 +1486,17 @@ t_performance_feedback = Table("performance_feedback", metadata,
 	Column("userid", INTEGER, nullable=False, key="userId", doc=""),
 	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
 	Column("comment", TEXT, key="comment", doc=""),
-	Column("saved_at", TIMESTAMP, nullable=False, key="savedAt", server_default="now()", doc=""),
+	Column("saved_at", TIMESTAMP, nullable=False, key="savedAt", server_default=text("now()"), doc=""),
 	ForeignKeyConstraint(["rawPieceId"], ["performances.rawPieceId"]),
 	ForeignKeyConstraint(["userId"], ["users.userId"]),
 	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
 )
 Index("performance_feedback_by_rawpieceid", t_performance_feedback.c.rawPieceId, unique=False)
 
-t_performance_feedback_flags = Table("performance_feeback_flags", metadata,
+t_performance_feedback_flags = Table("performance_feedback_flags", metadata,
 	Column("performance_feedback_entry_id", INTEGER, nullable=False, key="performanceFeedbackEntryId", doc=""),
 	Column("performance_flag_id", INTEGER, nullable=False, key="performanceFlagId", doc=""),
-	ForeignKeyConstraint(["performanceFeedbackEntryId"], ["performance_feedback.performanceFeedbackEntryId"]),
+	ForeignKeyConstraint(["performanceFeedbackEntryId"], ["performance_feedback.performanceFeedbackEntryId"], ondelete="CASCADE"),
 	ForeignKeyConstraint(["performanceFlagId"], ["performance_flags.performanceFlagId"]),
 	PrimaryKeyConstraint("performanceFeedbackEntryId", "performanceFlagId"),
 )

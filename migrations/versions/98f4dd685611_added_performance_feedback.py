@@ -36,7 +36,7 @@ def upgrade():
 	sa.Column('userid', sa.INTEGER(), nullable=False),
 	sa.Column('change_method_id', sa.INTEGER(), nullable=False),
 	sa.Column('comment', sa.TEXT(), nullable=True),
-	sa.Column('saved_at', postgresql.TIMESTAMP(), server_default='now()', nullable=False),
+	sa.Column('saved_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
 	sa.ForeignKeyConstraint(['change_method_id'], ['audio_checking_change_methods.change_method_id'], ),
 	sa.ForeignKeyConstraint(['rawpieceid'], ['performances.rawpieceid'], ),
 	sa.ForeignKeyConstraint(['userid'], ['users.userid'], ),
@@ -45,19 +45,19 @@ def upgrade():
 	op.create_index('performance_feedback_by_rawpieceid', 'performance_feedback', ['rawpieceid'], unique=False)
 	
 	# performance feedback flags
-	op.create_table('performance_feeback_flags',
+	op.create_table('performance_feedback_flags',
 	sa.Column('performance_feedback_entry_id', sa.INTEGER(), nullable=False),
 	sa.Column('performance_flag_id', sa.INTEGER(), nullable=False),
-	sa.ForeignKeyConstraint(['performance_feedback_entry_id'], ['performance_feedback.performance_feedback_entry_id'], ),
+	sa.ForeignKeyConstraint(['performance_feedback_entry_id'], ['performance_feedback.performance_feedback_entry_id'], ondelete="CASCADE"),
 	sa.ForeignKeyConstraint(['performance_flag_id'], ['performance_flags.performance_flag_id'], ),
 	sa.PrimaryKeyConstraint('performance_feedback_entry_id', 'performance_flag_id')
 	)
-	op.create_index('performance_feedback_flags_by_performance_feedback_entry_id', 'performance_feeback_flags', ['performance_feedback_entry_id'], unique=False)
+	op.create_index('performance_feedback_flags_by_performance_feedback_entry_id', 'performance_feedback_flags', ['performance_feedback_entry_id'], unique=False)
 	
 
 def downgrade():
-	op.drop_index('performance_feedback_flags_by_performance_feedback_entry_id', table_name='performance_feeback_flags')
-	op.drop_table('performance_feeback_flags')
+	op.drop_index('performance_feedback_flags_by_performance_feedback_entry_id', table_name='performance_feedback_flags')
+	op.drop_table('performance_feedback_flags')
 	op.drop_index('performance_feedback_by_rawpieceid', table_name='performance_feedback')
 	op.drop_table('performance_feedback')
 	op.drop_table('audio_checking_change_methods')
