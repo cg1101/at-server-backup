@@ -144,11 +144,7 @@ def abandon_batch(batchId):
 	me = session['current_user']
 	if batch.userId != me.userId:
 		raise InvalidUsage(_('batch {0} is not owned by user {1}').format(batchId, me.userId))
-
-	batch.log_event('abandoned')
-	batch.reset_ownership()
-	batch.increase_priority()
-
+	batch.abandon()
 	return jsonify(message=_('batch {0} has been abandoned by user {1}').format(batchId, me.userId))
 
 
@@ -310,21 +306,13 @@ def submit_batch(batchId):
 
 	SS.rollback()
 	batch = m.Batch.query.get(batchId)
-	batch.log_event('submitted')
-	for p in batch.pages:
-	# 	for member in p.members:
-	# 		SS.delete(member)
-		for memberEntry in p.memberEntries:
-			SS.delete(memberEntry)
-		SS.delete(p)
-	SS.delete(batch)
-	SS.flush()
+	batch.submit()
 
 	remaining = m.Batch.query.filter_by(subTaskId=batch.subTaskId
 		).filter(m.Batch.onHold.isnot(True)
 		).filter(m.Batch.userId.is_(None)).count()
 	return jsonify(
-		message=_('batch {1} has been submitted by user {1}').format(batchId, me.userId),
+		message=_('batch {0} has been submitted by user {1}').format(batchId, me.userId),
 		remainingBatches=remaining,
 	)
 

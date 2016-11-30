@@ -129,14 +129,7 @@ class SubTaskHelper(object):
 		return payments
 
 
-def update_payroll_status(task):
-	# TODO: query AO to get next payroll to use
-	payroll_data = ao.get_payroll()
-	payrollId = payroll_data['payrollId']
-	payroll = m.BasicPayroll.get(payrollId)
-	if not payroll:
-		payroll = m.BasicPayroll(payrollId=payrollId)
-		SS.add(payroll)
+def update_payroll_status(task, payrollId):
 	for subTask in task.subTasks:
 		SubTaskHelper(subTask.subTaskId).calculate_payment(payrollId)
 
@@ -153,9 +146,19 @@ def main(taskId=None):
 			raise ValueError('task {0} not found'.format(taskId))
 		tasks = [task]
 
+	payroll_data = ao.get_payroll()
+
+	# print 'payroll to use for payment submission:\n{}'.format(payroll_data)
+
+	payrollId = payroll_data['payrollId']
+	payroll = m.BasicPayroll.query.get(payrollId)
+	if not payroll:
+		payroll = m.BasicPayroll(payrollId=payrollId)
+		SS.add(payroll)
+
 	for task in tasks:
 		try:
-			update_payroll_status(task)
+			update_payroll_status(task, payrollId)
 		except:
 			log.info('task {} failed'.format(task.taskId))
 			out = cStringIO.StringIO()
@@ -167,13 +170,15 @@ def main(taskId=None):
 			log.info('task {} succeeded'.format(task.taskId))
 			# SS.commit()
 			pass
-	# SS.commit()
+	SS.commit()
 
-	# # find all CalculatedPayment entries and send them as package
-	# q_to_send = m.CalculatedPayment.query.\
-	# 	filter(m.CalculatedPayment.receipt.is_(None)).\
-	# 	filter(m.CalculatedPayment.payrollId==payrollId)
-	# to_send = {}
-	# for cp in q_to_send.all():
-	# 	to_send.setdefault(cp.taskId, []).append(cp)
-	# print to_send
+	# find all CalculatedPayment entries and send them as package
+	payments = m.CalculatedPayment.query.filter(
+		m.CalculatedPayment.receipt.is_(None)).filter(
+		m.CalculatedPayment.payrollId==payrollId).all()
+	# print 'payments to submit: ', len(payments)
+	receipts = ao.send_payments(payments)
+	# print receipts
+	for cp in payments:
+		cp.receipt = receipts.get(cp.calculatedPaymentId, None)
+	SS.commit()

@@ -286,10 +286,10 @@ class SubTaskStatistician(object):
 		now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 		for source in [self.per_user_per_interval, self.per_user]:
 			for (subTaskId, userId, workIntervalId), c in source.iteritems():
-				assert ((source == self.per_user_per_interval 
+				assert ((source == self.per_user_per_interval
 					and subTaskId is None) or (source == self.per_user
 					and workIntervalId is None))
-			
+
 				metric = m.SubTaskMetric(userId=userId,
 					workIntervalId=workIntervalId, subTaskId=subTaskId,
 					itemCount=c.itemCount, unitCount=c.unitCount,

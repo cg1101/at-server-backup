@@ -336,7 +336,6 @@ class Batch(Base):
 			return False
 		else:
 			return self.leaseExpires <= datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-
 	@property
 	def isFinished(self):
 		if self.userId is None:
@@ -346,7 +345,6 @@ class Batch(Base):
 				if not member.saved:
 					return False
 		return True
-
 	@property
 	def unfinishedCount(self):
 		if self.userId is None:
@@ -357,6 +355,45 @@ class Batch(Base):
 				if not member.saved:
 					count += 1
 		return count
+	def log_event(self, event, operatorId=None):
+		if operatorId is None:
+			operatorId = self.userId
+		SS.execute(t_batchhistory.insert(dict(
+			batchId=self.batchId,
+			userId=operatorId,
+			event=event,
+		)))
+	def reset_ownership(self):
+		self.userId = None
+		self.leaseGranted = None
+		self.leaseExpires = None
+		self.checkedOut = False
+	def increase_priority(self, increase_by=1):
+		self.priority += increase_by
+	def revoke(self, revoked_by):
+		self.log_event('revoked', revoked_by)
+		self.reset_ownership()
+		self.increase_priority()
+	def abandon(self):
+		self.log_event('abandoned')
+		self.reset_ownership()
+		self.increase_priority()
+	def submit(self):
+		self.log_event('submitted')
+		rawPieceIds = []
+		for p in self.pages:
+		# 	for member in p.members:
+		# 		SS.delete(member)
+			for memberEntry in p.memberEntries:
+				if memberEntry.rawPieceId:
+					rawPieceIds.append(memberEntry.rawPieceId)
+				SS.delete(memberEntry)
+			SS.delete(p)
+		SS.delete(self)
+		for rawPieceId in rawPieceIds:
+			rawPiece = RawPiece.query.get(rawPieceId)
+			rawPiece.isNew = False
+		SS.flush()
 
 
 class BatchSchema(Schema):
@@ -389,12 +426,38 @@ class CalculatedPayment(Base):
 	__table__ = t_calculatedpayments
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
+	subTask = relationship('SubTask')
+	workInterval = relationship('WorkInterval')
 
 class CalculatedPaymentSchema(Schema):
 	class Meta:
 		fields = ('calculatedPaymentId', 'payrollId', 'workIntervalId', 'userId', 'userName', 'taskId', 'subTaskId', 'itemCount', 'unitCount', 'qaedItemCount', 'qaedUnitCount', 'accuracy', 'originalAmount', 'amount', 'receipt', 'updated')
 		ordered = True
 		# skip_missing = True
+
+class CalculatedPayment_PostageSchema(Schema):
+	calculatedPaymentId = fields.Integer(dump_to='identifier')
+	amount = fields.Integer()
+	userId = fields.Integer(dump_to='userid')
+	taskId = fields.Integer(dump_to='taskid')
+	units = fields.Method('get_units')
+	weekending = fields.Method('get_week_ending')
+	details = fields.Method('get_details')
+	targetrate = fields.Method('get_target_rate')
+	accuracy = fields.Float()
+	unitname = fields.Method('get_unit_name')
+	def get_units(self, obj):
+		return obj.unitCount if obj.subTask.payByUnit else obj.itemCount
+	def get_week_ending(self, obj):
+		return obj.workInterval.endTime.strftime('%Y-%m-%d')
+	def get_details(self, obj):
+		s = obj.subTask
+		return 'GNX {} - {} ({})'.format(s.taskId, s.name, s.workType)
+	def get_target_rate(self, obj):
+		r = obj.subTask.currentRate
+		return r.standardValue * r.multiplier
+	def get_unit_name(self, obj):
+		return 'units' if obj.subTask.payByUnit else 'items'
 
 # CustomUtteranceGroup
 class CustomUtteranceGroup(Base):
@@ -2426,7 +2489,7 @@ class Transition(Base, ModelMixin):
 	def is_valid_destination(cls, source_id):
 		"""
 		Returns a MyForm validator to check that
-		a transition from the source to the 
+		a transition from the source to the
 		destination is valid.
 		"""
 		def validator(data, key, value):

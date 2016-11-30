@@ -1,10 +1,10 @@
-
 import os
 import glob
 import datetime
 import re
 import json
 import logging
+import subprocess
 
 from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy import or_
@@ -145,6 +145,57 @@ def migrate_task(taskId):
 	else:
 		rs['message'] = _('migrated task {0} successfully').format(taskId)
 	return jsonify(rs)
+
+
+@bp.route(_name + '/<int:taskId>/run/create-qa', methods=['POST'])
+@api
+@caps()
+def run_create_qa(taskId):
+	cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+	args = ['./gnx.py', 'job', 'create-qa', '-t', str(taskId)]
+	env = {}
+	env.update(os.environ)
+	env['CURRENT_USER_ID'] = str(session['current_user'].userId)
+	timestamp = datetime.datetime.now().strftime('%Y-%m-%d')
+	output_file = '/tmp/log_house-keeping_{}.log'.format(timestamp)
+	stdout = open(output_file, 'a')
+	cmd_pipe = subprocess.Popen(args, env=env, stdout=stdout, stderr=stdout)
+	return jsonify(message=_('QA work load generation of task {} is in progress.',
+			'Please check later.').format(taskId))
+
+
+@bp.route(_name + '/<int:taskId>/run/generate-payment', methods=['POST'])
+@api
+@caps()
+def run_generate_payment(taskId):
+	cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+	args = ['./gnx.py', 'job', 'update-payroll-status', '-t', str(taskId)]
+	env = {}
+	env.update(os.environ)
+	env['CURRENT_USER_ID'] = str(session['current_user'].userId)
+	timestamp = datetime.datetime.now().strftime('%Y-%m-%d')
+	output_file = '/tmp/log_house-keeping_{}.log'.format(timestamp)
+	stdout = open(output_file, 'w')
+	cmd_pipe = subprocess.Popen(args, env=env, stdout=stdout, stderr=stdout)
+	return jsonify(message=_('Payment of task {} is now being updated.',
+			'Please check later.').format(taskId))
+
+
+@bp.route(_name + '/<int:taskId>/run/update-report', methods=['POST'])
+@api
+@caps()
+def run_update_report(taskId):
+	cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+	args = ['./gnx.py', 'job', 'update-task-reports', '-t', str(taskId)]
+	env = {}
+	env.update(os.environ)
+	env['CURRENT_USER_ID'] = str(session['current_user'].userId)
+	timestamp = datetime.datetime.now().strftime('%Y-%m-%d')
+	output_file = '/tmp/log_house-keeping_{}.log'.format(timestamp)
+	stdout = open(output_file, 'w')
+	cmd_pipe = subprocess.Popen(args, env=env, stdout=stdout, stderr=stdout)
+	return jsonify(message=_('Report of task {} is getting updated.',
+			'Please check later.').format(taskId))
 
 
 @bp.route(_name + '/<int:taskId>/dailysubtotals/', methods=['GET'])
@@ -1423,6 +1474,7 @@ def get_task_work_queues(taskId):
 				continue
 			subTasks.append(subTask)
 	return jsonify(queues=m.SubTask.dump(subTasks))
+
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
 def get_task_workers(taskId):
