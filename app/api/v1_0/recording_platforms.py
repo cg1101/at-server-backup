@@ -71,10 +71,10 @@ def create_track(recording_platform):
 @caps()
 @get_model(RecordingPlatform)
 def update_audio_cutup_config(recording_platform):
-	audio_cutup_config = request.json
-	validate_audio_cutup_config(audio_cutup_config)
+	audio_cutup_config = validate_audio_cutup_config(request.json)
 	recording_platform.audio_cutup_config = audio_cutup_config
-	return jsonify(success=True)
+	db.session.commit()
+	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes", methods=["GET"])
