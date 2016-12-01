@@ -1,11 +1,11 @@
 import logging
 
-from flask import jsonify, request
+from flask import jsonify, request, session
 
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import Performance, PerformanceMetaValue, Recording, SubTask, Transition
+from db.model import AudioCheckingChangeMethod, Performance, PerformanceFeedbackEntry, PerformanceFlag, PerformanceMetaValue, Recording, SubTask, Transition
 from lib.metadata_validation import process_received_metadata, resolve_new_metadata
 
 log = logging.getLogger(__name__)
@@ -63,3 +63,45 @@ def move_performance(performance):
 	performance.batch.sub_task_id = data["subTaskId"]
 	db.session.flush()
 	return jsonify(performance=Performance.dump(performance))
+
+
+@bp.route("performances/<int:raw_piece_id>/feedback", methods=["GET"])
+@api
+@caps()
+@get_model(Performance)
+def get_performance_feedback_entries(performance):
+	return jsonify(entries=PerformanceFeedbackEntry.dump(performance.feedback_entries))
+
+
+@bp.route("performances/<int:raw_piece_id>/feedback", methods=["POST"])
+@api
+@caps()
+@get_model(Performance)
+def create_performance_feedback_entry(performance):
+	data = MyForm(
+		Field('comment', validators=[
+			validators.is_string,
+		]),
+		Field('flags', validators=[
+			validators.is_list,
+			PerformanceFlag.check_all_exists,
+		]),
+		Field('changeMethod', is_mandatory=True, validators=[
+			AudioCheckingChangeMethod.is_valid,
+		]),
+	).get_data()
+
+	change_method = AudioCheckingChangeMethod.from_name(data["changeMethod"])
+	flags = PerformanceFlag.get_list(*data.get('flags', []))
+
+	entry = PerformanceFeedbackEntry(
+		performance=performance,
+		user=session["current_user"],
+		change_method=change_method,
+		comment=data.get("comment"),
+	)
+	db.session.add(entry)
+	db.session.flush()
+	entry.add_flags(flags)
+	db.session.commit()
+	return jsonify(entry=PerformanceFeedbackEntry.dump(entry))

@@ -18,6 +18,7 @@ import pytz
 
 from . import database, mode
 from .db import SS
+from .db import database as db
 from lib import DurationField, utcnow
 from lib.audio_import import validate_import_performance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
@@ -130,6 +131,19 @@ class ModelMixin(object):
 				raise ValueError("{0} is already used".format(value))
 
 		return validator
+
+	@classmethod
+	def get_list(cls, *ids):
+		"""
+		Returns a list of models, one for each
+		id provided.
+		"""
+		models = []
+
+		for id in ids:
+			models.append(cls.query.get(id))
+
+		return models
 
 
 class ImportMixin(object):
@@ -1425,55 +1439,6 @@ class Task(Base, ModelMixin):
 
 		return sub_task
 
-	def import_data(self, data):
-		"""
-		Imports audio data to associated recording
-		platforms. If importing for an existing
-		performance, returns the Performance object,
-		with newly added data. If importing for a
-		new Performance, returns the Batch object
-		containing the new performance.
-		"""
-
-		if not self.is_type(TaskType.AUDIO_CHECKING):
-			raise RuntimeError
-
-		# validate import data
-		validate_import_performance_data(data)
-		recording_platform_id = data["recordingPlatformId"]
-		recording_platform = RecordingPlatform.query.get(recording_platform_id)
-
-		if not recording_platform:
-			raise ValueError("unknown recording platform: {0}".format(recording_platform_id))
-
-		if recording_platform.task_id != self.task_id:
-			raise ValueError("invalid recording platform ({0}) for task {1}".format(recording_platform_id, self.task_id))
-
-		# if adding new data to an existing performance
-		if data["rawPieceId"]:
-			performance = Performance.query.get(data["rawPieceId"])
-
-			if performance.recording_platform != recording_platform:
-				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, recording_platform.record_platform_id))
-
-			performance.import_data(data)
-			return performance
-
-		# adding a new performance
-		else:
-
-			# get import sub task
-			sub_task = self.get_import_sub_task()
-
-			# create performance
-			performance = Performance.from_import(data, recording_platform)
-
-			# add batch to import sub task
-			from app.util import Batcher
-			batches = Batcher.batch(sub_task, [performance])
-			assert len(batches) == 1
-			return batches[0]
-
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -1851,11 +1816,54 @@ class RecordingPlatform(Base, ModelMixin):
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
 
+	def import_data(self, data):
+		"""
+		Imports audio data to the recording	platforms.
+		If importing for an existing performance, 
+		returns the Performance object, with newly added
+		data. If importing for a new Performance, returns
+		the Batch object containing the new performance.
+		"""
+
+		# validate import data
+		validate_import_performance_data(data)
+
+		# if adding new data to an existing performance
+		if data["rawPieceId"]:
+			performance = Performance.query.get(data["rawPieceId"])
+
+			if performance.recording_platform != self:
+				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, self.record_platform_id))
+
+			performance.import_data(data)
+			return performance
+
+		# adding a new performance
+		else:
+
+			# get import sub task
+			sub_task = self.task.get_import_sub_task()
+
+			# create performance
+			performance = Performance.from_import(data, self)
+
+			# add batch to import sub task
+			from app.util import Batcher
+			batches = Batcher.batch(sub_task, [performance])
+			assert len(batches) == 1
+			return batches[0]
+
 
 class RecordingPlatformSchema(Schema):
 	audio_importer = fields.Nested("AudioImporterSchema", dump_to="audioImporter")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
+	task = fields.Nested("TaskSchema", only=("taskId", "name"))
+	display_name = fields.Method("get_display_name", dump_to="displayName")
+	
+	def get_display_name(self, obj):
+		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
+
 	class Meta:
 		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
@@ -2080,6 +2088,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	# relationships
 	album = relationship("Album", backref="performances")
 	recording_platform = relationship("RecordingPlatform", backref="performances")
+	raw_piece = relationship("RawPiece")
 
 	# synonyms
 	raw_piece_id = synonym("rawPieceId")
@@ -2087,6 +2096,9 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
 	imported_at = synonym("importedAt")
+
+	# associations
+	task_id = association_proxy("raw_piece", "taskId")
 
 	MetaValueModel = PerformanceMetaValue
 
@@ -2152,6 +2164,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 
 class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
+	task_id = fields.Integer(dump_to="taskId")
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
@@ -2202,7 +2215,10 @@ class Recording(Base, ImportMixin):
 		corpus_code = CorpusCode.query.get(data["corpusCodeId"])
 
 		if corpus_code.recording_platform != performance.recording_platform:
-			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(corpus_code.corpus_code_id, performance.recording_platform.record_platform_id))
+			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(
+				corpus_code.corpus_code_id,
+				performance.recording_platform.record_platform_id
+			))
 
 		recording = cls(
 			recording_platform=performance.recording_platform,
@@ -2522,6 +2538,83 @@ class TransitionSchema(Schema):
 
 	class Meta:
 		additional = ("transitionId", "taskId")
+
+
+# AudioCheckingChangeMethod
+class AudioCheckingChangeMethod(Base, ModelMixin):
+	__table__ = t_audio_checking_change_methods
+
+	# constants
+	ADMIN = "Admin"
+	WORK_PAGE = "Work Page"
+
+	@classmethod
+	def is_valid(cls, data, key, value):
+		"""
+		MyForm validator for checking that the
+		name is valid.
+		"""
+		if value not in (cls.ADMIN, cls.WORK_PAGE):
+			raise ValueError("{0} is not a valid change method".format(value))
+
+	@classmethod
+	def from_name(cls, name):
+		return cls.query.filter_by(name=name).one()
+
+
+class AudioCheckingChangeMethodSchema(Schema):
+	class Meta:
+		fields = ("changeMethodId", "name")
+
+
+# PerformanceFeedbackEntry
+class PerformanceFeedbackEntry(Base, ModelMixin):
+	__table__ = t_performance_feedback
+
+	# relationships
+	performance = relationship("Performance", backref="feedback_entries")
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
+	raw_piece_id = synonym("rawPieceId")
+	user_id = synonym("userId")
+	saved_at = synonym("savedAt")
+
+	@property
+	def flags(self):
+		query = t_performance_feedback_flags.select()
+		query = query.where(
+			t_performance_feedback_flags.c.performanceFeedbackEntryId==self.performance_feedback_entry_id
+		)
+		result = db.session.execute(query)
+		rows = result.fetchall()
+		
+		models = []
+		
+		for row in rows:
+			performance_flag_id = row[1]
+			models.append(PerformanceFlag.query.get(performance_flag_id))
+		
+		return models
+
+	def add_flags(self, flags):
+		for performance_flag in flags:
+			values = {
+				"performanceFeedbackEntryId": self.performance_feedback_entry_id,
+				"performanceFlagId": performance_flag.performance_flag_id,
+			}
+			db.session.execute(t_performance_feedback_flags.insert(values))
+
+
+class PerformanceFeedbackEntrySchema(Schema):
+	user = fields.Nested("UserSchema")
+	flags = fields.Nested("PerformanceFlagSchema", many=True)
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
 
 
 #

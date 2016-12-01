@@ -1,5 +1,6 @@
 # TODO use lr_utilities audio cutup service api lib for validation
 
+import json
 import jsonschema
 import logging
 
@@ -84,5 +85,9 @@ def validate_audio_cutup_config(config):
 	Validates audio cutup config.
 	"""
 	method = config.get("method")
+	if method is None:
+		return None
+
 	schema = get_validation_schema(method)
 	jsonschema.validate(schema, config)
+	return config

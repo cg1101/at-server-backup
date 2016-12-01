@@ -1,9 +1,13 @@
 from db import database as db
-from db.model import AudioImporter, TaskType, WorkType
+from db.model import AudioCheckingChangeMethod, AudioImporter, TaskType, WorkType
 from db.schema import t_database_settings
 
 
 models = [
+
+	# audio checking change methods
+	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.ADMIN),
+	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.WORK_PAGE),
 
 	# audio importers
 	AudioImporter(name=AudioImporter.UNSTRUCTURED, all_performances_incomplete=True),

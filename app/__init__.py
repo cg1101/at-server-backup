@@ -43,7 +43,7 @@ def create_app(config_name):
 		'/authorization_response',
 		'/api/1.0/status',
 		'/api/1.0/tasks/\d+/importconfig',
-		'/api/1.0/tasks/\d+/importperformance',
+		'/api/1.0/recordingplatforms/\d+/importperformance',
 	])
 	json_url_patterns = map(re.compile, [
 		'/api'

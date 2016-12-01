@@ -1702,21 +1702,6 @@ def get_import_config(task):
 	return jsonify({"importConfig": import_config})
 
 
-@bp.route("tasks/<int:task_id>/importperformance", methods=["POST"])
-@api
-@get_model(Task)
-def import_performance(task):
-
-	if not task.is_type(TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("import performance only available for audio checking tasks", 400)
-
-	data = request.json
-	import_model = task.import_data(data)
-	db.session.add(import_model)
-	db.session.commit()
-	return jsonify(success=True)
-
-
 @bp.route("tasks/<int:task_id>/transitions", methods=["GET"])
 @api
 @get_model(Task)
