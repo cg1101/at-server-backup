@@ -1858,6 +1858,12 @@ class RecordingPlatformSchema(Schema):
 	audio_importer = fields.Nested("AudioImporterSchema", dump_to="audioImporter")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
+	task = fields.Nested("TaskSchema", only=("taskId", "name"))
+	display_name = fields.Method("get_display_name", dump_to="displayName")
+	
+	def get_display_name(self, obj):
+		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
+
 	class Meta:
 		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
 
@@ -2209,7 +2215,10 @@ class Recording(Base, ImportMixin):
 		corpus_code = CorpusCode.query.get(data["corpusCodeId"])
 
 		if corpus_code.recording_platform != performance.recording_platform:
-			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(corpus_code.corpus_code_id, performance.recording_platform.record_platform_id))
+			raise ValueError("Corpus Code {0} does not belong to recording platform {1}".format(
+				corpus_code.corpus_code_id,
+				performance.recording_platform.record_platform_id
+			))
 
 		recording = cls(
 			recording_platform=performance.recording_platform,
