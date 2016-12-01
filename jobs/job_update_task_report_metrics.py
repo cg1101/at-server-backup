@@ -3,7 +3,6 @@ import logging
 import cStringIO
 import traceback
 import datetime
-import re
 import operator
 
 from sqlalchemy import func
@@ -172,7 +171,6 @@ class SubtotalCounter(RegularCounter):
 
 
 class SubTaskStatistician(object):
-	_P = re.compile(r'''tagid=(["'])(\d+)\1''')
 	def __init__(self, subTask):
 		self.subTask = subTask
 		self.task = subTask.task
@@ -193,9 +191,6 @@ class SubTaskStatistician(object):
 					moment < next_interval.endTime):
 				return next_interval
 		raise RuntimeError('later than last work interval')
-	def list_tags(self, text):
-		# TODO: improve current implementation to be more error-proof
-		return [int(m.group(2)) for m in self._P.finditer(text)]
 	def iter_work_entries(self):
 		entries = m.WorkEntry.query.\
 				filter(m.WorkEntry.subTaskId==self.subTask.subTaskId).\
@@ -229,7 +224,7 @@ class SubTaskStatistician(object):
 			units = entry.rawPiece.words
 
 			if entry.workType in (m.WorkType.WORK, m.WorkType.REWORK):
-				tags = self.list_tags(entry.result or '')
+				tags = entry.tags
 				labels = entry.labels
 			else:
 				tags = []
@@ -269,7 +264,6 @@ class SubTaskStatistician(object):
 
 		user_subtotals = self.per_user.values()
 		self.sub_task_stats = SubtotalCounter(user_subtotals)
-
 	def save_stats(self):
 		# update dailysubtasktotals
 		SS.bind.execute(m.DailySubtotal.__table__.\

@@ -3,6 +3,7 @@
 import logging
 import datetime
 import time
+import re
 
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError
@@ -1383,6 +1384,12 @@ class Task(Base, ModelMixin):
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
+	@property
+	def workers(self):
+		return SS.query(User
+			).filter(User.userId.in_(SS.query(TaskWorker.userId
+				).filter(TaskWorker.taskId==self.taskId))
+			).order_by(User.userName).all()
 
 	def is_type(self, task_type):
 		return self.task_type == task_type
@@ -1600,6 +1607,7 @@ class BasicWorkEntry(Base):
 	__table__ = t_workentries
 
 class WorkEntry(Base):
+	_P = re.compile(r'''tagid=(["'])(\d+)\1''')
 	__table__ = j_workentries
 	__mapper_args__ = {
 		'polymorphic_on': j_workentries.c.workType,
@@ -1617,6 +1625,10 @@ class WorkEntry(Base):
 	@property
 	def timeSlotKey(self):
 		return (self.workDate, self.utcTime.hour, self.utcTime.minute / 15)
+	@property
+	def tags(self):
+		# TODO: improve current implementation to be more error-proof
+		return [int(m.group(2)) for m in self._P.finditer(self.result or '')]
 
 class WorkEntrySchema(Schema):
 	entryId = fields.Integer()
