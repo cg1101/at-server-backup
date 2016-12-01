@@ -7,11 +7,8 @@ from marshmallow import Schema, fields
 # for audio checking tasks
 PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
-	"required": ["recordingPlatformId", "rawPieceId", "name", "scriptId", "recordings", "metadata"],
+	"required": ["rawPieceId", "name", "scriptId", "recordings", "metadata"],
 	"properties": {
-		"recordingPlatformId": {
-			"type": "integer"
-		},
 		"rawPieceId": {
 			"type": ["integer", "null"]
 		},

@@ -373,3 +373,14 @@ def include_spontaneous_corpus_codes(recording_platform):
 @get_model(RecordingPlatform)
 def get_performances(recording_platform):
 	return jsonify(performances=Performance.dump(recording_platform.performances))
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/importperformance", methods=["POST"])
+@api
+@get_model(RecordingPlatform)
+def import_performance(recording_platform):
+	data = request.json
+	import_model = recording_platform.import_data(data)
+	db.session.add(import_model)
+	db.session.commit()
+	return jsonify(success=True)

@@ -1432,55 +1432,6 @@ class Task(Base, ModelMixin):
 
 		return sub_task
 
-	def import_data(self, data):
-		"""
-		Imports audio data to associated recording
-		platforms. If importing for an existing
-		performance, returns the Performance object,
-		with newly added data. If importing for a
-		new Performance, returns the Batch object
-		containing the new performance.
-		"""
-
-		if not self.is_type(TaskType.AUDIO_CHECKING):
-			raise RuntimeError
-
-		# validate import data
-		validate_import_performance_data(data)
-		recording_platform_id = data["recordingPlatformId"]
-		recording_platform = RecordingPlatform.query.get(recording_platform_id)
-
-		if not recording_platform:
-			raise ValueError("unknown recording platform: {0}".format(recording_platform_id))
-
-		if recording_platform.task_id != self.task_id:
-			raise ValueError("invalid recording platform ({0}) for task {1}".format(recording_platform_id, self.task_id))
-
-		# if adding new data to an existing performance
-		if data["rawPieceId"]:
-			performance = Performance.query.get(data["rawPieceId"])
-
-			if performance.recording_platform != recording_platform:
-				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, recording_platform.record_platform_id))
-
-			performance.import_data(data)
-			return performance
-
-		# adding a new performance
-		else:
-
-			# get import sub task
-			sub_task = self.get_import_sub_task()
-
-			# create performance
-			performance = Performance.from_import(data, recording_platform)
-
-			# add batch to import sub task
-			from app.util import Batcher
-			batches = Batcher.batch(sub_task, [performance])
-			assert len(batches) == 1
-			return batches[0]
-
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -1852,6 +1803,43 @@ class RecordingPlatform(Base, ModelMixin):
 
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
+
+	def import_data(self, data):
+		"""
+		Imports audio data to the recording	platforms.
+		If importing for an existing performance, 
+		returns the Performance object, with newly added
+		data. If importing for a new Performance, returns
+		the Batch object containing the new performance.
+		"""
+
+		# validate import data
+		validate_import_performance_data(data)
+
+		# if adding new data to an existing performance
+		if data["rawPieceId"]:
+			performance = Performance.query.get(data["rawPieceId"])
+
+			if performance.recording_platform != self:
+				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, self.record_platform_id))
+
+			performance.import_data(data)
+			return performance
+
+		# adding a new performance
+		else:
+
+			# get import sub task
+			sub_task = self.task.get_import_sub_task()
+
+			# create performance
+			performance = Performance.from_import(data, self)
+
+			# add batch to import sub task
+			from app.util import Batcher
+			batches = Batcher.batch(sub_task, [performance])
+			assert len(batches) == 1
+			return batches[0]
 
 
 class RecordingPlatformSchema(Schema):
