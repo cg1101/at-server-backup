@@ -1819,7 +1819,7 @@ class RecordingPlatform(Base, ModelMixin):
 	def import_data(self, data):
 		"""
 		Imports audio data to the recording	platforms.
-		If importing for an existing performance, 
+		If importing for an existing performance,
 		returns the Performance object, with newly added
 		data. If importing for a new Performance, returns
 		the Batch object containing the new performance.
@@ -1860,7 +1860,7 @@ class RecordingPlatformSchema(Schema):
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	task = fields.Nested("TaskSchema", only=("taskId", "name"))
 	display_name = fields.Method("get_display_name", dump_to="displayName")
-	
+
 	def get_display_name(self, obj):
 		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
 
@@ -2590,13 +2590,13 @@ class PerformanceFeedbackEntry(Base, ModelMixin):
 		)
 		result = db.session.execute(query)
 		rows = result.fetchall()
-		
+
 		models = []
-		
+
 		for row in rows:
 			performance_flag_id = row[1]
 			models.append(PerformanceFlag.query.get(performance_flag_id))
-		
+
 		return models
 
 	def add_flags(self, flags):
