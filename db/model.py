@@ -3,6 +3,7 @@
 import logging
 import datetime
 import time
+import re
 
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError
@@ -1397,6 +1398,12 @@ class Task(Base, ModelMixin):
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
+	@property
+	def workers(self):
+		return SS.query(User
+			).filter(User.userId.in_(SS.query(TaskWorker.userId
+				).filter(TaskWorker.taskId==self.taskId))
+			).order_by(User.userName).all()
 
 	def is_type(self, task_type):
 		return self.task_type == task_type
@@ -1565,6 +1572,7 @@ class BasicWorkEntry(Base):
 	__table__ = t_workentries
 
 class WorkEntry(Base):
+	_P = re.compile(r'''tagid=(["'])(\d+)\1''')
 	__table__ = j_workentries
 	__mapper_args__ = {
 		'polymorphic_on': j_workentries.c.workType,
@@ -1582,6 +1590,10 @@ class WorkEntry(Base):
 	@property
 	def timeSlotKey(self):
 		return (self.workDate, self.utcTime.hour, self.utcTime.minute / 15)
+	@property
+	def tags(self):
+		# TODO: improve current implementation to be more error-proof
+		return [int(m.group(2)) for m in self._P.finditer(self.result or '')]
 
 class WorkEntrySchema(Schema):
 	entryId = fields.Integer()
@@ -1807,7 +1819,7 @@ class RecordingPlatform(Base, ModelMixin):
 	def import_data(self, data):
 		"""
 		Imports audio data to the recording	platforms.
-		If importing for an existing performance, 
+		If importing for an existing performance,
 		returns the Performance object, with newly added
 		data. If importing for a new Performance, returns
 		the Batch object containing the new performance.
@@ -1848,7 +1860,7 @@ class RecordingPlatformSchema(Schema):
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	task = fields.Nested("TaskSchema", only=("taskId", "name"))
 	display_name = fields.Method("get_display_name", dump_to="displayName")
-	
+
 	def get_display_name(self, obj):
 		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
 
@@ -2578,13 +2590,13 @@ class PerformanceFeedbackEntry(Base, ModelMixin):
 		)
 		result = db.session.execute(query)
 		rows = result.fetchall()
-		
+
 		models = []
-		
+
 		for row in rows:
 			performance_flag_id = row[1]
 			models.append(PerformanceFlag.query.get(performance_flag_id))
-		
+
 		return models
 
 	def add_flags(self, flags):

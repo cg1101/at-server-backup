@@ -1,0 +1,48 @@
+<html>
+<body>
+<h1>QA Error Class Report for {{task.displayName}}</h1>
+<p class="">Report generated at {{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}}.</p>
+
+{% if not task.taskErrorTypes %}
+	<section>
+	<p>Task {{task.taskId}} does not have QA error types configured.</p>
+	</section>
+{% endif %}
+
+{% if task.taskErrorTypes %}
+	<section>
+	<h2>Tag Usage Statistics
+	<table class="table" width="100%">
+	<thead>
+		<tr>
+			<th>User</th>
+			{% for errorClass in data.iter_error_classes() %}
+				<th>{{errorClass}}</th>
+			{% endfor %}
+		</tr>
+	</thead>
+	<tbody>
+		{% for user in task.workers %}
+			<tr>
+				<td>{{user.userName}}</td>
+				{% for errorClass in data.iter_error_classes() %}
+					{% if data.error_stats.get(user.userId) %}
+						<td>
+						{{data.error_stats[user.userId].get(errorClass, 0)}} /
+						{{data.error_stats[user.userId].get(None, 0)}}
+						</td>
+					{% else %}
+						<td>
+						n/a
+						</td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+		{% endfor %}
+	</tbody>
+	</table>
+	</section>
+{% endif %}
+
+</body>
+</html>

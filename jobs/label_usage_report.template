@@ -1,0 +1,74 @@
+<html>
+<body>
+<h1>Label Usage Report for {{task.displayName}}</h1>
+<p class="">Report generated at {{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}}.</p>
+
+{% if not task.labelSet %}
+	<section>
+	Task {{task.taskId}} does not have label set configured.
+	</section>
+{% endif %}
+
+{% if task.labelSet %}
+	<section>
+	<h2>Label Usage Statistics
+	<table class="table" width="100%">
+	<thead>
+		<tr>
+			<th>Label</th>
+			<th>Total</th>
+			<th>Per-User Usage</th>
+			<th>Abnormal Usage</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for l in data.labels %}
+		<tr>
+			<td>{{l.name}}</td>
+			<td>
+				total occurence: {{data.label_stats[l.labelId]['total']}}<br>
+				chance: {{data.label_stats[l.labelId]['overall_chance']}}
+			</td>
+			<td>
+				Avg. ${{data.label_stats[l.labelId].get('avg_usage')}}<br>
+				Median. ${{data.label_stats[l.labelId].get('median_usage')}}<br>
+				Standard Deviation ${{data.label_stats[l.labelId].get('std')}}
+			</td>
+			<td>
+				...
+			</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+	</table>
+	</section>
+
+	<section>
+	<h2>Abnormal Usage Summary</h2>
+	<table class="table">
+	<thead>
+		<tr>
+		<th>User</th>
+		<th>Done</th>
+		<th>Summary</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for user in task.workers %}
+		<tr>
+			<td>{{user.userName}}</td>
+			{% if data.per_user[user.userId] %}
+			<td>{{data.per_user[user.userId].itemCount}}</td>
+			{% else %}
+			<td>0</td>
+			{% endif %}
+			<td>...</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+	</table>
+	</section>
+{% endif %}
+
+</body>
+</html>

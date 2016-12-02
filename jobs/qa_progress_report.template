@@ -1,0 +1,73 @@
+<html>
+<body>
+<h1>QA Progress Report for {{task.displayName}}</h1>
+<p class="">Report generated at {{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}}.</p>
+
+{% if not task.taskErrorTypes %}
+	<section>
+	<p>Task {{task.taskId}} does not have QA error types configured.</p>
+	</section>
+{% endif %}
+
+{% if task.taskErrorTypes %}
+	<section>
+	<h2>QA Acceptance Rates</h2>
+	<table class="table">
+	<thead>
+		<tr>
+			<th>User</th>
+			<th>Currently Assigned</th>
+			<th>Currently Working</th>
+			<th>Overall</th>
+			<th>Previous Week</th>
+			<th>Previous Day</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for user in task.workers %}
+			<tr>
+				<td>{{user.userName}}</td>
+				<td></td>
+				<td></td>
+				<td>n/a</td>
+				<td>n/a</td>
+				<td>n/a</td>
+			</tr>
+		{% endfor %}
+	</tbody>
+	</table>
+	</section>
+
+	<section>
+	<h2>QA Error Selection</h2>
+	<table class="table">
+	<thead>
+		<tr>
+		<th>User</th>
+			{% for user in task.workers %}
+				<th>{{user.userName}}</th>
+			{% endfor %}
+		</tr>
+	</thead>
+	<tbody>
+		{% for i in task.taskErrorTypes %}
+		<tr>
+			<td>{{i.errorType}}</td>
+			{% for user in task.workers %}
+				{% if data.per_user.get(user.userId) %}
+					<td>
+					{{data.per_user[user.userId].flaggedErrors.get(i.errorTypeId, 0)}}
+					</td>
+				{% else %}
+					<td>n/a</td>
+				{% endif %}
+			{% endfor %}
+		</tr>
+		{% endfor %}
+	</tbody>
+	</table>
+	</section>
+{% endif %}
+
+</body>
+</html>
