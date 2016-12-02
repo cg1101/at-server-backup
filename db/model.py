@@ -2605,6 +2605,56 @@ class PerformanceFeedbackEntrySchema(Schema):
 		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
 
 
+# RecordingFeedbackEntry
+class RecordingFeedbackEntry(Base, ModelMixin):
+	__table__ = t_recording_feedback
+
+	# relationships
+	recording = relationship("Recording", backref="feedback_entries")
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	recording_feedback_entry_id = synonym("recordingFeedbackEntryId")
+	recording_id = synonym("recordingId")
+	user_id = synonym("userId")
+	saved_at = synonym("savedAt")
+
+	@property
+	def flags(self):
+		query = t_recording_feedback_flags.select()
+		query = query.where(
+			t_recording_feedback_flags.c.recordingFeedbackEntryId==self.recording_feedback_entry_id
+		)
+		result = db.session.execute(query)
+		rows = result.fetchall()
+		
+		models = []
+		
+		for row in rows:
+			recording_flag_id = row[1]
+			models.append(RecordingFlag.query.get(recording_flag_id))
+		
+		return models
+
+	def add_flags(self, flags):
+		for recording_flag in flags:
+			values = {
+				"recordingFeedbackEntryId": self.recording_feedback_entry_id,
+				"recordingFlagId": recording_flag.recording_flag_id,
+			}
+			db.session.execute(t_recording_feedback_flags.insert(values))
+
+
+class RecordingFeedbackEntrySchema(Schema):
+	user = fields.Nested("UserSchema")
+	flags = fields.Nested("RecordingFlagSchema", many=True)
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("recordingFeedbackEntryId", "recordingId", "comment", "savedAt")
+
+
 #
 # Define model class and its schema (if needed) above
 #

@@ -1502,6 +1502,28 @@ t_performance_feedback_flags = Table("performance_feedback_flags", metadata,
 )
 Index("performance_feedback_flags_by_performance_feedback_entry_id", t_performance_feedback_flags.c.performanceFeedbackEntryId, unique=False)
 
+t_recording_feedback = Table("recording_feedback", metadata,
+	Column("recording_feedback_entry_id", INTEGER, primary_key=True, key="recordingFeedbackEntryId", doc=""),
+	Column("recording_id", INTEGER, nullable=False, key="recordingId", doc=""),
+	Column("userid", INTEGER, nullable=False, key="userId", doc=""),
+	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
+	Column("comment", TEXT, key="comment", doc=""),
+	Column("saved_at", TIMESTAMP, nullable=False, key="savedAt", server_default=text("now()"), doc=""),
+	ForeignKeyConstraint(["recordingId"], ["recordings.recordingId"]),
+	ForeignKeyConstraint(["userId"], ["users.userId"]),
+	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
+)
+Index("recording_feedback_by_recording_id", t_recording_feedback.c.recordingId, unique=False)
+
+t_recording_feedback_flags = Table("recording_feedback_flags", metadata,
+	Column("recording_feedback_entry_id", INTEGER, nullable=False, key="recordingFeedbackEntryId", doc=""),
+	Column("recording_flag_id", INTEGER, nullable=False, key="recordingFlagId", doc=""),
+	ForeignKeyConstraint(["recordingFeedbackEntryId"], ["recording_feedback.recordingFeedbackEntryId"], ondelete="CASCADE"),
+	ForeignKeyConstraint(["recordingFlagId"], ["recording_flags.recordingFlagId"]),
+	PrimaryKeyConstraint("recordingFeedbackEntryId", "recordingFlagId"),
+)
+Index("recording_feedback_flags_by_recording_feedback_entry_id", t_recording_feedback_flags.c.recordingFeedbackEntryId, unique=False)
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

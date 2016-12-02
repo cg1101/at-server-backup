@@ -1,10 +1,11 @@
 import logging
 
-from flask import jsonify
+from flask import jsonify, session
 
 from . import api_1_0 as bp
-from app.api import InvalidUsage, api, caps
-from db.model import AudioFile, Recording
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
+from db import database as db
+from db.model import AudioCheckingChangeMethod, AudioFile, Recording, RecordingFeedbackEntry, RecordingFlag
 
 log = logging.getLogger(__name__)
 
@@ -12,25 +13,56 @@ log = logging.getLogger(__name__)
 @bp.route("recordings/<int:recording_id>")
 @api
 @caps()
-def get_recording(recording_id):
-	recording = Recording.query.get(recording_id)
-	
-	if not recording:
-		raise InvalidUsage("recording {0} not found".format(recording_id), 404)
-
+@get_model(Recording)
+def get_recording(recording):
 	return jsonify(recording=Recording.dump(recording))
 
 
 @bp.route("recordings/<int:recording_id>/audiofiles")
 @api
 @caps()
-def get_recording_audio_files(recording_id):
-	
-	recording = Recording.query.get(recording_id)
-	
-	if not recording:
-		raise InvalidUsage("recording {0} not found".format(recording_id), 404)
-	
-	audio_files = AudioFile.query.filter_by(recording_id=recording_id).all()
+@get_model(Recording)
+def get_recording_audio_files(recording):
+	return jsonify({"audioFiles": AudioFile.dump(recording.audio_files)})
 
-	return jsonify({"audioFiles": AudioFile.dump(audio_files)})
+
+@bp.route("recordings/<int:recording_id>/feedback", methods=["GET"])
+@api
+@caps()
+@get_model(Recording)
+def get_recording_feedback_entries(recording):
+	return jsonify(entries=RecordingFeedbackEntry.dump(recording.feedback_entries))
+
+
+@bp.route("recordings/<int:recording_id>/feedback", methods=["POST"])
+@api
+@caps()
+@get_model(Recording)
+def create_recording_feedback_entry(recording):
+	data = MyForm(
+		Field('comment', validators=[
+			validators.is_string,
+		]),
+		Field('flags', validators=[
+			validators.is_list,
+			RecordingFlag.check_all_exists,
+		]),
+		Field('changeMethod', is_mandatory=True, validators=[
+			AudioCheckingChangeMethod.is_valid,
+		]),
+	).get_data()
+
+	change_method = AudioCheckingChangeMethod.from_name(data["changeMethod"])
+	flags = RecordingFlag.get_list(*data.get('flags', []))
+
+	entry = RecordingFeedbackEntry(
+		recording=recording,
+		user=session["current_user"],
+		change_method=change_method,
+		comment=data.get("comment"),
+	)
+	db.session.add(entry)
+	db.session.flush()
+	entry.add_flags(flags)
+	db.session.commit()
+	return jsonify(entry=RecordingFeedbackEntry.dump(entry))

@@ -30,6 +30,7 @@ import pools
 import projects
 import rates
 import recordings
+import recording_feedback
 import recording_flags
 import recording_platforms
 import sheets
