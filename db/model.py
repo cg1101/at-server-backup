@@ -483,8 +483,9 @@ class CustomUtteranceGroup(Base):
 
 class CustomUtteranceGroupSchema(Schema):
 	rawPieces = fields.Nested('RawPieceSchema', many=True)
+	selection = fields.Nested('UtteranceSelectionSchema')
 	class Meta:
-		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId')
+		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId', 'selection')
 		ordered = True
 
 # CustomUtteranceGroupMember
