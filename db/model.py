@@ -1717,6 +1717,7 @@ class RecordingPlatformType(Base, ModelMixin):
 	UNSPECIFIED = "Unspecified"
 	SONY_MOBILE_RECORDER = "Sony Mobile Recorder"
 	APPEN_MOBILE_RECORDER = "Appen Mobile Recorder"
+	TELEPHONY = "Telephony"
 
 	# column synonyms
 	recording_platform_id = synonym("recordingPlatformId")
