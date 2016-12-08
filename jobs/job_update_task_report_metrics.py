@@ -142,7 +142,7 @@ class SubtotalCounter(RegularCounter):
 		for labelId in self.usedLabels:
 			label_rates = [c.get_label_rate(labelId) for c in counters]
 			label_usage = calculate_usage_stats(label_rates)
-			self.tagUsage[tagId] = tag_usage
+			self.tagUsage[tagId] = label_usage
 
 		self.abnormalLabelUsage = {}
 		self.abnormalTagUsage = {}
@@ -349,5 +349,5 @@ def main(taskId=None):
 			# break
 		else:
 			log.info('task {} succeeded'.format(task.taskId))
-			# SS.commit()
+			SS.commit()
 			pass
