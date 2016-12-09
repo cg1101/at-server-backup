@@ -1,6 +1,7 @@
+import datetime
 import logging
 
-from flask import jsonify
+from flask import jsonify, request
 
 from . import api_1_0 as bp
 from app import audio_server
@@ -24,9 +25,20 @@ def get_audio_file(audio_file):
 @caps()
 @get_model(AudioFile)
 def get_audio_file_url(audio_file):
+	start_at = request.args.get("startAt")
+	end_at = request.args.get("endAt")
+
+	if start_at:
+		start_at = datetime.timedelta(float(start_at))
+	
+	if end_at:
+		end_at = datetime.timedelta(float(end_at))
+
 	url = audio_server.api.get_ogg_url(
 		audio_file.audio_spec,
 		audio_file.audio_data_location,
-		audio_file.file_path
+		audio_file.file_path,
+		start_at=start_at,
+		end_at=end_at
 	)
 	return jsonify(url=url)
