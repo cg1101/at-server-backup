@@ -417,6 +417,9 @@ class BatchSchema(Schema):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Nested('PageSchema', many=True)
+	name = fields.Method('get_name')
+	def get_name(self, obj):
+		return obj.name if obj.name is not None else 'b-%s' % obj.batchId
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
 			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
