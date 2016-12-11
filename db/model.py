@@ -418,7 +418,9 @@ class BatchSchema(Schema):
 		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Nested('PageSchema', many=True)
 	class Meta:
-		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
+			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
+			'workIntervalId', 'checkedOut', 'pages', 'name')
 		# ordered = True
 
 # BathchingMode
