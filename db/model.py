@@ -611,6 +611,15 @@ class LoadSchema(Schema):
 	class Meta:
 		fields = ('loadId', 'createdBy', 'createdAt', 'taskId')
 
+# KeyExpansion
+class KeyExpansion(Base):
+	__table__ = t_task_key_expansions
+
+class KeyExpansionSchema(Schema):
+	key = synonym('char')
+	class Meta:
+		fields = ('expansionId', 'taskId', 'char', 'text')
+
 # OtherPayment
 class OtherPayment(Base):
 	__table__ = t_otherpayments
@@ -1402,6 +1411,7 @@ class Task(Base, ModelMixin):
 	supervisors = relationship('TaskSupervisor')
 	taskErrorTypes = relationship('TaskErrorType')
 	subTasks = relationship('SubTask', back_populates='task')
+	expansions = relationship('KeyExpansion', order_by='KeyExpansion.char')
 
 	# synonyms
 	task_id = synonym("taskId")

@@ -20,55 +20,55 @@ event.listen(metadata, 'before_create', DDL('CREATE SCHEMA IF NOT EXISTS q'))
 # Level 000
 
 t_pdb_projects = Table('pdb_projects', metadata,
-	Column('project_id', Integer, primary_key=True, autoincrement=False, key=u'projectId', doc=''),
-	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('project_id', INTEGER, primary_key=True, autoincrement=False, key=u'projectId', doc=''),
+	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 )
 
 t_pdb_tasks = Table('pdb_tasks', metadata,
-	Column('task_id', Integer, primary_key=True, autoincrement=False, key=u'taskId', doc=''),
-	Column('project_id', Integer, ForeignKey('pdb_projects.projectId'), nullable=False, key=u'projectId', doc=''),
-	Column('work_area', Text, key=u'workArea', doc=''),
-	Column('name', Text, key=u'name', doc=''),
+	Column('task_id', INTEGER, primary_key=True, autoincrement=False, key=u'taskId', doc=''),
+	Column('project_id', INTEGER, ForeignKey('pdb_projects.projectId'), nullable=False, key=u'projectId', doc=''),
+	Column('work_area', TEXT, key=u'workArea', doc=''),
+	Column('name', TEXT, key=u'name', doc=''),
 )
 
 t_ao_payment_classes = Table('ao_payment_classes', metadata,
-	Column('paymentclassid', Integer, primary_key=True, autoincrement=False, key=u'paymentClassId', doc=''),
-	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('paymentclassid', INTEGER, primary_key=True, autoincrement=False, key=u'paymentClassId', doc=''),
+	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created', doc='')
 )
 
 t_ao_payment_types = Table('ao_payment_types', metadata,
-	Column('paymenttypeid', Integer, primary_key=True, autoincrement=False, key=u'paymentTypeId', doc=''),
-	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+	Column('paymenttypeid', INTEGER, primary_key=True, autoincrement=False, key=u'paymentTypeId', doc=''),
+	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column('created', TIMESTAMP(timezone=True), server_default=text('now()'), key=u'created', doc='')
 )
 
 t_ao_payrolls = Table('ao_payrolls', metadata,
-	Column('payrollid', Integer, primary_key=True, autoincrement=False, key=u'payrollId', doc=''),
-	Column('startdate', Date, nullable=False, key=u'startDate', doc=''),
-	Column('enddate', Date, nullable=False, key=u'endDate', doc=''),
+	Column('payrollid', INTEGER, primary_key=True, autoincrement=False, key=u'payrollId', doc=''),
+	Column('startdate', DATE, nullable=False, key=u'startDate', doc=''),
+	Column('enddate', DATE, nullable=False, key=u'endDate', doc=''),
 )
 
 t_ao_users = Table('ao_users', metadata,
-	Column('userid', Integer, primary_key=True, autoincrement=False, key=u'userId', doc=''),
-	Column('emailaddress', Text, nullable=False, key=u'emailAddress', doc=''),
-	Column('active', Text, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
-	Column('familyname', Text, key=u'familyName', doc=''),
-	Column('givenname', Text, key=u'givenName', doc=''),
+	Column('userid', INTEGER, primary_key=True, autoincrement=False, key=u'userId', doc=''),
+	Column('emailaddress', TEXT, nullable=False, key=u'emailAddress', doc=''),
+	Column('active', TEXT, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
+	Column('familyname', TEXT, key=u'familyName', doc=''),
+	Column('givenname', TEXT, key=u'givenName', doc=''),
 )
 
 # t_ao_countries = Table('ao_countries', metadata,
-# 	Column('country_id', Integer, primary_key=True, autoincrement=False, key=u'countryId', doc=''),
-# 	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+# 	Column('country_id', INTEGER, primary_key=True, autoincrement=False, key=u'countryId', doc=''),
+# 	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 # 	Column('iso2', VARCHAR(2), nullable=False, unique=True, key=u'iso2', doc=''),
 # 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
 # )
 
 # t_ao_languages = Table('ao_languages', metadata,
-# 	Column('language_id', Integer, primary_key=True, autoincrement=False, key=u'languageId', doc=''),
-# 	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+# 	Column('language_id', INTEGER, primary_key=True, autoincrement=False, key=u'languageId', doc=''),
+# 	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 # 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
-# 	Column('ltr', Boolean, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
+# 	Column('ltr', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
 # )
 
 
@@ -1118,9 +1118,9 @@ t_sns_message_records =  Table('sns_message_records', metadata,
 	PrimaryKeyConstraint(u'messageId'),
 )
 
-t_countries = Table('countries', metadata,
-	Column('country_id', Integer, autoincrement=True, key=u'countryId', doc=''),
-	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+t_countries =  Table('countries', metadata,
+	Column('country_id', INTEGER, autoincrement=True, key=u'countryId', doc=''),
+	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column('iso2', VARCHAR(2), nullable=True, unique=True, key=u'iso2', doc=''),
 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
 	Column('iso_num', INTEGER, nullable=True, unique=True, key=u'isoNum', doc=''),
@@ -1129,30 +1129,40 @@ t_countries = Table('countries', metadata,
 	PrimaryKeyConstraint(u'countryId'),
 )
 
-t_languages = Table('languages', metadata,
-	Column('language_id', Integer, autoincrement=True, key=u'languageId', doc=''),
-	Column('name', Text, nullable=False, unique=True, key=u'name', doc=''),
+t_languages =  Table('languages', metadata,
+	Column('language_id', INTEGER, autoincrement=True, key=u'languageId', doc=''),
+	Column('name', TEXT, nullable=False, unique=True, key=u'name', doc=''),
 	Column('iso2', VARCHAR(2), nullable=True, unique=True, key=u'iso2', doc=''),
 	Column('iso3', VARCHAR(3), nullable=False, unique=True, key=u'iso3', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text(u'TRUE'), key=u'active', doc=''),
-	Column('ltr', Boolean, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
+	Column('ltr', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'ltr', doc=''),
 	PrimaryKeyConstraint(u'languageId'),
 )
 
-t_shadowed_tags = Table('shadowedtags', metadata,
-	Column('subtaskid', Integer, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
-	Column('tagid', Integer, autoincrement=False, nullable=False, key=u'tagId', doc=''),
+t_shadowed_tags =  Table('shadowedtags', metadata,
+	Column('subtaskid', INTEGER, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
+	Column('tagid', INTEGER, autoincrement=False, nullable=False, key=u'tagId', doc=''),
 	PrimaryKeyConstraint(u'subTaskId', u'tagId'),
 	# ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 	# ForeignKeyConstraint([u'tagId'], [u'tags.tagId']),
 )
 
-t_shadowed_labels = Table('shadowedlabels', metadata,
-	Column('subtaskid', Integer, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
-	Column('labelid', Integer, autoincrement=False, nullable=False, key=u'labelId', doc=''),
+t_shadowed_labels =  Table('shadowedlabels', metadata,
+	Column('subtaskid', INTEGER, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
+	Column('labelid', INTEGER, autoincrement=False, nullable=False, key=u'labelId', doc=''),
 	PrimaryKeyConstraint(u'subTaskId', u'labelId'),
 	# ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
 	# ForeignKeyConstraint([u'labelId'], [u'labels.labelId']),
+)
+
+t_task_key_expansions =  Table('taskkeyexpansions', metadata,
+	Column('expansionid', INTEGER, nullable=False, key=u'expansionId', doc=''),
+	Column('taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
+	Column('key', CHAR(1), nullable=False, key=u'char', doc=''),
+	Column('expansion', TEXT, nullable=False, key=u'text', doc=''),
+	PrimaryKeyConstraint(u'expansionId'),
+	UniqueConstraint('taskId', 'text'),
+	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
 
 ##########################################################################
