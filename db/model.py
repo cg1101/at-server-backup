@@ -1141,6 +1141,14 @@ class SelectionFilterPieceSchema(Schema):
 		fields = ('index', 'data')
 		ordered = True
 
+# ShadowedLabel
+class ShadowedLabel(Base):
+	__table__ = t_shadowed_labels
+
+# ShadowedTag
+class ShadowedTag(Base):
+	__table__ = t_shadowed_tags
+
 # SubTask
 class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
