@@ -1139,6 +1139,21 @@ t_languages = Table('languages', metadata,
 	PrimaryKeyConstraint(u'languageId'),
 )
 
+t_shadowed_tags = Table('shadowedtags', metadata,
+	Column('subtaskid', Integer, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
+	Column('tagid', Integer, autoincrement=False, nullable=False, key=u'tagId', doc=''),
+	PrimaryKeyConstraint(u'subTaskId', u'tagId'),
+	# ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	# ForeignKeyConstraint([u'tagId'], [u'tags.tagId']),
+)
+
+t_shadowed_labels = Table('shadowedlabels', metadata,
+	Column('subtaskid', Integer, autoincrement=False, nullable=False, key=u'subTaskId', doc=''),
+	Column('labelid', Integer, autoincrement=False, nullable=False, key=u'labelId', doc=''),
+	PrimaryKeyConstraint(u'subTaskId', u'labelId'),
+	# ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
+	# ForeignKeyConstraint([u'labelId'], [u'labels.labelId']),
+)
 
 ##########################################################################
 
