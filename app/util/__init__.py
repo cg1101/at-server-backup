@@ -24,21 +24,30 @@ class _batcher(object):
 	def _create_work_batches(subTask, rawPieces, priority):
 		if subTask.batchingMode == m.BatchingMode.NONE:
 			key_gen = lambda i, x: (None, i / subTask.maxPageSize)
-		elif subTaks.batchingMode == m.BatchingMode.ALLOCATION_CONTEXT:
-			key_gen = lambda i, x: x
+		elif subTask.batchingMode == m.BatchingMode.ALLOCATION_CONTEXT:
+			key_gen = lambda i, x: x.allocationContext
+		elif subTask.batchingMode in (m.BatchingMode.SESSION, m.BatchingMode.RECORDING,
+				m.BatchingMode.LONG_RECORDING, m.BatchingMode.CUSTOM_CONTEXT):
+			raise RuntimeError(_('unsupported batching mode {0}'
+				).format(subTask.batchingMode))
 		else:
 			raise RuntimeError(_('unsupported batching mode {0}'
 				).format(subTask.batchingMode))
 
 		loads = OrderedDict()
 		for i, rawPiece in enumerate(rawPieces):
-			loads.setdefault(key_gen(i, rawPiece.allocationContext), []
-				).append(rawPiece.rawPieceId)
+			key = key_gen(i, rawPiece)
+			loads.setdefault(key, []).append(rawPiece.rawPieceId)
 
 		batches = []
-		for batch_load in loads.values():
+		for key, batch_load in loads.iteritems():
+			if isinstance(key, tuple):
+				name = key[0]
+			else:
+				name = key
 			b = m.Batch(taskId=subTask.taskId,
-				subTaskId=subTask.subTaskId, priority=priority)
+				subTaskId=subTask.subTaskId, priority=priority,
+				name=name)
 			for pageIndex, page_load in enumerate(split_by_size(
 					batch_load, subTask.maxPageSize)):
 				p = m.Page(pageIndex=pageIndex)
