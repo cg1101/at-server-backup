@@ -185,4 +185,4 @@ def main(taskId=None):
 			# break
 		else:
 			log.info('task {} succeeded'.format(task.taskId))
-			# SS.commit()
+			SS.commit()

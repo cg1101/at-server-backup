@@ -592,6 +592,68 @@ def get_sub_task_statistics(subTaskId):
 	})
 
 
+@bp.route(_name + '/<int:subTaskId>/shadowed-label-ids', methods=['GET'])
+@api
+@caps()
+def get_sub_task_disabled_label_ids(subTaskId):
+	rs = m.ShadowedLabel.query.filter_by(subTaskId=subTaskId).all()
+	return jsonify(labelIds=[i.labelId for i in rs])
+
+
+@bp.route(_name + '/<int:subTaskId>/shadowed-tag-ids', methods=['GET'])
+@api
+@caps()
+def get_sub_task_disabled_tag_ids(subTaskId):
+	rs = m.ShadowedTag.query.filter_by(subTaskId=subTaskId).all()
+	return jsonify(tagIds=[i.tagId for i in rs])
+
+
+@bp.route(_name + '/<int:subTaskId>/label/<int:labelId>', methods=['PUT'])
+@api
+@caps()
+def enable_label_for_sub_task(subTaskId, labelId):
+	rec = m.ShadowedLabel.query.get((subTaskId, labelId))
+	if rec:
+		SS.delete(rec)
+	return jsonify(message=_('label {0} has been enabled for sub task {1}'
+		).format(labelId, subTaskId))
+
+
+@bp.route(_name + '/<int:subTaskId>/tag/<int:tagId>', methods=['PUT'])
+@api
+@caps()
+def enable_tag_for_sub_task(subTaskId, tagId):
+	rec = m.ShadowedTag.query.get((subTaskId, tagId))
+	if rec:
+		SS.delete(rec)
+	return jsonify(message=_('tag {0} has been enabled for sub task {1}'
+		).format(tagId, subTaskId))
+
+
+@bp.route(_name + '/<int:subTaskId>/label/<int:labelId>', methods=['DELETE'])
+@api
+@caps()
+def disable_label_for_sub_task(subTaskId, labelId):
+	rec = m.ShadowedLabel.query.get((subTaskId, labelId))
+	if not rec:
+		rec = m.ShadowedLabel(subTaskId=subTaskId, labelId=labelId)
+		SS.add(rec)
+	return jsonify(message=_('label {0} has been disabled for sub task {1}'
+		).format(labelId, subTaskId))
+
+
+@bp.route(_name + '/<int:subTaskId>/tag/<int:tagId>', methods=['DELETE'])
+@api
+@caps()
+def disable_tag_for_sub_task(subTaskId, tagId):
+	rec = m.ShadowedTag.query.get((subTaskId, tagId))
+	if not rec:
+		rec = m.ShadowedTag(subTaskId=subTaskId, tagId=tagId)
+		SS.add(rec)
+	return jsonify(message=_('tag {0} has been disabled for sub task {1}'
+		).format(tagId, subTaskId))
+
+
 @bp.route(_name + '/<int:subTaskId>/warnings/', methods=['GET'])
 @api
 @caps()

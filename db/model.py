@@ -417,8 +417,13 @@ class BatchSchema(Schema):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Nested('PageSchema', many=True)
+	name = fields.Method('get_name')
+	def get_name(self, obj):
+		return obj.name if obj.name is not None else 'b-%s' % obj.batchId
 	class Meta:
-		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId', 'workIntervalId', 'checkedOut', 'pages')
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
+			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
+			'workIntervalId', 'checkedOut', 'pages', 'name')
 		# ordered = True
 
 # BathchingMode
@@ -483,8 +488,9 @@ class CustomUtteranceGroup(Base):
 
 class CustomUtteranceGroupSchema(Schema):
 	rawPieces = fields.Nested('RawPieceSchema', many=True)
+	selection = fields.Nested('UtteranceSelectionSchema')
 	class Meta:
-		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId')
+		fields = ('groupId', 'name', 'taskId', 'created', 'utterances', 'selectionId', 'selection')
 		ordered = True
 
 # CustomUtteranceGroupMember
@@ -604,6 +610,15 @@ class LoadSchema(Schema):
 		return s.dump(obj._createdByUser).data
 	class Meta:
 		fields = ('loadId', 'createdBy', 'createdAt', 'taskId')
+
+# KeyExpansion
+class KeyExpansion(Base):
+	__table__ = t_task_key_expansions
+
+class KeyExpansionSchema(Schema):
+	key = synonym('char')
+	class Meta:
+		fields = ('expansionId', 'taskId', 'char', 'text')
 
 # OtherPayment
 class OtherPayment(Base):
@@ -1135,6 +1150,14 @@ class SelectionFilterPieceSchema(Schema):
 		fields = ('index', 'data')
 		ordered = True
 
+# ShadowedLabel
+class ShadowedLabel(Base):
+	__table__ = t_shadowed_labels
+
+# ShadowedTag
+class ShadowedTag(Base):
+	__table__ = t_shadowed_tags
+
 # SubTask
 class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
@@ -1388,6 +1411,7 @@ class Task(Base, ModelMixin):
 	supervisors = relationship('TaskSupervisor')
 	taskErrorTypes = relationship('TaskErrorType')
 	subTasks = relationship('SubTask', back_populates='task')
+	expansions = relationship('KeyExpansion', order_by='KeyExpansion.char')
 
 	# synonyms
 	task_id = synonym("taskId")

@@ -48,4 +48,4 @@ def main(taskId=None):
 			SS.rollback()
 		else:
 			log.info('task {} succeeded'.format(task.taskId))
-			# SS.commit()
+			SS.commit()

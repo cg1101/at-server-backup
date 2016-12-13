@@ -147,6 +147,28 @@ def migrate_task(taskId):
 	return jsonify(rs)
 
 
+@bp.route(_name + '/<int:taskId>/labelset', methods=['GET'])
+@api
+@caps()
+def get_task_label_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	labelSet = m.LabelSet.query.get(task.labelSetId)
+	return jsonify(labelSet=m.LabelSet.dump(labelSet) if labelSet else None)
+
+
+@bp.route(_name + '/<int:taskId>/tagset', methods=['GET'])
+@api
+@caps()
+def get_task_tag_set(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	tagSet = m.TagSet.query.get(task.tagSetId)
+	return jsonify(tagSet=m.TagSet.dump(tagSet) if tagSet else None)
+
+
 @bp.route(_name + '/<int:taskId>/run/create-qa', methods=['POST'])
 @api
 @caps()
