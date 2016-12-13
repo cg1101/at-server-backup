@@ -499,6 +499,77 @@ def upload_task_instruction_file(taskId):
 	})
 
 
+@bp.route(_name + '/<int:taskId>/key-expansions/', methods=['GET'])
+@api
+@caps()
+def get_task_key_expansions(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	return jsonify(
+		keyExpansions=m.KeyExpansion.dump(task.expansions)
+	)
+
+@bp.route(_name + '/<int:taskId>/key-expansions/', methods=['PUT'])
+@api
+@caps()
+def set_task_key_expansion(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	print 'set_task_key_expansion', request.args, request.form
+	data = MyForm(
+		Field('char', is_mandatory=True, validators=[
+			(validators.is_string, (), dict(length=1)),
+		]),
+		Field('text', is_mandatory=True, validators=[
+			validators.is_string,
+			validators.non_blank,
+		]),
+	).get_data()
+	char = data['char']
+	keyExpansion = m.KeyExpansion.query.filter_by(taskId=taskId
+		).filter_by(char=char).first()
+	if keyExpansion:
+		keyExpansion.text = data['text']
+		message = _('expansion of key {0} has been set for task {1}'
+			).format(char, taskId)
+	else:
+		keyExpansion = m.KeyExpansion(**data)
+		SS.add(keyExpansion)
+		SS.flush()
+		message = _('expansion of key {0} has been updated for task {1}'
+			).format(char, taskId)
+	return jsonify(
+		message=message,
+		keyExpansion=m.KeyExpansion.dump(keyExpansion),
+	)
+
+@bp.route(_name + '/<int:taskId>/key-expansions/', methods=['DELETE'])
+@api
+@caps()
+def delete_task_key_expansion(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	data = MyForm(
+		Field('char', is_mandatory=True,
+			normalizer=lambda data, key, value: str(value[-1]) if\
+				isinstance(value, list) else str(value),
+			validators=[
+				(validators.is_string, (), dict(length=1)),
+			],
+		),
+	).get_data(use_args=True)
+	char = data['char']
+	keyExpansion = m.KeyExpansion.query.filter_by(taskId=taskId
+		).filter_by(char=char).first()
+	if keyExpansion:
+		SS.delete(keyExpansion)
+	return jsonify(message=
+		_('expansion of key {0} has been removed from task {1}'
+		).format(char, taskId))
+
 @bp.route(_name + '/<int:taskId>/loads/')
 @api
 @caps()
