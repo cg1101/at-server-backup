@@ -29,10 +29,10 @@ def get_audio_file_url(audio_file):
 	end_at = request.args.get("endAt")
 
 	if start_at:
-		start_at = datetime.timedelta(float(start_at))
+		start_at = datetime.timedelta(seconds=float(start_at))
 	
 	if end_at:
-		end_at = datetime.timedelta(float(end_at))
+		end_at = datetime.timedelta(seconds=float(end_at))
 
 	url = audio_server.api.get_ogg_url(
 		audio_file.audio_spec,
