@@ -597,6 +597,50 @@ class LabelSetSchema(Schema):
 	class Meta:
 		additional = ('labelSetId', 'created')
 
+class LabelSet_SmartSchema(Schema):
+	subTaskId = fields.Method('get_sub_task_id')
+	def get_sub_task_id(self, obj):
+		try:
+			context = self.context
+			if context is None or not isinstance(context, dict):
+				raise ValueError
+			subTaskId = context['subTaskId']
+		except (ValueError, KeyError):
+			raise RuntimeError('must provide sub task id in context')
+		return subTaskId
+	def get_shadowed_ids(self, obj):
+		subTaskId = self.get_sub_task_id(obj)
+		shadowed = set([i.labelId for i in SS.query(ShadowedLabel.labelId
+			).filter(ShadowedLabel.subTaskId==subTaskId).all()])
+		return shadowed
+	labelGroups = fields.Method('get_label_groups')
+	def get_label_groups(self, obj):
+		shadowed = self.get_shadowed_ids(obj)
+		data = []
+		s = LabelGroupSchema()
+		for labelGroup in obj.labelGroups:
+			group_data = s.dump(labelGroup).data
+			checked = []
+			for label_data in group_data['labels']:
+				if label_data['labelId'] not in shadowed:
+					checked.append(label_data)
+			if checked:
+				group_data['labels'] = checked
+				data.append(group_data)
+		return data
+	ungroupedLabels = fields.Method('get_ungrouped_labels')
+	def get_ungrouped_labels(self, obj):
+		shadowed = self.get_shadowed_ids(obj)
+		data = []
+		s = LabelSchema()
+		for label in obj.ungroupedLabels:
+			if label.labelId not in shadowed:
+				data.append(s.dump(label).data)
+		return data
+	class Meta:
+		additional = ('labelSetId', 'created')
+
+
 # Load
 class Load(Base):
 	__table__ = t_loads
@@ -1392,6 +1436,32 @@ class TagSetSchema(Schema):
 	class Meta:
 		fields = ('tagSetId', 'created', 'lastUpdated', 'tags')
 		ordered = True
+
+
+class TagSet_SmartSchema(TagSetSchema):
+	subTaskId = fields.Method('get_sub_task_id')
+	def get_sub_task_id(self, obj):
+		try:
+			context = self.context
+			if context is None or not isinstance(context, dict):
+				raise ValueError
+			subTaskId = context['subTaskId']
+		except (ValueError, KeyError):
+			raise RuntimeError('must provide sub task id in context')
+		return subTaskId
+	def get_tags(self, obj):
+		subTaskId = self.get_sub_task_id(obj)
+		shadowed = set([i.tagId for i in SS.query(ShadowedTag.tagId
+				).filter(ShadowedTag.subTaskId==subTaskId).all()])
+		result = []
+		for t in obj.tags:
+			if t.tagId in shadowed:
+				continue
+			s = self._sd[t.tagType]
+			result.append(s.dump(t).data)
+		return result
+	class Meta:
+		additional = ('subTaskId',)
 
 
 # Task

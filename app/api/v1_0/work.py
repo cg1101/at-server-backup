@@ -127,8 +127,10 @@ def load_batch_context(batchId):
 		contextType='batch',
 		task=m.Task.dump(batch.task),
 		subTask=m.SubTask.dump(batch.subTask),
-		tagSet=m.TagSet.dump(tagSet) if tagSet else None,
-		labelSet=m.LabelSet.dump(labelSet) if labelSet else None,
+		tagSet=m.TagSet.dump(tagSet, use='smart', context={
+			'subTaskId': batch.subTaskId}) if tagSet else None,
+		labelSet=m.LabelSet.dump(labelSet, use='smart', context={
+			'subTaskId': batch.subTaskId}) if labelSet else None,
 		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
 		batch=m.Batch.dump(batch),
 		showGuideline=showGuideline,
