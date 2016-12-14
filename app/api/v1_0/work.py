@@ -132,6 +132,7 @@ def load_batch_context(batchId):
 		labelSet=m.LabelSet.dump(labelSet, use='smart', context={
 			'subTaskId': batch.subTaskId}) if labelSet else None,
 		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
+		keyExpansions=m.KeyExpansion.dump(task.expansions),
 		batch=m.Batch.dump(batch),
 		showGuideline=showGuideline,
 	)
