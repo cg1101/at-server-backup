@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 from flask import jsonify, request
@@ -25,8 +26,10 @@ def get_audio_file(audio_file):
 @caps()
 @get_model(AudioFile)
 def get_audio_file_url(audio_file):
+
 	start_at = request.args.get("startAt")
 	end_at = request.args.get("endAt")
+	audio_quality = request.args.get("audioQuality")
 
 	if start_at:
 		start_at = datetime.timedelta(seconds=float(start_at))
@@ -34,11 +37,28 @@ def get_audio_file_url(audio_file):
 	if end_at:
 		end_at = datetime.timedelta(seconds=float(end_at))
 
-	url = audio_server.api.get_ogg_url(
+	if audio_quality is None:
+		audio_quality = audio_file.recording_platform.audio_quality
+	
+	else:
+		audio_quality = json.loads(audio_quality)
+
+
+	get_url_fn = None
+	kwargs = {}
+
+	if audio_quality["format"] == "ogg":
+		get_url_fn = audio_server.api.get_ogg_url
+		kwargs.update(dict(quality=audio_quality["quality"]))
+
+	assert get_url_fn
+
+	url = get_url_fn(
 		audio_file.audio_spec,
 		audio_file.audio_data_location,
 		audio_file.file_path,
 		start_at=start_at,
-		end_at=end_at
+		end_at=end_at,
+		**kwargs
 	)
 	return jsonify(url=url)

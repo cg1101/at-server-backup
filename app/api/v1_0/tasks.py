@@ -1689,6 +1689,7 @@ def create_recording_platform(task):
 		storage_location=data.get("storageLocation"),
 		master_script_file=data.get("masterScriptFile"),
 		master_hypothesis_file=data.get("masterHypothesisFile"),
+		audio_quality=RecordingPlatform.DEFAULT_AUDIO_QUALITY,
 	)
 	db.session.add(recording_platform)
 	db.session.commit()

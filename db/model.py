@@ -1829,6 +1829,7 @@ class RecordingPlatform(Base, ModelMixin):
 
 	# constants
 	MASTER_FILE_PARSERS = ["Simple", "Reading Script"]
+	DEFAULT_AUDIO_QUALITY = {"name": "Standard Quality", "format": "ogg", "quality": 3}
 
 	# relationships
 	task = relationship("Task", backref="recording_platforms")
@@ -1843,6 +1844,7 @@ class RecordingPlatform(Base, ModelMixin):
 	recording_platform_id = synonym("recordingPlatformId")
 	storage_location = synonym("storageLocation")
 	audio_cutup_config = synonym("audioCutupConfig")
+	audio_quality = synonym("audioQuality")
 	master_script_file = synonym("masterScriptFile")
 	master_hypothesis_file = synonym("masterHypothesisFile")
 
@@ -1961,7 +1963,7 @@ class RecordingPlatformSchema(Schema):
 		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
 
 	class Meta:
-		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "config")
+		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "audioQuality", "config")
 
 
 # AudioFile

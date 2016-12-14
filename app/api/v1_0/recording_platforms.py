@@ -384,3 +384,16 @@ def import_performance(recording_platform):
 	db.session.add(import_model)
 	db.session.commit()
 	return jsonify(success=True)
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/audioquality", methods=["PUT"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def update_audio_quality(recording_platform):
+	recording_platform.audio_quality = request.json
+	db.session.commit()
+	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
+
+
+
