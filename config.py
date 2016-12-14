@@ -2,7 +2,7 @@
 import logging
 import os
 
-from lib.AudioServerApi import AudioServerApi, AudioServerStageApi, AudioServerDevApi
+from LRUtilities.Api import AudioServerApi, AudioServerStageApi, AudioServerDevApi
 
 
 class Config:

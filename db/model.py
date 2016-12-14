@@ -16,10 +16,11 @@ from sqlalchemy.sql import case, text, func
 from marshmallow import Schema, fields
 import pytz
 
+from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
 from .db import database as db
-from lib import DurationField, utcnow
+from lib import utcnow
 from lib.audio_import import validate_import_performance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *

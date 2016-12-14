@@ -6,7 +6,6 @@ from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import CorpusCode, RecordingPlatform
-from lib.audio_cutup import validate_audio_cutup_config
 
 log = logging.getLogger(__name__)
 

@@ -18,7 +18,7 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
-from lib.AudioServer import AudioServer
+from LRUtilities.FlaskPlugins import AudioServer
 
 
 audio_server = AudioServer()
