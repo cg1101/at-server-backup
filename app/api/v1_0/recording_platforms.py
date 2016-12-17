@@ -90,7 +90,7 @@ def create_corpus_code(recording_platform):
 
 	data = MyForm(
 		Field("code", default="", validators=[
-			# TODO need to check code/platform uniqueness
+			CorpusCode.check_new_code_unique(recording_platform)
 		]),
 		Field("regex"),
 		Field("isScripted", is_mandatory=True, validators=[

@@ -6,19 +6,6 @@ from db import database as db
 from db.model import CorpusCode, RecordingPlatform
 
 
-# TODO move to model
-def check_corpus_code_uniqueness(data, key, code, recording_platform_id, corpus_code_id):
-	query = CorpusCode.query.filter_by(
-		code=code,
-		recording_platform_id=recording_platform_id
-	)
-
-	query = query.filter(CorpusCode.corpus_code_id != corpus_code_id)
-
-	if query.count() > 0:
-		raise ValueError("corpus code '{0}' already exists".format(code))
-
-
 @bp.route("corpuscodes/<int:corpus_code_id>", methods=["GET"])
 @api
 @caps()
@@ -36,7 +23,7 @@ def update_corpus_code(corpus_code):
 	data = MyForm(
 		Field("code", is_mandatory=True, validators=[
 			validators.non_blank,
-			(check_corpus_code_uniqueness, (corpus_code.recording_platform_id, corpus_code.corpus_code_id)),
+			corpus_code.check_updated_code_unique,
 		]),
 		Field("regex"),
 		Field("isScripted", is_mandatory=True, validators=[

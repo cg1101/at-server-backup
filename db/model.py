@@ -2358,6 +2358,24 @@ class CorpusCode(Base, ModelMixin):
 	def name(self):
 		return self.code or "No Code"
 
+	@classmethod
+	def check_new_code_unique(cls, recording_platform):
+		"""
+		Returns a MyForm validator for checking
+		that a new code is unique for the recording
+		platform.
+		"""
+		return cls.check_new_field_unique("code", recording_platform=recording_platform)
+
+	@validator
+	def check_updated_code_unique(self):
+		"""
+		Returns a MyForm validator for checking
+		that an existing code is unique for the
+		recording platform.
+		"""
+		return self.check_updated_field_unique("code", recording_platform=self.recording_platform)
+
 
 class CorpusCodeSchema(Schema):
 	included = fields.Boolean()
