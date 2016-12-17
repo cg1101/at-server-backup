@@ -152,7 +152,7 @@ def get_task_label_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	labelSet = m.LabelSet.query.get(task.labelSetId)
+	labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
 	return jsonify(labelSet=m.LabelSet.dump(labelSet) if labelSet else None)
 
 
@@ -163,7 +163,7 @@ def get_task_tag_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	tagSet = m.TagSet.query.get(task.tagSetId)
+	tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
 	return jsonify(tagSet=m.TagSet.dump(tagSet) if tagSet else None)
 
 
