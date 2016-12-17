@@ -1,13 +1,9 @@
-import logging
-
 from flask import jsonify, request
 
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import AudioCheckingGroup, CorpusCode
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("audiocheckinggroups/<int:audio_checking_group_id>", methods=["PUT"])

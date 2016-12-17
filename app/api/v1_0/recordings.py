@@ -1,13 +1,9 @@
-import logging
-
 from flask import jsonify, session
 
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
 from db.model import AudioCheckingChangeMethod, AudioFile, Recording, RecordingFeedbackEntry, RecordingFlag
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("recordings/<int:recording_id>")

@@ -1,5 +1,3 @@
-import logging
-
 from flask import jsonify, request, session
 
 from . import api_1_0 as bp
@@ -7,8 +5,6 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validator
 from db import database as db
 from db.model import AudioCheckingChangeMethod, Performance, PerformanceFeedbackEntry, PerformanceFlag, PerformanceMetaValue, Recording, SubTask, Transition
 from lib.metadata_validation import process_received_metadata, resolve_new_metadata
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("performances/<int:raw_piece_id>", methods=["GET"])

@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 
 from flask import jsonify, request
 
@@ -8,9 +7,6 @@ from . import api_1_0 as bp
 from app import audio_server
 from app.api import api, caps, get_model
 from db.model import AudioFile
-
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("audiofiles/<int:audio_file_id>", methods=["GET"])

@@ -1,13 +1,9 @@
-import logging
-
 from flask import jsonify
 
 from . import api_1_0 as bp
 from app.api import api, caps, get_model
 from db import database as db
 from db.model import RecordingFeedbackEntry
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("recordingfeedback/<int:recording_feedback_entry_id>", methods=["DELETE"])

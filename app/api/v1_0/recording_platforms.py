@@ -1,5 +1,4 @@
 import jsonschema
-import logging
 
 from flask import jsonify, request
 
@@ -10,8 +9,6 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_va
 from db import database as db
 from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, Performance, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.metadata_validation import MetaValidator
-
-log = logging.getLogger(__name__)
 
 
 @bp.route("recordingplatformtypes", methods=["GET"])

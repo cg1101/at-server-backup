@@ -3,7 +3,6 @@ import glob
 import datetime
 import re
 import json
-import logging
 import subprocess
 
 from flask import request, session, jsonify, make_response, url_for, current_app
@@ -25,7 +24,6 @@ from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm,
 from lib.audio_import import ImportConfigSchema
 
 
-log = logging.getLogger(__name__)
 _name = __file__.split('/')[-1].split('.')[0]
 
 
