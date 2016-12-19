@@ -5,7 +5,7 @@ from flask import jsonify, request
 from LRUtilities.Api import format_audio_cutup_config
 from LRUtilities.DataCollection import AmrConfigFile
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from db import database as db
 from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, Performance, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
 from lib.metadata_validation import MetaValidator
@@ -63,11 +63,27 @@ def create_track(recording_platform):
 	return jsonify(track=Track.dump(track))
 
 
+@bp.route("recordingplatforms/<int:recording_platform_id>/config", methods=["PUT"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def update_recording_platform_config(recording_platform):
+	data = MyForm(
+		Field("config", is_mandatory=True, normalizer=normalizers.to_json, validators=[
+			simple_validators.is_dict(),
+		]),
+	).get_data()
+
+	recording_platform.config = data["config"]
+	db.session.flush()
+	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
+
+
 @bp.route("recordingplatforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
-def update_audio_cutup_config(recording_platform):
+def update_recording_platform_audio_cutup_config(recording_platform):
 	audio_cutup_config = format_audio_cutup_config(request.json, allow_no_method=True)
 	recording_platform.audio_cutup_config = audio_cutup_config
 	db.session.commit()

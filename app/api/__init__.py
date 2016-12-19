@@ -211,8 +211,25 @@ class SimpleValidators(object):
 
 		return validator
 
+	def is_dict(self):
+
+		def validator(data, key, value):
+			if not isinstance(value, dict):
+				raise ValueError("value must be a dict")
+
+		return validator
+
 
 simple_validators = SimpleValidators()
+
+
+class Normalizers(object):
+	
+	def to_json(self, output, key, value):
+		return json.loads(value)
+
+
+normalizers = Normalizers()
 
 
 class Field(object):
