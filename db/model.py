@@ -1218,24 +1218,30 @@ class ShadowedTag(Base):
 class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
 	POLICY_ONE_ONLY = 'oneonly'
+	
 	__table__ = t_subtasks
-	task = relationship('Task')
+	
 	taskTypeId = association_proxy('task', 'taskTypeId')
 	taskType = association_proxy('task', 'taskType')
-	_batchingMode = relationship('BatchingMode')
 	batchingMode = association_proxy('_batchingMode', 'name')
-	_workType = relationship('WorkType')
 	workType = association_proxy('_workType', 'name')
+	
+	# relationships
+	task = relationship('Task')
+	_batchingMode = relationship('BatchingMode')
+	_workType = relationship('WorkType')
 	qaConfig = relationship('QaConfig',
 		primaryjoin='SubTask.subTaskId==QaConfig.workSubTaskId',
 		uselist=False)
 	workIntervals = relationship('WorkInterval',
 		primaryjoin='SubTask.subTaskId==WorkInterval.subTaskId',
 		order_by='WorkInterval.startTime')
+
 	# synonyms
 	sub_task_id = synonym("subTaskId")
 	task_id = synonym("taskId")
 	work_type_id = synonym("workTypeId")
+	
 	@property
 	def currentRate(self):
 		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId

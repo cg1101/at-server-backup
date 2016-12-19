@@ -40,7 +40,18 @@ class LoadConfigSchema(Schema):
 	loaded_files = fields.Method("get_loaded_files", dump_to="loadedFiles")
 
 	def get_loaded_files(self, obj):
-		return []	# FIXME
+		"""
+		Returns a list of previously loaded file paths.
+		"""
+		file_paths = set()
+
+		for utt in obj.raw_pieces:
+			file_path = utt.data.get("filePath")
+			
+			if file_path:
+				file_paths.add(file_path)
+
+		return list(file_paths)
 
 
 def validate_load_utterance_data(data):
