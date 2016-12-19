@@ -1900,7 +1900,7 @@ def load_utterances(task):
 
 	data = request.json
 	models = task.load_transcription_data(data)
-	
+
 	for model in models:
 		db.session.add(model)
 

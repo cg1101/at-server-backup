@@ -1218,14 +1218,14 @@ class ShadowedTag(Base):
 class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
 	POLICY_ONE_ONLY = 'oneonly'
-	
+
 	__table__ = t_subtasks
-	
+
 	taskTypeId = association_proxy('task', 'taskTypeId')
 	taskType = association_proxy('task', 'taskType')
 	batchingMode = association_proxy('_batchingMode', 'name')
 	workType = association_proxy('_workType', 'name')
-	
+
 	# relationships
 	task = relationship('Task')
 	_batchingMode = relationship('BatchingMode')
@@ -1241,7 +1241,7 @@ class SubTask(Base, ModelMixin):
 	sub_task_id = synonym("subTaskId")
 	task_id = synonym("taskId")
 	work_type_id = synonym("workTypeId")
-	
+
 	@property
 	def currentRate(self):
 		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId
@@ -2803,13 +2803,13 @@ class RecordingFeedbackEntry(Base, ModelMixin):
 		)
 		result = db.session.execute(query)
 		rows = result.fetchall()
-		
+
 		models = []
-		
+
 		for row in rows:
 			recording_flag_id = row[1]
 			models.append(RecordingFlag.query.get(recording_flag_id))
-		
+
 		return models
 
 	def add_flags(self, flags):
@@ -2867,7 +2867,7 @@ class Utterance(RawPiece):
 		Creates a new utterance during audio
 		load.
 		"""
-		
+
 		stored_data = {
 			"audioSpec": data["audioSpec"],
 			"audioDataPointer": data["audioDataPointer"],
