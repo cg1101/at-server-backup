@@ -407,6 +407,3 @@ def update_audio_quality(recording_platform):
 	recording_platform.audio_quality = request.json
 	db.session.commit()
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
-
-
-

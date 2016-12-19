@@ -17,7 +17,7 @@ import db.model as m
 from db.db import SS
 from db import database as db
 from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, SubTask, Transition, Task, TaskType
-from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
@@ -1849,3 +1849,18 @@ def create_transition(task):
 	db.session.flush()
 
 	return jsonify(transition=Transition.dump(transition))
+
+
+@bp.route("tasks/<int:task_id>/config", methods=['PUT'])
+@api
+@get_model(Task)
+def update_task_config(task):
+	data = MyForm(
+		Field("config", is_mandatory=True, normalizer=normalizers.to_json, validators=[
+			simple_validators.is_dict(),
+		]),
+	).get_data()
+
+	task.config = data["config"]
+	db.session.flush()
+	return jsonify(task=Task.dump(task))

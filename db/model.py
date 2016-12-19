@@ -28,7 +28,7 @@ from schema import *
 log = logging.getLogger(__name__)
 
 
-
+# TODO move to lib
 def validator(fn):
 	"""
 	Decorator for wrapping a function that returns a MyForm
@@ -1546,7 +1546,7 @@ class TaskSchema(Schema):
 		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
 			'taskType', 'status', 'srcDir', 'lastStatusChange',
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
-			'globalProjectId')
+			'globalProjectId', 'config')
 		ordered = True
 
 
