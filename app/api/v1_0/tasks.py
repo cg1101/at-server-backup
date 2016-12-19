@@ -22,6 +22,7 @@ from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
 from lib.audio_import import ImportConfigSchema
+from lib.audio_load import LoadConfigSchema
 
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -1775,7 +1776,8 @@ def create_recording_flag(task):
 @get_model(Task)
 def get_import_config(task):
 	"""
-	Returns the audio load config for the task.
+	Returns the audio import config for an
+	audio checking task.
 	"""
 	if not task.is_type(TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("import config only available for audio checking tasks", 400)
@@ -1864,3 +1866,43 @@ def update_task_config(task):
 	task.config = data["config"]
 	db.session.flush()
 	return jsonify(task=Task.dump(task))
+
+
+@bp.route("tasks/<int:task_id>/loadconfig", methods=["GET"])
+@api
+@get_model(Task)
+def get_task_load_config(task):
+	"""
+	Returns the audio import config for an
+	audio checking task.
+	"""
+	if not task.is_type(TaskType.TRANSCRIPTION):
+		raise InvalidUsage("load config only available for transcription tasks", 400)
+
+	if not task.loader:
+		raise InvalidUsage("no loader configured for task {0}".format(task.task_id), 400)
+
+	schema = LoadConfigSchema()
+	load_config = schema.dump(task).data
+
+	return jsonify({"loadConfig": load_config})
+
+
+@bp.route("tasks/<int:task_id>/utterances", methods=["POST"])
+@api
+@get_model(Task)
+def load_utterances(task):
+	"""
+	Loads utterances into a transcription task.
+	"""
+	if not task.is_type(TaskType.TRANSCRIPTION):
+		raise InvalidUsage("utterances can only be loaded for transcription tasks", 400)
+
+	data = request.json
+	models = task.load_transcription_data(data)
+	
+	for model in models:
+		db.session.add(model)
+
+	db.session.commit()
+	return jsonify(success=True)

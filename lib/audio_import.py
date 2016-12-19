@@ -4,7 +4,6 @@ import os
 from marshmallow import Schema, fields
 
 
-# for audio checking tasks
 PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
 	"required": ["rawPieceId", "name", "scriptId", "recordings", "metadata"],

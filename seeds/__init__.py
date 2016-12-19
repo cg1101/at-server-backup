@@ -1,5 +1,5 @@
 from db import database as db
-from db.model import AudioCheckingChangeMethod, AudioImporter, RecordingPlatformType, TaskType, WorkType
+from db.model import AudioCheckingChangeMethod, AudioImporter, Loader, RecordingPlatformType, TaskType, WorkType
 from db.schema import t_database_settings
 
 
@@ -16,6 +16,10 @@ models = [
 	AudioImporter(name=AudioImporter.AMR_CONVERSATIONAL),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_SCRIPTED),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_CONVERSATIONAL, metadata_sources=["Log File"]),
+
+	# loaders
+	Loader(name=Loader.STORAGE),
+	Loader(name=Loader.FROM_AUDIO_CHECKING),
 
 	# recording platform types
 	RecordingPlatformType(name=RecordingPlatformType.UNSPECIFIED),

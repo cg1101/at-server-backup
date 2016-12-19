@@ -22,6 +22,7 @@ from .db import SS
 from .db import database as db
 from lib import utcnow
 from lib.audio_import import validate_import_performance_data
+from lib.audio_load import validate_load_utterance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *
 
@@ -1484,11 +1485,15 @@ class Task(Base, ModelMixin):
 	subTasks = relationship('SubTask', back_populates='task')
 	expansions = relationship('KeyExpansion', order_by='KeyExpansion.char')
 
+	# relationships
+	loader = relationship("Loader")
+
 	# synonyms
 	task_id = synonym("taskId")
 	task_type = synonym("taskType")
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
+	loader_id = synonym("loaderId")
 
 	@property
 	def displayName(self):
@@ -1533,6 +1538,23 @@ class Task(Base, ModelMixin):
 			raise RuntimeError("unable to find import sub task")
 
 		return sub_task
+
+	def load_transcription_data(self, data):
+		"""
+		Loads data (utterances) into a transcription task.
+		"""
+		if not self.is_type(TaskType.TRANSCRIPTION):
+			raise RuntimeError
+
+		# validate
+		validate_load_utterance_data(data)
+
+		utts = []
+		for utt_data in data:
+			utt = Utterance.from_load(utt_data, self)
+			utts.append(utt)
+
+		return utts
 
 
 class TaskSchema(Schema):
@@ -2782,6 +2804,71 @@ class RecordingFeedbackEntrySchema(Schema):
 	class Meta:
 		additional = ("recordingFeedbackEntryId", "recordingId", "comment", "savedAt")
 
+
+# Loader
+class Loader(Base, ModelMixin):
+	__table__ = t_loaders
+
+	# constants
+	STORAGE = "Storage"
+	FROM_AUDIO_CHECKING = "From Audio Checking"
+
+	# synonyms
+	loader_id = synonym("loaderId")
+
+
+class LoaderSchema(Schema):
+	class Meta:
+		fields = ("loaderId", "name")
+
+
+# Utterance
+class Utterance(RawPiece):
+	__table__ = t_utterances
+
+	# relationships
+	raw_piece = relationship("RawPiece")
+
+	# synonyms
+	raw_piece_id = synonym("rawPieceId")
+
+	__mapper_args__ = {
+		"polymorphic_identity": "utterance",
+	}
+
+	@classmethod
+	def from_load(cls, data, task):
+		"""
+		Creates a new utterance during audio
+		load.
+		"""
+		
+		stored_data = {
+			"audioSpec": data["audioSpec"],
+			"audioDataPointer": data["audioDataPointer"],
+			"filePath": data["filePath"],
+		}
+
+		# TODO shouldnt be required
+		assembly_context_parts = [data["filePath"]]
+
+		if "startAt" in data and data["startAt"] is not None:
+			stored_data["startAt"] = data["startAt"]
+			assembly_context_parts.append("from_%.3f" %data["startAt"])
+
+		if "endAt" in data and data["endAt"] is not None:
+			stored_data["endAt"] = data["endAt"]
+			assembly_context_parts.append("to_%.3f" %data["endAt"])
+
+		# create utterance
+		utt = cls(
+			task=task,
+			assembly_context="_".join(assembly_context_parts),
+			data=stored_data,
+			hypothesis=data.get("hypothesis")
+		)
+
+		return utt
 
 #
 # Define model class and its schema (if needed) above

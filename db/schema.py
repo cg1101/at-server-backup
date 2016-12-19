@@ -342,12 +342,14 @@ t_tasks =  Table('tasks', metadata,
 	Column(u'global_project_id', INTEGER, key=u'globalProjectId', doc=''),
 	Column("archive_info", JSONB, key="archiveInfo", doc=""),
 	Column("config", JSONB, key="config", doc=""),
+	Column("loader_id", INTEGER, key="loaderId", doc=""),
 	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
 	ForeignKeyConstraint([u'projectId'], [u'projects.projectId']),
 	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
 	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId']),
 	ForeignKeyConstraint([u'migratedBy'], [u'users.userId']),
+	ForeignKeyConstraint(["loaderId"], ["loaders.loaderId"]),
 	CheckConstraint("src_dir=ANY(ARRAY['ltr','rtl'])"),
 	CheckConstraint("status=ANY(ARRAY['active','disabled','finished','closed','archived'])"),
 )
@@ -1551,6 +1553,17 @@ t_recording_feedback_flags = Table("recording_feedback_flags", metadata,
 	PrimaryKeyConstraint("recordingFeedbackEntryId", "recordingFlagId"),
 )
 Index("recording_feedback_flags_by_recording_feedback_entry_id", t_recording_feedback_flags.c.recordingFeedbackEntryId, unique=False)
+
+t_loaders = Table("loaders", metadata,
+	Column("loader_id", INTEGER, primary_key=True, key="loaderId", doc=""),
+	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
+)
+
+t_utterances = Table("utterances", metadata,
+	Column("rawpieceid", INTEGER, primary_key=True, key="rawPieceId", doc=""),
+	Column("data", JSONB, key="data", doc=""),
+	ForeignKeyConstraint(["rawPieceId"], ["rawpieces.rawPieceId"]),
+)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
