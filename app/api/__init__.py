@@ -224,7 +224,7 @@ simple_validators = SimpleValidators()
 
 
 class Normalizers(object):
-	
+
 	def to_json(self, output, key, value):
 		return json.loads(value)
 
