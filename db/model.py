@@ -4,6 +4,7 @@ import logging
 import datetime
 import time
 import re
+import os
 
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError
@@ -646,8 +647,16 @@ class LabelSet_SmartSchema(Schema):
 # Load
 class Load(Base):
 	__table__ = t_loads
+
+	# relationships
 	rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId', viewonly=True)
 	_createdByUser = relationship('User')
+	task = relationship("Task")
+
+	# synonyms
+	load_id = synonym("loadId")
+	created_by = synonym("createdBy")
+
 
 class LoadSchema(Schema):
 	createdBy = fields.Method('get_created_by')
@@ -1156,6 +1165,7 @@ class RawPiece(Base, ModelMixin):
 
 	# synonyms
 	assembly_context = synonym("assemblyContext")
+	load_id = synonym("loadId")
 
 	__mapper_args__ = {
 		"polymorphic_identity": None,
@@ -1546,12 +1556,21 @@ class Task(Base, ModelMixin):
 		if not self.is_type(TaskType.TRANSCRIPTION):
 			raise RuntimeError
 
+		assert data
+
 		# validate
 		validate_load_utterance_data(data)
 
+		# create load
+		load = Load(
+			task=self,
+			created_by=os.environ.get("CURRENT_USER_ID"),	# FIXME this should be the logged in user when api access is allowed
+		)
+
+		# create utterances
 		utts = []
 		for utt_data in data:
-			utt = Utterance.from_load(utt_data, self)
+			utt = Utterance.from_load(utt_data, self, load)
 			utts.append(utt)
 
 		return utts
@@ -2837,7 +2856,7 @@ class Utterance(RawPiece):
 	}
 
 	@classmethod
-	def from_load(cls, data, task):
+	def from_load(cls, data, task, load):
 		"""
 		Creates a new utterance during audio
 		load.
@@ -2863,6 +2882,7 @@ class Utterance(RawPiece):
 		# create utterance
 		utt = cls(
 			task=task,
+			load_id=load.load_id,
 			assembly_context="_".join(assembly_context_parts),
 			data=stored_data,
 			hypothesis=data.get("hypothesis")
