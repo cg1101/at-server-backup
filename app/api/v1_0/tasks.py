@@ -11,6 +11,7 @@ from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
+import boto3
 # from sqlalchemy import and_
 
 import db.model as m
@@ -26,6 +27,10 @@ from lib.audio_load import LoadConfigSchema
 
 
 _name = __file__.split('/')[-1].split('.')[0]
+
+
+s3 = boto3.resource('s3')
+bucket_name = os.environ.get('BUCKET_NAME', '')
 
 
 @bp.route(_name + '/', methods=['GET'])
@@ -768,6 +773,43 @@ def get_task_raw_pieces(taskId):
 	return jsonify({
 		'rawPieces': m.RawPiece.dump(rawPieces),
 	})
+
+
+@bp.route(_name + '/<int:taskId>/user-guides/')
+def get_task_user_guides(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	bucket = s3.Bucket(bucket_name)
+	files = []
+	key_prefix = 'tasks/{0}/guidelines/'.format(taskId)
+	for obj in bucket.objects.all():
+		if not obj.key.startswith(key_prefix):
+			continue
+		path = obj.key[len(key_prefix):]
+		if path and path == os.path.basename(path):
+			files.append({'name': path, 'updatedAt': obj.last_modified})
+	return jsonify(userGuides=files)
+
+
+@bp.route(_name + '/<int:taskId>/user-guides/', methods=['POST'])
+def create_task_user_guide(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+
+	data = MyForm(
+		Field('dataFile', is_mandatory=True,
+			validators=[
+				validators.is_file,
+			]),
+	).get_data(is_json=False)
+	basename = data['dataFile'].filename
+	body = data['dataFile'].read()
+	key = 'tasks/{0}/guidelines/{1}'.format(taskId, basename)
+	obj = s3.Object(bucket_name, key).put(Body=body)
+	updated_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+	return jsonify(userGuide={'name': basename, 'updatedAt': updated_at})
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['GET'])
