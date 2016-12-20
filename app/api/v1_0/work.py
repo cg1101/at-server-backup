@@ -133,7 +133,7 @@ def load_batch_context(batchId):
 			'subTaskId': batch.subTaskId}) if labelSet else None,
 		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
 		keyExpansions=m.KeyExpansion.dump(task.expansions),
-		batch=m.Batch.dump(batch),
+		batch=m.Batch.dump(batch, use='full'),
 		showGuideline=showGuideline,
 	)
 

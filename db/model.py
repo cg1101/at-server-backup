@@ -373,6 +373,34 @@ class Batch(Base):
 				if not member.saved:
 					count += 1
 		return count
+	@property
+	def unitCount(self):
+		if self.subTask.workType in (WorkType.WORK, WorkType.REWORK):
+			r = SS.query(func.sum(RawPiece.words)
+				).join(PageMember
+				).filter(PageMember.rawPieceId==RawPiece.rawPieceId
+				).filter(PageMember.batchId==self.batchId).first()
+			unitCount = r[0]
+		elif self.subTask.workType == WorkType.QA:
+			r = SS.query(func.sum(RawPiece.words)
+				).filter(RawPiece.rawPieceId.in_(
+					SS.query(WorkEntry.rawPieceId
+						).join(PageMember, PageMember.workEntryId==WorkEntry.entryId
+						).filter(PageMember.batchId==self.batchId)
+					)
+				).first()
+			unitCount = r[0]
+		else:
+			r = SS.query(func.sum(RawPiece.words)
+				).join(PageMember
+				).filter(PageMember.rawPieceId==RawPiece.rawPieceId
+				).filter(PageMember.batchId==self.batchId).first()
+			unitCount = r[0]
+		try:
+			assert isinstance(unitCount, (int, long))
+		except:
+			unitCount = 0
+		return unitCount
 	def log_event(self, event, operatorId=None):
 		if operatorId is None:
 			operatorId = self.userId
@@ -419,7 +447,10 @@ class BatchSchema(Schema):
 	def get_user(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj.user).data if obj.user else None
-	pages = fields.Nested('PageSchema', many=True)
+	pages = fields.Method('get_pages')
+	def get_pages(self, obj):
+		s = PageSchema(context={'full': True})
+		return s.dump(obj.pages, many=True).data
 	name = fields.Method('get_name')
 	def get_name(self, obj):
 		return obj.name if obj.name is not None else 'b-%s' % obj.batchId
@@ -428,6 +459,11 @@ class BatchSchema(Schema):
 			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
 			'workIntervalId', 'checkedOut', 'pages', 'name')
 		# ordered = True
+
+class Batch_FullSchema(BatchSchema):
+	def get_pages(self, obj):
+		s = PageSchema(context={'full': True})
+		return s.dump(obj.pages, many=True)
 
 # BathchingMode
 class BatchingMode(Base):
@@ -696,15 +732,24 @@ class Page(Base):
 class PageSchema(Schema):
 	members = fields.Method('get_members')
 	def get_members(self, obj):
+		try:
+			full = self.context['full']
+		except:
+			full = False
 		_sd = {
-			WorkType.WORK: WorkTypePageMemberSchema(),
-			WorkType.QA: QaTypePageMemberSchema(),
-			WorkType.REWORK: ReworkTypePageMemberSchema(),
+			WorkType.WORK: WorkTypePageMemberSchema,
+			WorkType.QA: QaTypePageMemberSchema,
+			WorkType.REWORK: ReworkTypePageMemberSchema,
 		}
 		result = []
-		for m in obj.members:
-			s = _sd[m.workType]
-			result.append(s.dump(m).data)
+		if obj.members:
+			klass = _sd[obj.members[0].workType]
+			if full:
+				s = klass()
+			else:
+				s = klass(only=['pageId', 'memberIndex', 'rawPieceId', 'workEntryId'])
+			for m in obj.members:
+				result.append(s.dump(m).data)
 		return result
 	class Meta:
 		fields = ('pageId', 'batchId', 'pageIndex', 'members')
@@ -1218,14 +1263,14 @@ class ShadowedTag(Base):
 class SubTask(Base, ModelMixin):
 	POLICY_NO_LIMIT = 'nolimit'
 	POLICY_ONE_ONLY = 'oneonly'
-	
+
 	__table__ = t_subtasks
-	
+
 	taskTypeId = association_proxy('task', 'taskTypeId')
 	taskType = association_proxy('task', 'taskType')
 	batchingMode = association_proxy('_batchingMode', 'name')
 	workType = association_proxy('_workType', 'name')
-	
+
 	# relationships
 	task = relationship('Task')
 	_batchingMode = relationship('BatchingMode')
@@ -1241,7 +1286,7 @@ class SubTask(Base, ModelMixin):
 	sub_task_id = synonym("subTaskId")
 	task_id = synonym("taskId")
 	work_type_id = synonym("workTypeId")
-	
+
 	@property
 	def currentRate(self):
 		return SubTaskRate.query.filter_by(subTaskId=self.subTaskId
@@ -2810,13 +2855,13 @@ class RecordingFeedbackEntry(Base, ModelMixin):
 		)
 		result = db.session.execute(query)
 		rows = result.fetchall()
-		
+
 		models = []
-		
+
 		for row in rows:
 			recording_flag_id = row[1]
 			models.append(RecordingFlag.query.get(recording_flag_id))
-		
+
 		return models
 
 	def add_flags(self, flags):
@@ -2874,7 +2919,7 @@ class Utterance(RawPiece):
 		Creates a new utterance during audio
 		load.
 		"""
-		
+
 		stored_data = {
 			"audioSpec": data["audioSpec"],
 			"audioDataPointer": data["audioDataPointer"],
