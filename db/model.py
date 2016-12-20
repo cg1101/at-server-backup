@@ -342,7 +342,7 @@ class Batch(Base):
 	pages = relationship('Page', order_by='Page.pageIndex',
 		cascade='all, delete-orphan')
 	task = relationship('Task')
-	subTask = relationship('SubTask')
+	subTask = relationship('SubTask', backref="batches")
 
 	# synonyms
 	sub_task = synonym("subTask")
@@ -1557,7 +1557,7 @@ class Task(Base, ModelMixin):
 
 	def load_transcription_data(self, data):
 		"""
-		Loads data (utterances) into a transcription task.
+		Loads data into a transcription task.
 		"""
 		if not self.is_type(TaskType.TRANSCRIPTION):
 			raise RuntimeError
@@ -1575,9 +1575,16 @@ class Task(Base, ModelMixin):
 
 		# create utterances
 		utts = []
-		for utt_data in data:
+		for utt_data in data["utts"]:
 			utt = Utterance.from_load(utt_data, self, load)
 			utts.append(utt)
+
+		# update performances
+		for update_data in data["performanceUpdates"]:
+			performance = Performance.query.get(update_data["rawPieceId"])
+			sub_task = SubTask.query.get(update_data["subTaskId"])
+			assert sub_task.task == performance.recording_platform.task
+			performance.batch.sub_task_id = sub_task.sub_task_id
 
 		return utts
 
@@ -2836,7 +2843,7 @@ class Loader(Base, ModelMixin):
 
 	# constants
 	STORAGE = "Storage"
-	FROM_AUDIO_CHECKING = "From Audio Checking"
+	LINKED = "Linked"
 
 	# synonyms
 	loader_id = synonym("loaderId")

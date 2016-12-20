@@ -8,7 +8,7 @@ import pytz
 
 import db.model as m
 from db.db import SS
-from db.model import SubTask, Transition
+from db.model import Performance, SubTask, Transition
 from app.api import api, caps, MyForm, Field, validators, get_model
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
@@ -19,7 +19,6 @@ _name = __file__.split('/')[-1].split('.')[0]
 
 @bp.route(_name + '/<int:subTaskId>', methods=['GET'])
 @api
-@caps()
 def get_sub_task(subTaskId):
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask:
@@ -751,3 +750,19 @@ def update_sub_task_worker_settings(subTaskId, userId):
 @get_model(SubTask)
 def get_sub_task_transitions(sub_task):
 	return jsonify(transitions=Transition.dump(sub_task.transitions))
+
+
+# TODO check audio checking task
+@bp.route("subtasks/<int:sub_task_id>/performances", methods=["GET"])
+@api
+@get_model(SubTask)
+def get_sub_task_performances(sub_task):
+	performances = []
+
+	for batch in sub_task.batches:
+		for page in batch.pages:
+			for page_member in page.members:
+				performance = Performance.query.get(page_member.raw_piece_id)
+				performances.append(performance)
+	
+	return jsonify(performances=Performance.dump(performances))
