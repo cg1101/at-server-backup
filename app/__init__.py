@@ -41,10 +41,14 @@ def create_app(config_name):
 		'/webservices',
 		'/logout',
 		'/authorization_response',
+		'/api/1.0/performances/\d+/recordings',
+		'/api/1.0/recordings/\d+/audiofiles',
 		'/api/1.0/status',
+		'/api/1.0/subtasks/\d+',
+		'/api/1.0/subtasks/\d+/performances',
 		'/api/1.0/tasks/\d+/importconfig',
 		'/api/1.0/tasks/\d+/loadconfig',
-		'/api/1.0/tasks/\d+/utterances',
+		'/api/1.0/tasks/\d+/loaddata',
 		'/api/1.0/recordingplatforms/\d+/importperformance',
 	])
 	json_url_patterns = map(re.compile, [

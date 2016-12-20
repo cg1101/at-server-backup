@@ -16,7 +16,6 @@ def get_recording(recording):
 
 @bp.route("recordings/<int:recording_id>/audiofiles")
 @api
-@caps()
 @get_model(Recording)
 def get_recording_audio_files(recording):
 	return jsonify({"audioFiles": AudioFile.dump(recording.audio_files)})

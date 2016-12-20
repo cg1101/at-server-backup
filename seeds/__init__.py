@@ -19,7 +19,7 @@ models = [
 
 	# loaders
 	Loader(name=Loader.STORAGE),
-	Loader(name=Loader.FROM_AUDIO_CHECKING),
+	Loader(name=Loader.LINKED),
 
 	# recording platform types
 	RecordingPlatformType(name=RecordingPlatformType.UNSPECIFIED),

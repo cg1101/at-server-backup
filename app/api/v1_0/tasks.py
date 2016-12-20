@@ -1930,15 +1930,15 @@ def get_task_load_config(task):
 	return jsonify({"loadConfig": load_config})
 
 
-@bp.route("tasks/<int:task_id>/utterances", methods=["POST"])
+@bp.route("tasks/<int:task_id>/loaddata", methods=["POST"])
 @api
 @get_model(Task)
-def load_utterances(task):
+def load_data(task):
 	"""
-	Loads utterances into a transcription task.
+	Loads data into a transcription task.
 	"""
 	if not task.is_type(TaskType.TRANSCRIPTION):
-		raise InvalidUsage("utterances can only be loaded for transcription tasks", 400)
+		raise InvalidUsage("data can only be loaded for transcription tasks", 400)
 
 	data = request.json
 	models = task.load_transcription_data(data)

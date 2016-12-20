@@ -17,7 +17,6 @@ def get_performance(performance):
 
 @bp.route("performances/<int:raw_piece_id>/recordings", methods=["GET"])
 @api
-@caps()
 @get_model(Performance)
 def get_performance_recordings(performance):
 	return jsonify(recordings=Recording.dump(performance.recordings))
