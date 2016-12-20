@@ -449,7 +449,7 @@ class BatchSchema(Schema):
 		return s.dump(obj.user).data if obj.user else None
 	pages = fields.Method('get_pages')
 	def get_pages(self, obj):
-		s = PageSchema()
+		s = PageSchema(context={'full': True})
 		return s.dump(obj.pages, many=True).data
 	name = fields.Method('get_name')
 	def get_name(self, obj):
