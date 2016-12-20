@@ -419,7 +419,10 @@ class BatchSchema(Schema):
 	def get_user(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj.user).data if obj.user else None
-	pages = fields.Nested('PageSchema', many=True)
+	pages = fields.Method('get_pages')
+	def get_pages(self, obj):
+		s = PageSchema()
+		return s.dump(obj.pages, many=True).data
 	name = fields.Method('get_name')
 	def get_name(self, obj):
 		return obj.name if obj.name is not None else 'b-%s' % obj.batchId
@@ -428,6 +431,11 @@ class BatchSchema(Schema):
 			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
 			'workIntervalId', 'checkedOut', 'pages', 'name')
 		# ordered = True
+
+class Batch_FullSchema(BatchSchema):
+	def get_pages(self, obj):
+		s = PageSchema(context={'full': True})
+		return s.dump(obj.pages, many=True)
 
 # BathchingMode
 class BatchingMode(Base):
@@ -696,15 +704,24 @@ class Page(Base):
 class PageSchema(Schema):
 	members = fields.Method('get_members')
 	def get_members(self, obj):
+		try:
+			full = self.context['full']
+		except:
+			full = False
 		_sd = {
-			WorkType.WORK: WorkTypePageMemberSchema(),
-			WorkType.QA: QaTypePageMemberSchema(),
-			WorkType.REWORK: ReworkTypePageMemberSchema(),
+			WorkType.WORK: WorkTypePageMemberSchema,
+			WorkType.QA: QaTypePageMemberSchema,
+			WorkType.REWORK: ReworkTypePageMemberSchema,
 		}
 		result = []
-		for m in obj.members:
-			s = _sd[m.workType]
-			result.append(s.dump(m).data)
+		if obj.members:
+			klass = _sd[obj.members[0].workType]
+			if full:
+				s = klass()
+			else:
+				s = klass(only=['pageId', 'memberIndex', 'rawPieceId', 'workEntryId'])
+			for m in obj.members:
+				result.append(s.dump(m).data)
 		return result
 	class Meta:
 		fields = ('pageId', 'batchId', 'pageIndex', 'members')
