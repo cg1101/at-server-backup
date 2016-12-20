@@ -373,6 +373,34 @@ class Batch(Base):
 				if not member.saved:
 					count += 1
 		return count
+	@property
+	def unitCount(self):
+		if self.subTask.workType in (WorkType.WORK, WorkType.REWORK):
+			r = SS.query(func.sum(RawPiece.words)
+				).join(PageMember
+				).filter(PageMember.rawPieceId==RawPiece.rawPieceId
+				).filter(PageMember.batchId==self.batchId).first()
+			unitCount = r[0]
+		elif self.subTask.workType == WorkType.QA:
+			r = SS.query(func.sum(RawPiece.words)
+				).filter(RawPiece.rawPieceId.in_(
+					SS.query(WorkEntry.rawPieceId
+						).join(PageMember, PageMember.workEntryId==WorkEntry.entryId
+						).filter(PageMember.batchId==self.batchId)
+					)
+				).first()
+			unitCount = r[0]
+		else:
+			r = SS.query(func.sum(RawPiece.words)
+				).join(PageMember
+				).filter(PageMember.rawPieceId==RawPiece.rawPieceId
+				).filter(PageMember.batchId==self.batchId).first()
+			unitCount = r[0]
+		try:
+			assert isinstance(unitCount, (int, long))
+		except:
+			unitCount = 0
+		return unitCount
 	def log_event(self, event, operatorId=None):
 		if operatorId is None:
 			operatorId = self.userId
