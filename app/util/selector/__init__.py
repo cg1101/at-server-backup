@@ -417,7 +417,8 @@ def filter_label(task, labelId):
 		except:
 			raise ValueError(_('invalid label id: {}').format(labelId))
 
-	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.entryId
+	inner = SS.query(m.WorkEntry.rawPieceId.label('rawPieceId'),
+		m.WorkEntry.entryId.label('entryId')
 		).distinct(m.WorkEntry.rawPieceId
 		).filter(m.WorkEntry.taskId==task.taskId
 		).filter(m.WorkEntry.modifiesTranscription
@@ -428,7 +429,7 @@ def filter_label(task, labelId):
 	if labelId != None:
 		q = q.where(m.AppliedLabel==labelId)
 
-	sel_stmt = select(q.c.rawPieceId, distinct=True, from_obj=q)
+	sel_stmt = select(q.c, distinct=True, from_obj=q)
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
 
 
