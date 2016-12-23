@@ -793,6 +793,7 @@ class WorkTypePageMember(PageMember):
 		'polymorphic_identity': WorkType.WORK,
 	}
 	rawPiece = relationship('RawPiece')
+
 	def _get_saved(self):
 		if self.userId == None:
 			return None
@@ -2044,7 +2045,7 @@ class RecordingPlatform(Base, ModelMixin):
 			# create performance
 			performance = Performance.from_import(data, self)
 
-			# add batch to import sub task
+			# add batch to import sub task TODO move this to app.api...
 			from app.util import Batcher
 			batches = Batcher.batch(sub_task, [performance])
 			assert len(batches) == 1

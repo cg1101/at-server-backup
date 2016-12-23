@@ -2,9 +2,11 @@
 import datetime
 
 from flask import request, session, jsonify, redirect
+from sqlalchemy import or_
 import pytz
 
 import db.model as m
+from db.model import AudioCheckingGroup, Performance, PerformanceMetaCategory, PerformanceMetaValue, PerformanceFlag, Recording, RecordingFlag, RecordingPlatform, TaskType
 from db.schema import t_batchhistory
 from db.db import SS
 from app.api import api, caps, MyForm, Field, validators
@@ -61,17 +63,17 @@ def get_batch_from_sub_task(subTaskId):
 	objection = PolicyChecker.check_get_policy(subTask, me)
 	if objection:
 		raise InvalidUsage(_('Sorry, {0}').format(objection))
-
+	
 	batch = m.Batch.query.filter_by(subTaskId=subTaskId
 		).filter(m.Batch.onHold==False
 		).filter(m.Batch.userId==None
-		).filter(m.Batch.notUserId!=me.userId
+		).filter(or_(m.Batch.notUserId==None, m.Batch.notUserId!=me.userId)
 		).order_by(m.Batch.priority.desc(), m.Batch.batchId
 		).first()
 	if not batch:
 		raise InvalidUsage(_('Sorry, there are no more batches left.',
 			'Please check later.'))
-
+	
 	# TODO: change to TZ aware
 	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc
 		).replace(tzinfo=None)
@@ -94,9 +96,6 @@ def load_batch_context(batchId):
 
 	task = batch.task
 	subTask = batch.subTask
-	tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
-	labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
-	taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
 
 	# check if current user has the capability to view batch
 	# this allows supervisors to check progress
@@ -111,7 +110,8 @@ def load_batch_context(batchId):
 		# TODO: take back assigned batch if user got removed?
 		raise InvalidUsage(_('Sorry, you are not assigned to this sub task.'))
 
-	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+	#now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+	now = datetime.datetime.utcnow()
 	if batch.leaseExpires and batch.leaseExpires <= now and not has_cap:
 		# TODO: take back expired batch
 		raise InvalidUsage(_().format('Sorry, you current work lease is expired.',
@@ -123,19 +123,66 @@ def load_batch_context(batchId):
 				and permit
 				and not permit.hasReadInstructions)
 
-	return jsonify(
+	batch_context = dict(
 		contextType='batch',
 		task=m.Task.dump(batch.task),
 		subTask=m.SubTask.dump(batch.subTask),
+		batch=m.Batch.dump(batch, use='full'),
+		showGuideline=showGuideline,
+	)
+
+	# get audio checking context
+	if task.is_type(TaskType.AUDIO_CHECKING):
+
+		# expect exactly one performance per batch
+		if len(batch.pages) != 1 or len(batch.pages[0].members) != 1:
+			raise RuntimeError("expected exactly one member")
+
+		performance = batch.pages[0].members[0].rawPiece
+
+		batch_context.update({
+			"audioCheckingGroups": AudioCheckingGroup.dump(performance.recording_platform.audio_checking_groups),
+			"metaCategories": PerformanceMetaCategory.dump(performance.recording_platform.performance_meta_categories),
+			"metaValues": PerformanceMetaValue.dump(performance.meta_values),
+			"performance": Performance.dump(performance),
+			"performanceFlags": PerformanceFlag.dump(task.performance_flags),
+			"recordings": Recording.dump(performance.recordings),
+			"recordingFlags": RecordingFlag.dump(task.recording_flags),
+			"recordingPlatform": RecordingPlatform.dump(performance.recording_platform),
+		})
+
+	# get other task type context
+	else:
+		tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
+		labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
+		taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
+		
+		batch_context.update(dict(
+			tagSet=m.TagSet.dump(tagSet, use='smart', context={
+				'subTaskId': batch.subTaskId}) if tagSet else None,
+			labelSet=m.LabelSet.dump(labelSet, use='smart', context={
+				'subTaskId': batch.subTaskId}) if labelSet else None,
+			taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
+			keyExpansions=m.KeyExpansion.dump(task.expansions),
+		))
+
+	return jsonify(**batch_context)
+
+"""
+	return jsonify(
+		#contextType='batch',
+		#task=m.Task.dump(batch.task),
+		#subTask=m.SubTask.dump(batch.subTask),
 		tagSet=m.TagSet.dump(tagSet, use='smart', context={
 			'subTaskId': batch.subTaskId}) if tagSet else None,
 		labelSet=m.LabelSet.dump(labelSet, use='smart', context={
 			'subTaskId': batch.subTaskId}) if labelSet else None,
 		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
 		keyExpansions=m.KeyExpansion.dump(task.expansions),
-		batch=m.Batch.dump(batch, use='full'),
-		showGuideline=showGuideline,
+		#batch=m.Batch.dump(batch, use='full'),
+		#showGuideline=showGuideline,
 	)
+"""
 
 
 @bp.route(_name + '/do/<int:batchId>/abandon')
