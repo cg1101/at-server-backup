@@ -211,11 +211,28 @@ class SimpleValidators(object):
 
 		return validator
 
-	def is_dict(self):
+	def is_dict(self, mandatory_keys=[], optional_keys=[], key_validator=None):
 
 		def validator(data, key, value):
 			if not isinstance(value, dict):
 				raise ValueError("value must be a dict")
+
+			# check mandatory keys exist
+			if mandatory_keys:
+				for k in mandatory_keys:
+					if k not in value:
+						raise ValueError("value {0} must have key {1}".format(value, k))
+
+			# check all keys are in the mandatory and optional key set
+			if optional_keys:
+				for k in value.keys():
+					if k not in mandatory_keys + optional_keys:
+						raise ValueError("value {0} has unexpected key {1}".format(value, k))
+
+			# validate all keys
+			if key_validator:
+				for k in value.keys():
+					key_validator(data, key, k)
 
 		return validator
 

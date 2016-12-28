@@ -1,14 +1,31 @@
 
 import datetime
+import json
 
 from flask import request, session, jsonify, redirect
+from sqlalchemy import or_
 import pytz
 
 import db.model as m
+from db.model import (
+	AudioCheckingChangeMethod,
+	AudioCheckingGroup,
+	Performance,
+	PerformanceMetaCategory,
+	PerformanceMetaValue,
+	PerformanceFlag,
+	Recording,
+	RecordingFlag,
+	RecordingPlatform,
+	TaskType
+)
 from db.schema import t_batchhistory
 from db.db import SS
-from app.api import api, caps, MyForm, Field, validators
+from db import database as db
+from app.api import api, caps, MyForm, Field, simple_validators, validators
 from app.i18n import get_text as _
+from lib import utcnow
+from lib.metadata_validation import process_received_metadata, resolve_new_metadata
 from . import api_1_0 as bp
 from .. import InvalidUsage
 
@@ -61,20 +78,18 @@ def get_batch_from_sub_task(subTaskId):
 	objection = PolicyChecker.check_get_policy(subTask, me)
 	if objection:
 		raise InvalidUsage(_('Sorry, {0}').format(objection))
-
+	
 	batch = m.Batch.query.filter_by(subTaskId=subTaskId
 		).filter(m.Batch.onHold==False
 		).filter(m.Batch.userId==None
-		).filter(m.Batch.notUserId!=me.userId
+		).filter(or_(m.Batch.notUserId==None, m.Batch.notUserId!=me.userId)
 		).order_by(m.Batch.priority.desc(), m.Batch.batchId
 		).first()
 	if not batch:
 		raise InvalidUsage(_('Sorry, there are no more batches left.',
 			'Please check later.'))
-
-	# TODO: change to TZ aware
-	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc
-		).replace(tzinfo=None)
+	
+	now = utcnow()
 	batch.userId = me.userId
 	batch.leaseGranted = now
 	batch.leaseExpires = now + subTask.defaultLeaseLife
@@ -94,9 +109,6 @@ def load_batch_context(batchId):
 
 	task = batch.task
 	subTask = batch.subTask
-	tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
-	labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
-	taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
 
 	# check if current user has the capability to view batch
 	# this allows supervisors to check progress
@@ -123,19 +135,50 @@ def load_batch_context(batchId):
 				and permit
 				and not permit.hasReadInstructions)
 
-	return jsonify(
+	batch_context = dict(
 		contextType='batch',
 		task=m.Task.dump(batch.task),
 		subTask=m.SubTask.dump(batch.subTask),
-		tagSet=m.TagSet.dump(tagSet, use='smart', context={
-			'subTaskId': batch.subTaskId}) if tagSet else None,
-		labelSet=m.LabelSet.dump(labelSet, use='smart', context={
-			'subTaskId': batch.subTaskId}) if labelSet else None,
-		taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
-		keyExpansions=m.KeyExpansion.dump(task.expansions),
 		batch=m.Batch.dump(batch, use='full'),
 		showGuideline=showGuideline,
 	)
+
+	# get audio checking context
+	if task.is_type(TaskType.AUDIO_CHECKING):
+
+		# expect exactly one performance per batch
+		if len(batch.pages) != 1 or len(batch.pages[0].members) != 1:
+			raise RuntimeError("expected exactly one member")
+
+		performance = batch.pages[0].members[0].rawPiece
+
+		batch_context.update({
+			"audioCheckingGroups": AudioCheckingGroup.dump(performance.recording_platform.audio_checking_groups),
+			"metaCategories": PerformanceMetaCategory.dump(performance.recording_platform.performance_meta_categories),
+			"metaValues": PerformanceMetaValue.dump(performance.meta_values),
+			"performance": Performance.dump(performance),
+			"performanceFlags": PerformanceFlag.dump(task.performance_flags),
+			"recordings": Recording.dump(performance.recordings),
+			"recordingFlags": RecordingFlag.dump(task.recording_flags),
+			"recordingPlatform": RecordingPlatform.dump(performance.recording_platform),
+		})
+
+	# get other task type context
+	else:
+		tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
+		labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
+		taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
+		
+		batch_context.update(dict(
+			tagSet=m.TagSet.dump(tagSet, use='smart', context={
+				'subTaskId': batch.subTaskId}) if tagSet else None,
+			labelSet=m.LabelSet.dump(labelSet, use='smart', context={
+				'subTaskId': batch.subTaskId}) if labelSet else None,
+			taskErrorTypes=m.TaskErrorType.dump(taskErrorTypes),
+			keyExpansions=m.KeyExpansion.dump(task.expansions),
+		))
+
+	return jsonify(**batch_context)
 
 
 @bp.route(_name + '/do/<int:batchId>/abandon')
@@ -207,67 +250,136 @@ def save_work_entry(batchId):
 
 	subTask = batch.subTask
 
-	data = MyForm(
-		Field('task', is_mandatory=True, default=batch.task),
+	common_data = MyForm(
 		Field('pageId', is_mandatory=True, validators=[
 			(check_page_existence, (batchId,)),
 		]),
 		Field('memberIndex', is_mandatory=True, validators=[
 			check_member_existence,
 		]),
-		Field('result', is_mandatory=True, default=''),
-		Field('labels', is_mandatory=True, default=[],
-			normalizer=normalize_label_ids),
-		Field('errors', is_mandatory=True, default=[],
-			normalizer=normalize_error_type_ids),
 	).get_data()
+	
+	memberEntry = m.PageMemberEntry.query.get((common_data['pageId'], common_data['memberIndex']))
+	assert memberEntry
 
 	ipAddress = request.environ['REMOTE_ADDR']
 
-	memberEntry = m.PageMemberEntry.query.get((data['pageId'], data['memberIndex']))
-	assert memberEntry
+	# audio checking tasks
+	if batch.task.is_type(TaskType.AUDIO_CHECKING):
+		
+		# validate expected data
+		data = MyForm(
+			Field("performance", is_mandatory=True, validators=[
+				simple_validators.is_dict(
+					mandatory_keys=["metaValues"],
+					optional_keys=["comment", "flags"]
+				),
+			]),
+			Field("recordings", is_mandatory=True, validators=[
+				simple_validators.is_dict(key_validator=Recording.check_exists),
+			]),
+		).get_data()
 
-	if subTask.workType == m.WorkType.QA:
-		qaedEntryId = memberEntry.workEntryId
-		qaedEntry = m.WorkEntry.query.get(qaedEntryId)
-		qaedUserId = qaedEntry.userId
-		rawPieceId = qaedEntry.rawPieceId
-		taskErrorTypeById = dict([(i.errorTypeId, i) for i
-			in m.TaskErrorType.query.filter_by(taskId=batch.taskId).all()])
-	else:
-		qaedEntryId = None
-		qaedEntry = None
-		qaedUserId = None
+		performance = Performance.query.get(memberEntry.rawPieceId)
 		rawPieceId = memberEntry.rawPieceId
-		taskErrorTypeById = {}
-		data['errors'] = []
 
-	# add new Entry
-	newEntry = m.BasicWorkEntry(**{
-		# 'entryId': None, # TBD
-		# 'created': None, # auto-fill
-		'result': data['result'],
-		'rawPieceId': rawPieceId,
-		'batchId': batchId,
-		'taskId': batch.taskId,
-		'subTaskId': batch.subTaskId,
-		'workTypeId': batch.subTask.workTypeId,
-		'userId': me.userId,
-		# 'notes': None,
-		'qaedUserId': qaedUserId,
-		'qaedEntryId': qaedEntryId,
-		'pageId': data['pageId']
-	})
-	SS.add(newEntry)
-	SS.flush()
-	# add labels
-	for labelId in data['labels']:
-		SS.add(m.AppliedLabel(entryId=newEntry.entryId, labelId=labelId))
-	# add errors, (if applicable)
-	for errorTypeId in data['errors']:
-		e = taskErrorTypeById.get(errorTypeId, None)
-		SS.add(m.AppliedError(entryId=newEntry.entryId,
-			errorTypeId=e.errorTypeId, severity=e.severity))
+		# update performance metadata
+		meta_values = process_received_metadata(
+			data["performance"]["metaValues"],
+			performance.recording_platform.performance_meta_categories,
+			expect_saved_value=True
+		)
+		resolve_new_metadata(performance, meta_values)
+
+		# performance feedback entry
+		if data["performance"].get("comment") or data["performance"].get("flags"):
+			entry = performance.add_feedback(
+				me,
+				AudioCheckingChangeMethod.WORK_PAGE,
+				data["performance"].get("comment"),
+				data["performance"].get("flags", [])
+			)
+			db.session.add(entry)
+
+		# all recording feedback entries
+		for recording_id, recording_data in data["recordings"].items():
+			recording = Recording.query.get(recording_id)
+			assert recording.performance == performance
+			entry = recording.add_feedback(
+				me,
+				AudioCheckingChangeMethod.WORK_PAGE,
+				recording_data.get("comment"),
+				recording_data.get("flags", [])
+			)
+			db.session.add(entry)
+	
+		# add new Entry
+		newEntry = m.BasicWorkEntry(**{
+			'rawPieceId': rawPieceId,
+			"result": json.dumps(request.json),
+			'batchId': batchId,
+			'taskId': batch.taskId,
+			'subTaskId': batch.subTaskId,
+			'workTypeId': batch.subTask.workTypeId,
+			'userId': me.userId,
+			'pageId': common_data['pageId']
+		})
+		db.session.add(newEntry)
+		db.session.flush()
+
+	else:
+
+		# other task types
+		data = MyForm(
+			Field('task', is_mandatory=True, default=batch.task),
+			Field('result', is_mandatory=True, default=''),
+			Field('labels', is_mandatory=True, default=[],
+				normalizer=normalize_label_ids),
+			Field('errors', is_mandatory=True, default=[],
+				normalizer=normalize_error_type_ids),
+		).get_data()
+
+		if subTask.workType == m.WorkType.QA:
+			qaedEntryId = memberEntry.workEntryId
+			qaedEntry = m.WorkEntry.query.get(qaedEntryId)
+			qaedUserId = qaedEntry.userId
+			rawPieceId = qaedEntry.rawPieceId
+			taskErrorTypeById = dict([(i.errorTypeId, i) for i
+				in m.TaskErrorType.query.filter_by(taskId=batch.taskId).all()])
+		else:
+			qaedEntryId = None
+			qaedEntry = None
+			qaedUserId = None
+			rawPieceId = memberEntry.rawPieceId
+			taskErrorTypeById = {}
+			data['errors'] = []
+
+		# add new Entry
+		newEntry = m.BasicWorkEntry(**{
+			# 'entryId': None, # TBD
+			# 'created': None, # auto-fill
+			'result': data['result'],
+			'rawPieceId': rawPieceId,
+			'batchId': batchId,
+			'taskId': batch.taskId,
+			'subTaskId': batch.subTaskId,
+			'workTypeId': batch.subTask.workTypeId,
+			'userId': me.userId,
+			# 'notes': None,
+			'qaedUserId': qaedUserId,
+			'qaedEntryId': qaedEntryId,
+			'pageId': common_data['pageId']
+		})
+		SS.add(newEntry)
+		SS.flush()
+		# add labels
+		for labelId in data['labels']:
+			SS.add(m.AppliedLabel(entryId=newEntry.entryId, labelId=labelId))
+		# add errors, (if applicable)
+		for errorTypeId in data['errors']:
+			e = taskErrorTypeById.get(errorTypeId, None)
+			SS.add(m.AppliedError(entryId=newEntry.entryId,
+				errorTypeId=e.errorTypeId, severity=e.severity))
 
 	# add payable event
 	event = m.PayableEvent(**{
@@ -277,7 +389,7 @@ def save_work_entry(batchId):
 		'subTaskId': batch.subTaskId,
 		# 'created': None, # auto-fill
 		'batchId': batchId,
-		'pageId': data['pageId'],
+		'pageId': common_data['pageId'],
 		'rawPieceId': rawPieceId,
 		'workEntryId': newEntry.entryId,
 		'calculatedPaymentId': None, # explicitly set to NULL
@@ -295,7 +407,7 @@ def save_work_entry(batchId):
 	)
 
 
-@bp.route(_name + '/do/<int:batchId>/submit')
+@bp.route(_name + '/do/<int:batchId>/submit', methods=["POST"])
 @api
 def submit_batch(batchId):
 	batch = m.Batch.query.get(batchId)
@@ -309,7 +421,7 @@ def submit_batch(batchId):
 
 	SS.rollback()
 	batch = m.Batch.query.get(batchId)
-	batch.submit()
+	batch.submit(request.json)
 
 	remaining = m.Batch.query.filter_by(subTaskId=batch.subTaskId
 		).filter(m.Batch.onHold.isnot(True)
