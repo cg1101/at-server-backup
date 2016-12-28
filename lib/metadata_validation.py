@@ -172,9 +172,9 @@ class EnumValidator(MetaValidator):
 			raise ValueError("Unknown meta value: %s" %value)
 		
 		return MetaValue(value)
-	
 
-def process_received_metadata(received_value_dict, meta_categories):
+
+def process_received_metadata(received_value_dict, meta_categories, expect_saved_value=False):
 	"""
 	Processes metadata received from the field. Returns
 	a list of two item tuples: (meta_category, meta_value or
@@ -185,6 +185,10 @@ def process_received_metadata(received_value_dict, meta_categories):
 	# which doesn't allow integer object keys - convert them
 	# back to integers
 	received_value_dict = dict([(int(meta_category_id), value) for meta_category_id, value in received_value_dict.items()])
+
+	if expect_saved_value:
+		for meta_category_id, value in received_value_dict.items():
+			received_value_dict[meta_category_id] = value["value"]
 
 	meta_values = []
 

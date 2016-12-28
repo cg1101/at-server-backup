@@ -21,7 +21,7 @@ from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
 from .db import database as db
-from lib import utcnow
+from lib import utcnow, validator
 from lib.audio_import import validate_import_performance_data
 from lib.audio_load import validate_load_utterance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
@@ -30,41 +30,8 @@ from schema import *
 log = logging.getLogger(__name__)
 
 
-# TODO move to lib
-def validator(fn):
-	"""
-	Decorator for wrapping a function that returns a MyForm
-	validator which does not require any external context.
-	The function itself can be passed to the validator list,
-	rather than the validator that is returned e.g.
-
-	def get_validator():
-		return validator_fn
-
-	validators = [
-		get_validator(),	# function is called
-	]
-
-	becomes:
-
-	@validator
-	def get_validator():
-		return validator_fn
-
-	validators = [
-		get_validator,		# function is called later
-	]
-	"""
-
-	@wraps(fn)
-	def decorated(self_or_cls, *args, **kwargs):
-		validator_fn = fn(self_or_cls)
-		return validator_fn(*args, **kwargs)
-
-	return decorated
-
-
 # model mixin classes
+
 class ModelMixin(object):
 
 	@classmethod
@@ -245,6 +212,53 @@ class MetaValueMixin(object):
 		raise NotImplementedError
 
 
+class AddFeedbackMixin(object):
+	"""
+	Adds extra functionality for models that
+	have feedback entries.
+	"""
+	
+	FeedbackEntryModel = None
+	FlagModel = None
+	SelfRelationshipName = None
+	
+	def add_feedback(self, user, change_method, comment=None, flags=[]):
+		change_method = AudioCheckingChangeMethod.from_name(change_method)
+		flags = self.FlagModel.get_list(*flags)
+
+		kwargs = dict(
+			user=user,
+			change_method=change_method,
+			comment=comment,
+		)
+		kwargs.update({
+			self.SelfRelationshipName: self,
+		})
+		
+		entry = self.FeedbackEntryModel(**kwargs)
+		entry.add_flags(flags)
+		return entry
+
+
+class FeedbackEntryMixin(object):
+	"""
+	Adds extra functionality for models that
+	are feedback entries.
+	The EntryFlagModel must have a relationship
+	to the Flag model named 'flag'.
+	"""
+
+	EntryFlagModel = None
+
+	@property
+	def flags(self):
+		return [entry_flag.flag for entry_flag in self.entry_flags]
+
+	def add_flags(self, flags):
+		for flag in flags:
+			self.entry_flags.append(self.EntryFlagModel(flag=flag))	
+
+
 def set_schema(cls, schema_class, schema_key=None):
 	if not issubclass(schema_class, Schema):
 		raise TypeError('schema must be subclass of Schema')
@@ -353,7 +367,9 @@ class Batch(Base):
 		if self.leaseExpires is None:
 			return False
 		else:
-			return self.leaseExpires <= datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+			now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+			return self.leaseExpires <= now
+
 	@property
 	def isFinished(self):
 		if self.userId is None:
@@ -363,6 +379,7 @@ class Batch(Base):
 				if not member.saved:
 					return False
 		return True
+
 	@property
 	def unfinishedCount(self):
 		if self.userId is None:
@@ -373,6 +390,7 @@ class Batch(Base):
 				if not member.saved:
 					count += 1
 		return count
+
 	@property
 	def unitCount(self):
 		if self.subTask.workType in (WorkType.WORK, WorkType.REWORK):
@@ -401,6 +419,7 @@ class Batch(Base):
 		except:
 			unitCount = 0
 		return unitCount
+
 	def log_event(self, event, operatorId=None):
 		if operatorId is None:
 			operatorId = self.userId
@@ -409,37 +428,61 @@ class Batch(Base):
 			userId=operatorId,
 			event=event,
 		)))
+
 	def reset_ownership(self):
 		self.userId = None
 		self.leaseGranted = None
 		self.leaseExpires = None
 		self.checkedOut = False
+
 	def increase_priority(self, increase_by=1):
 		self.priority += increase_by
+
 	def revoke(self, revoked_by):
 		self.log_event('revoked', revoked_by)
 		self.reset_ownership()
 		self.increase_priority()
+
 	def abandon(self):
 		self.log_event('abandoned')
 		self.reset_ownership()
 		self.increase_priority()
-	def submit(self):
+
+	def submit(self, data=None):
 		self.log_event('submitted')
-		rawPieceIds = []
+
+		# audio checking tasks
+		if self.task.is_type(TaskType.AUDIO_CHECKING):
+			assert len(self.pages) == 1
+			assert len(self.pages[0].memberEntries) == 1
+			performance = Performance.query.get(self.pages[0].memberEntries[0].rawPieceId)
+			performance.isNew = False
+			performance.move_to(data["destination"])
+			db.session.commit()
+			
+		# other task types
+		else:
+			rawPieceIds = []
+			for p in self.pages:
+			# 	for member in p.members:
+			# 		SS.delete(member)
+				for memberEntry in p.memberEntries:
+					if memberEntry.rawPieceId:
+						rawPieceIds.append(memberEntry.rawPieceId)
+					SS.delete(memberEntry)
+				SS.delete(p)
+			SS.delete(self)
+			for rawPieceId in rawPieceIds:
+				rawPiece = RawPiece.query.get(rawPieceId)
+				rawPiece.isNew = False
+			SS.flush()
+
+	def delete(self):
 		for p in self.pages:
-		# 	for member in p.members:
-		# 		SS.delete(member)
 			for memberEntry in p.memberEntries:
-				if memberEntry.rawPieceId:
-					rawPieceIds.append(memberEntry.rawPieceId)
-				SS.delete(memberEntry)
-			SS.delete(p)
-		SS.delete(self)
-		for rawPieceId in rawPieceIds:
-			rawPiece = RawPiece.query.get(rawPieceId)
-			rawPiece.isNew = False
-		SS.flush()
+				db.session.delete(memberEntry)
+			db.session.delete(p)
+		db.session.delete(self)
 
 
 class BatchSchema(Schema):
@@ -940,7 +983,7 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 	def get_saved(self, obj):
 		if obj.saved == None:
 			return None
-		assert obj.saved.workType == WorkType.REWORK
+		assert obj.saved.workType == WorkType.REWORK, obj.saved
 		_sd = {
 			WorkType.WORK: WorkTypeEntrySchema(),
 			WorkType.QA: QaTypeEntrySchema(),
@@ -2045,7 +2088,7 @@ class RecordingPlatform(Base, ModelMixin):
 			# create performance
 			performance = Performance.from_import(data, self)
 
-			# add batch to import sub task TODO move this to app.api...
+			# add batch to import sub task TODO move this to app.api...?
 			from app.util import Batcher
 			batches = Batcher.batch(sub_task, [performance])
 			assert len(batches) == 1
@@ -2279,8 +2322,94 @@ class PerformanceMetaValueSchema(Schema):
 	class Meta:
 		fields = ("performanceMetaValueId", "rawPieceId", "performanceMetaCategoryId", "value")
 
+
+class PerformanceFeedbackEntryFlag(Base, ModelMixin):
+	__table__ = t_performance_feedback_flags
+	
+	# relationships
+	flag = relationship("PerformanceFlag")
+	entry = relationship("PerformanceFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
+
+
+# PerformanceFeedbackEntry
+class PerformanceFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
+	__table__ = t_performance_feedback
+
+	# relationships
+	performance = relationship("Performance", backref="feedback_entries")
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
+	raw_piece_id = synonym("rawPieceId")
+	user_id = synonym("userId")
+	saved_at = synonym("savedAt")
+
+	# mixin config
+	EntryFlagModel = PerformanceFeedbackEntryFlag
+
+
+class PerformanceFeedbackEntrySchema(Schema):
+	user = fields.Nested("UserSchema")
+	flags = fields.Nested("PerformanceFlagSchema", many=True)
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
+
+
+# PerformanceFlag
+class PerformanceFlag(Base, ModelMixin):
+	__table__ = t_performance_flags
+
+	# constants
+	INFO = "Info"
+	WARNING = "Warning"
+	SEVERE = "Severe"
+
+	# relationships
+	task = relationship("Task", backref="performance_flags")
+
+	# synonyms
+	performance_flag_id = synonym("performanceFlagId")
+	task_id = synonym("taskId")
+
+	@classmethod
+	def check_valid_severity(cls, data, key, value):
+		"""
+		MyForm validator for checking a valid
+		severity.
+		"""
+		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
+			raise ValueError("{0} is not a valid severity".format(value))
+
+	@classmethod
+	def check_new_name_unique(cls, task):
+		"""
+		Returns a MyForm validator for checking
+		that a new performance flag name is unique
+		for the task.
+		"""
+		return cls.check_new_field_unique("name", task=task)
+
+	@validator
+	def check_updated_name_unique(self):
+		"""
+		Returns a MyForm validator for checking
+		that an existing performance flag name
+		is unique for the task.
+		"""
+		return self.check_updated_field_unique("name", task=self.task)
+
+
+class PerformanceFlagSchema(Schema):
+	class Meta:
+		fields = ("performanceFlagId", "name", "severity", "enabled")
+
+
 # Performance
-class Performance(RawPiece, ImportMixin, MetaEntityMixin):
+class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 	__table__ = t_performances
 
 	# relationships
@@ -2298,7 +2427,11 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 	# associations
 	task_id = association_proxy("raw_piece", "taskId")
 
+	# mixin config
 	MetaValueModel = PerformanceMetaValue
+	FeedbackEntryModel = PerformanceFeedbackEntry
+	FlagModel = PerformanceFlag
+	SelfRelationshipName = "performance"
 
 	__mapper_args__ = {
 		"polymorphic_identity": "performance",
@@ -2359,6 +2492,18 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin):
 		performance.import_data(data)
 		return performance
 
+	def move_to(self, sub_task_id):
+		"""
+		Moves the performance batch to
+		the given sub task.
+		"""
+		self.batch.delete()
+		sub_task = SubTask.query.get(sub_task_id)
+		from app.util import Batcher
+		batches = Batcher.batch(sub_task, [self.raw_piece_id])
+		assert len(batches) == 1
+		db.session.add(batches[0])
+
 
 class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
@@ -2366,6 +2511,7 @@ class PerformanceSchema(Schema):
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
+
 
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
@@ -2394,8 +2540,94 @@ class RecordingMetaValueSchema(Schema):
 	class Meta:
 		fields = ("recordingMetaValueId", "recordingMetaCategoryId", "recordingId", "value")
 
+
+# RecordingFlag
+class RecordingFlag(Base, ModelMixin):
+	__table__ = t_recording_flags
+
+	# constants
+	INFO = "Info"
+	WARNING = "Warning"
+	SEVERE = "Severe"
+
+	# relationships
+	task = relationship("Task", backref="recording_flags")
+
+	# synonyms
+	recording_flag_id = synonym("recordingFlagId")
+	task_id = synonym("taskId")
+
+	@classmethod
+	def check_valid_severity(cls, data, key, value):
+		"""
+		MyForm validator for checking a valid
+		severity.
+		"""
+		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
+			raise ValueError("{0} is not a valid severity".format(value))
+
+	@classmethod
+	def check_new_name_unique(cls, task):
+		"""
+		Returns a MyForm validator for checking
+		that a new recording flag name is unique
+		for the task.
+		"""
+		return cls.check_new_field_unique("name", task=task)
+
+	@validator
+	def check_updated_name_unique(self):
+		"""
+		Returns a MyForm validator for checking
+		that an existing recording flag name
+		is unique for the task.
+		"""
+		return self.check_updated_field_unique("name", task=self.task)
+
+
+class RecordingFlagSchema(Schema):
+	class Meta:
+		fields = ("recordingFlagId", "name", "severity", "enabled")
+
+
+class RecordingFeedbackEntryFlag(Base, ModelMixin):
+	__table__ = t_recording_feedback_flags
+	
+	# relationships
+	flag = relationship("RecordingFlag")
+	entry = relationship("RecordingFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
+
+
+# RecordingFeedbackEntry
+class RecordingFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
+	__table__ = t_recording_feedback
+
+	# relationships
+	recording = relationship("Recording", backref="feedback_entries")
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	recording_feedback_entry_id = synonym("recordingFeedbackEntryId")
+	recording_id = synonym("recordingId")
+	user_id = synonym("userId")
+	saved_at = synonym("savedAt")
+	
+	# mixin config
+	EntryFlagModel = RecordingFeedbackEntryFlag
+
+
+class RecordingFeedbackEntrySchema(Schema):
+	user = fields.Nested("UserSchema")
+	flags = fields.Nested("RecordingFlagSchema", many=True)
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("recordingFeedbackEntryId", "recordingId", "comment", "savedAt")
+
+
 # Recording
-class Recording(Base, ImportMixin):
+class Recording(Base, ModelMixin, ImportMixin, AddFeedbackMixin):
 	__table__ = t_recordings
 
 	# relationships
@@ -2407,6 +2639,11 @@ class Recording(Base, ImportMixin):
 	recording_id = synonym("recordingId")
 	raw_piece_id = synonym("rawPieceId")
 	corpus_code_id = synonym("corpusCodeId")
+
+	# mixin config
+	FeedbackEntryModel = RecordingFeedbackEntry
+	FlagModel = RecordingFlag
+	SelfRelationshipName = "recording"
 
 	@classmethod
 	def from_import(cls, data, performance):
@@ -2539,55 +2776,6 @@ class TrackSchema(Schema):
 		fields = ("trackId", "name", "trackIndex")
 
 
-# PerformanceFlag
-class PerformanceFlag(Base, ModelMixin):
-	__table__ = t_performance_flags
-
-	# constants
-	INFO = "Info"
-	WARNING = "Warning"
-	SEVERE = "Severe"
-
-	# relationships
-	task = relationship("Task", backref="performance_flags")
-
-	# synonyms
-	performance_flag_id = synonym("performanceFlagId")
-	task_id = synonym("taskId")
-
-	@classmethod
-	def check_valid_severity(cls, data, key, value):
-		"""
-		MyForm validator for checking a valid
-		severity.
-		"""
-		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
-			raise ValueError("{0} is not a valid severity".format(value))
-
-	@classmethod
-	def check_new_name_unique(cls, task):
-		"""
-		Returns a MyForm validator for checking
-		that a new performance flag name is unique
-		for the task.
-		"""
-		return cls.check_new_field_unique("name", task=task)
-
-	@validator
-	def check_updated_name_unique(self):
-		"""
-		Returns a MyForm validator for checking
-		that an existing performance flag name
-		is unique for the task.
-		"""
-		return self.check_updated_field_unique("name", task=self.task)
-
-
-class PerformanceFlagSchema(Schema):
-	class Meta:
-		fields = ("performanceFlagId", "name", "severity", "enabled")
-
-
 class AudioCheckingGroup(Base):
 	__table__ = t_audio_checking_groups
 
@@ -2665,55 +2853,6 @@ class AudioCheckingSectionSchema(Schema):
 		fields = ("audioCheckingSectionId", "startPosition", "endPosition", "checkPercentage")
 
 
-# RecordingFlag
-class RecordingFlag(Base, ModelMixin):
-	__table__ = t_recording_flags
-
-	# constants
-	INFO = "Info"
-	WARNING = "Warning"
-	SEVERE = "Severe"
-
-	# relationships
-	task = relationship("Task", backref="recording_flags")
-
-	# synonyms
-	recording_flag_id = synonym("recordingFlagId")
-	task_id = synonym("taskId")
-
-	@classmethod
-	def check_valid_severity(cls, data, key, value):
-		"""
-		MyForm validator for checking a valid
-		severity.
-		"""
-		if value not in (cls.INFO, cls.WARNING, cls.SEVERE):
-			raise ValueError("{0} is not a valid severity".format(value))
-
-	@classmethod
-	def check_new_name_unique(cls, task):
-		"""
-		Returns a MyForm validator for checking
-		that a new recording flag name is unique
-		for the task.
-		"""
-		return cls.check_new_field_unique("name", task=task)
-
-	@validator
-	def check_updated_name_unique(self):
-		"""
-		Returns a MyForm validator for checking
-		that an existing recording flag name
-		is unique for the task.
-		"""
-		return self.check_updated_field_unique("name", task=self.task)
-
-
-class RecordingFlagSchema(Schema):
-	class Meta:
-		fields = ("recordingFlagId", "name", "severity", "enabled")
-
-
 # Transition
 class Transition(Base, ModelMixin):
 	__table__ = t_transitions
@@ -2781,106 +2920,6 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 class AudioCheckingChangeMethodSchema(Schema):
 	class Meta:
 		fields = ("changeMethodId", "name")
-
-
-# PerformanceFeedbackEntry
-class PerformanceFeedbackEntry(Base, ModelMixin):
-	__table__ = t_performance_feedback
-
-	# relationships
-	performance = relationship("Performance", backref="feedback_entries")
-	user = relationship("User")
-	change_method = relationship("AudioCheckingChangeMethod")
-
-	# synonyms
-	performance_feedback_entry_id = synonym("performanceFeedbackEntryId")
-	raw_piece_id = synonym("rawPieceId")
-	user_id = synonym("userId")
-	saved_at = synonym("savedAt")
-
-	@property
-	def flags(self):
-		query = t_performance_feedback_flags.select()
-		query = query.where(
-			t_performance_feedback_flags.c.performanceFeedbackEntryId==self.performance_feedback_entry_id
-		)
-		result = db.session.execute(query)
-		rows = result.fetchall()
-
-		models = []
-
-		for row in rows:
-			performance_flag_id = row[1]
-			models.append(PerformanceFlag.query.get(performance_flag_id))
-
-		return models
-
-	def add_flags(self, flags):
-		for performance_flag in flags:
-			values = {
-				"performanceFeedbackEntryId": self.performance_feedback_entry_id,
-				"performanceFlagId": performance_flag.performance_flag_id,
-			}
-			db.session.execute(t_performance_feedback_flags.insert(values))
-
-
-class PerformanceFeedbackEntrySchema(Schema):
-	user = fields.Nested("UserSchema")
-	flags = fields.Nested("PerformanceFlagSchema", many=True)
-	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
-
-	class Meta:
-		additional = ("performanceFeedbackEntryId", "rawPieceId", "comment", "savedAt")
-
-
-# RecordingFeedbackEntry
-class RecordingFeedbackEntry(Base, ModelMixin):
-	__table__ = t_recording_feedback
-
-	# relationships
-	recording = relationship("Recording", backref="feedback_entries")
-	user = relationship("User")
-	change_method = relationship("AudioCheckingChangeMethod")
-
-	# synonyms
-	recording_feedback_entry_id = synonym("recordingFeedbackEntryId")
-	recording_id = synonym("recordingId")
-	user_id = synonym("userId")
-	saved_at = synonym("savedAt")
-
-	@property
-	def flags(self):
-		query = t_recording_feedback_flags.select()
-		query = query.where(
-			t_recording_feedback_flags.c.recordingFeedbackEntryId==self.recording_feedback_entry_id
-		)
-		result = db.session.execute(query)
-		rows = result.fetchall()
-
-		models = []
-
-		for row in rows:
-			recording_flag_id = row[1]
-			models.append(RecordingFlag.query.get(recording_flag_id))
-
-		return models
-
-	def add_flags(self, flags):
-		for recording_flag in flags:
-			values = {
-				"recordingFeedbackEntryId": self.recording_feedback_entry_id,
-				"recordingFlagId": recording_flag.recording_flag_id,
-			}
-			db.session.execute(t_recording_feedback_flags.insert(values))
-
-
-class RecordingFeedbackEntrySchema(Schema):
-	user = fields.Nested("UserSchema")
-	flags = fields.Nested("RecordingFlagSchema", many=True)
-	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
-
-	class Meta:
-		additional = ("recordingFeedbackEntryId", "recordingId", "comment", "savedAt")
 
 
 # Loader

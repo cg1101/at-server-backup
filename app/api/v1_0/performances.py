@@ -55,7 +55,7 @@ def move_performance(performance):
 		]),
 	).get_data()
 
-	performance.batch.sub_task_id = data["subTaskId"]
+	performance.move_to(data["subTaskId"])
 	db.session.flush()
 	return jsonify(performance=Performance.dump(performance))
 
@@ -86,17 +86,7 @@ def create_performance_feedback_entry(performance):
 		]),
 	).get_data()
 
-	change_method = AudioCheckingChangeMethod.from_name(data["changeMethod"])
-	flags = PerformanceFlag.get_list(*data.get('flags', []))
-
-	entry = PerformanceFeedbackEntry(
-		performance=performance,
-		user=session["current_user"],
-		change_method=change_method,
-		comment=data.get("comment"),
-	)
-	db.session.add(entry)
-	db.session.flush()
-	entry.add_flags(flags)
+	entry = performance.add_feedback(session["current_user"], data["changeMethod"], data.get("comment"), data.get("flags", []))
 	db.session.commit()
+
 	return jsonify(entry=PerformanceFeedbackEntry.dump(entry))
