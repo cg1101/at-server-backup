@@ -421,7 +421,7 @@ def submit_batch(batchId):
 
 	SS.rollback()
 	batch = m.Batch.query.get(batchId)
-	batch.submit(request.json)
+	batch.submit(me, request.json)
 
 	remaining = m.Batch.query.filter_by(subTaskId=batch.subTaskId
 		).filter(m.Batch.onHold.isnot(True)

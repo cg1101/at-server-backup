@@ -3,7 +3,17 @@ from flask import jsonify, request, session
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
 from db import database as db
-from db.model import AudioCheckingChangeMethod, Performance, PerformanceFeedbackEntry, PerformanceFlag, PerformanceMetaValue, Recording, SubTask, Transition
+from db.model import (
+	AudioCheckingChangeMethod,
+	Performance,
+	PerformanceFeedbackEntry,
+	PerformanceFlag,
+	PerformanceTransitionLogEntry,
+	PerformanceMetaValue,
+	Recording,
+	SubTask,
+	Transition
+)
 from lib.metadata_validation import process_received_metadata, resolve_new_metadata
 
 
@@ -55,7 +65,11 @@ def move_performance(performance):
 		]),
 	).get_data()
 
-	performance.move_to(data["subTaskId"])
+	performance.move_to(
+		data["subTaskId"],
+		AudioCheckingChangeMethod.ADMIN,
+		session["current_user"].user_id
+	)
 	db.session.flush()
 	return jsonify(performance=Performance.dump(performance))
 
@@ -90,3 +104,11 @@ def create_performance_feedback_entry(performance):
 	db.session.commit()
 
 	return jsonify(entry=PerformanceFeedbackEntry.dump(entry))
+
+
+@bp.route("performances/<int:raw_piece_id>/transitionlog", methods=["GET"])
+@api
+@caps()
+@get_model(Performance)
+def get_performance_transition_log_entries(performance):
+	return jsonify(entries=PerformanceTransitionLogEntry.dump(performance.transition_log_entries))

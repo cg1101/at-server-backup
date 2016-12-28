@@ -1565,6 +1565,22 @@ t_utterances = Table("utterances", metadata,
 	ForeignKeyConstraint(["rawPieceId"], ["rawpieces.rawPieceId"]),
 )
 
+t_performance_transition_log = Table("performance_transition_log", metadata,
+	Column("log_entry_id", INTEGER, primary_key=True, key="logEntryId", doc=""),
+	Column("rawpieceid", INTEGER, nullable=False, key="rawPieceId", doc=""),
+	Column("source_id", INTEGER, nullable=False, key="sourceId", doc=""),
+	Column("destination_id", INTEGER, nullable=False, key="destinationId", doc=""),
+	Column("userid", INTEGER, key="userId", doc=""),
+	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
+	Column("moved_at", TIMESTAMP(timezone=True), nullable=False, key="movedAt", server_default=text("now()"), doc=""),
+	ForeignKeyConstraint(["rawPieceId"], ["performances.rawPieceId"]),
+	ForeignKeyConstraint(["sourceId"], ["subtasks.subTaskId"]),
+	ForeignKeyConstraint(["destinationId"], ["subtasks.subTaskId"]),
+	ForeignKeyConstraint(["userId"], ["users.userId"]),
+	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
+)
+Index("performance_transition_log_by_rawpieceid", t_performance_transition_log.c.rawPieceId, unique=False)
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

@@ -448,7 +448,7 @@ class Batch(Base):
 		self.reset_ownership()
 		self.increase_priority()
 
-	def submit(self, data=None):
+	def submit(self, user, data=None):
 		self.log_event('submitted')
 
 		# audio checking tasks
@@ -457,7 +457,7 @@ class Batch(Base):
 			assert len(self.pages[0].memberEntries) == 1
 			performance = Performance.query.get(self.pages[0].memberEntries[0].rawPieceId)
 			performance.isNew = False
-			performance.move_to(data["destination"])
+			performance.move_to(data["destination"], AudioCheckingChangeMethod.WORK_PAGE, user.user_id)
 			db.session.commit()
 			
 		# other task types
@@ -1762,6 +1762,10 @@ class TrackingEventSchema(Schema):
 # User
 class User(Base):
 	__table__ = t_users
+
+	# synonyms
+	user_id = synonym("userId")
+
 	@hybrid_property
 	def userName(self):
 		if self.givenName == None or not self.givenName.strip():
@@ -2492,13 +2496,32 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 		performance.import_data(data)
 		return performance
 
-	def move_to(self, sub_task_id):
+	def move_to(self, sub_task_id, change_method, user_id=None):
 		"""
 		Moves the performance batch to
 		the given sub task.
 		"""
-		self.batch.delete()
+		
 		sub_task = SubTask.query.get(sub_task_id)
+		
+		# add log entry
+		kwargs = dict(
+			performance=self,
+			source=self.sub_task,
+			destination=sub_task,
+			change_method=AudioCheckingChangeMethod.from_name(change_method)
+		)
+
+		if user_id:
+			kwargs.update(dict(user_id=user_id))
+
+		entry = PerformanceTransitionLogEntry(**kwargs)
+		db.session.add(entry)
+
+		# remove current batch
+		self.batch.delete()
+
+		# add new batch
 		from app.util import Batcher
 		batches = Batcher.batch(sub_task, [self.raw_piece_id])
 		assert len(batches) == 1
@@ -2987,6 +3010,36 @@ class Utterance(RawPiece):
 		)
 
 		return utt
+
+# PerformanceTransitionLogEntry
+class PerformanceTransitionLogEntry(Base, ModelMixin):
+	__table__ = t_performance_transition_log
+
+	# relationships
+	performance = relationship("Performance", backref="transition_log_entries")
+	source = relationship("SubTask", foreign_keys=[t_performance_transition_log.c.sourceId])
+	destination = relationship("SubTask", foreign_keys=[t_performance_transition_log.c.destinationId])
+	user = relationship("User")
+	change_method = relationship("AudioCheckingChangeMethod")
+
+	# synonyms
+	log_entry_id = synonym("logEntryId")
+	raw_piece_id = synonym("rawPieceId")
+	source_id = synonym("sourceId")
+	destination_id = synonym("destinationId")
+	user_id = synonym("userId")
+	change_method_id = synonym("changeMethodId")
+	moved_at = synonym("movedAt")
+
+class PerformanceTransitionLogEntrySchema(Schema):
+	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
+	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
+	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+
+	class Meta:
+		additional = ("logEntryId", "rawPieceId", "movedAt")
+
 
 #
 # Define model class and its schema (if needed) above
