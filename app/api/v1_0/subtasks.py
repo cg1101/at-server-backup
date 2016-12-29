@@ -763,5 +763,5 @@ def get_sub_task_performances(sub_task):
 			for page_member in page.members:
 				performance = Performance.query.get(page_member.raw_piece_id)
 				performances.append(performance)
-	
+
 	return jsonify(performances=Performance.dump(performances))
