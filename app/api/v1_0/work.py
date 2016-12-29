@@ -78,7 +78,7 @@ def get_batch_from_sub_task(subTaskId):
 	objection = PolicyChecker.check_get_policy(subTask, me)
 	if objection:
 		raise InvalidUsage(_('Sorry, {0}').format(objection))
-	
+
 	batch = m.Batch.query.filter_by(subTaskId=subTaskId
 		).filter(m.Batch.onHold==False
 		).filter(m.Batch.userId==None
@@ -88,7 +88,7 @@ def get_batch_from_sub_task(subTaskId):
 	if not batch:
 		raise InvalidUsage(_('Sorry, there are no more batches left.',
 			'Please check later.'))
-	
+
 	now = utcnow()
 	batch.userId = me.userId
 	batch.leaseGranted = now
@@ -168,7 +168,7 @@ def load_batch_context(batchId):
 		tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
 		labelSet = None if task.labelSetId is None else m.LabelSet.query.get(task.labelSetId)
 		taskErrorTypes = m.TaskErrorType.query.filter_by(taskId=task.taskId).all()
-		
+
 		batch_context.update(dict(
 			tagSet=m.TagSet.dump(tagSet, use='smart', context={
 				'subTaskId': batch.subTaskId}) if tagSet else None,
@@ -258,7 +258,7 @@ def save_work_entry(batchId):
 			check_member_existence,
 		]),
 	).get_data()
-	
+
 	memberEntry = m.PageMemberEntry.query.get((common_data['pageId'], common_data['memberIndex']))
 	assert memberEntry
 
@@ -266,7 +266,7 @@ def save_work_entry(batchId):
 
 	# audio checking tasks
 	if batch.task.is_type(TaskType.AUDIO_CHECKING):
-		
+
 		# validate expected data
 		data = MyForm(
 			Field("performance", is_mandatory=True, validators=[
@@ -314,7 +314,7 @@ def save_work_entry(batchId):
 					recording_data.get("flags", [])
 				)
 				db.session.add(entry)
-	
+
 		# add new Entry
 		newEntry = m.BasicWorkEntry(**{
 			'rawPieceId': rawPieceId,

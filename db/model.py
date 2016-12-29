@@ -217,11 +217,11 @@ class AddFeedbackMixin(object):
 	Adds extra functionality for models that
 	have feedback entries.
 	"""
-	
+
 	FeedbackEntryModel = None
 	FlagModel = None
 	SelfRelationshipName = None
-	
+
 	def add_feedback(self, user, change_method, comment=None, flags=[]):
 		change_method = AudioCheckingChangeMethod.from_name(change_method)
 		flags = self.FlagModel.get_list(*flags)
@@ -234,7 +234,7 @@ class AddFeedbackMixin(object):
 		kwargs.update({
 			self.SelfRelationshipName: self,
 		})
-		
+
 		entry = self.FeedbackEntryModel(**kwargs)
 		entry.add_flags(flags)
 		return entry
@@ -256,7 +256,7 @@ class FeedbackEntryMixin(object):
 
 	def add_flags(self, flags):
 		for flag in flags:
-			self.entry_flags.append(self.EntryFlagModel(flag=flag))	
+			self.entry_flags.append(self.EntryFlagModel(flag=flag))
 
 
 def set_schema(cls, schema_class, schema_key=None):
@@ -459,7 +459,7 @@ class Batch(Base):
 			performance.isNew = False
 			performance.move_to(data["destination"], AudioCheckingChangeMethod.WORK_PAGE, user.user_id)
 			db.session.commit()
-			
+
 		# other task types
 		else:
 			rawPieceIds = []
@@ -2329,7 +2329,7 @@ class PerformanceMetaValueSchema(Schema):
 
 class PerformanceFeedbackEntryFlag(Base, ModelMixin):
 	__table__ = t_performance_feedback_flags
-	
+
 	# relationships
 	flag = relationship("PerformanceFlag")
 	entry = relationship("PerformanceFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
@@ -2501,9 +2501,9 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 		Moves the performance batch to
 		the given sub task.
 		"""
-		
+
 		sub_task = SubTask.query.get(sub_task_id)
-		
+
 		# add log entry
 		kwargs = dict(
 			performance=self,
@@ -2615,7 +2615,7 @@ class RecordingFlagSchema(Schema):
 
 class RecordingFeedbackEntryFlag(Base, ModelMixin):
 	__table__ = t_recording_feedback_flags
-	
+
 	# relationships
 	flag = relationship("RecordingFlag")
 	entry = relationship("RecordingFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
@@ -2635,7 +2635,7 @@ class RecordingFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
 	recording_id = synonym("recordingId")
 	user_id = synonym("userId")
 	saved_at = synonym("savedAt")
-	
+
 	# mixin config
 	EntryFlagModel = RecordingFeedbackEntryFlag
 
