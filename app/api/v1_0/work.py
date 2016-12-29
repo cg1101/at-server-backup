@@ -305,13 +305,15 @@ def save_work_entry(batchId):
 		for recording_id, recording_data in data["recordings"].items():
 			recording = Recording.query.get(recording_id)
 			assert recording.performance == performance
-			entry = recording.add_feedback(
-				me,
-				AudioCheckingChangeMethod.WORK_PAGE,
-				recording_data.get("comment"),
-				recording_data.get("flags", [])
-			)
-			db.session.add(entry)
+
+			if recording_data.get("comment") or recording_data.get("flags"):
+				entry = recording.add_feedback(
+					me,
+					AudioCheckingChangeMethod.WORK_PAGE,
+					recording_data.get("comment"),
+					recording_data.get("flags", [])
+				)
+				db.session.add(entry)
 	
 		# add new Entry
 		newEntry = m.BasicWorkEntry(**{
