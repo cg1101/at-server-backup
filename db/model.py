@@ -14,6 +14,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
 from sqlalchemy.sql import case, text, func
+from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
 import pytz
 
@@ -115,6 +116,12 @@ class ModelMixin(object):
 
 		return models
 
+	def serialize(self):
+		"""
+		Serializes the model.
+		"""
+		return self.dump(self)
+
 
 class ImportMixin(object):
 	"""
@@ -165,11 +172,27 @@ class MetaEntityMixin(object):
 
 	# the corresponding meta value model class
 	MetaValueModel = None
+	MetaCategoryModel = None
 
 	@property
 	def meta_values(self):
 		"""
 		An SQLAlchemy relationship to the meta values.
+		"""
+		raise NotImplementedError
+
+	@property
+	def task(self):
+		"""
+		An SQLAlchemy relationship to the associated task.
+		"""
+		raise NotImplementedError
+
+	@property
+	def meta_entity_id(self):
+		"""
+		Returns the 'entityId' to be stored
+		in the metadata change log info field.
 		"""
 		raise NotImplementedError
 
@@ -185,11 +208,58 @@ class MetaEntityMixin(object):
 			value=new_value
 		))
 
+	# TODO require user and change method
 	def add_meta_change_request(self, meta_category, new_value):
 		"""
 		Adds a new meta value change request.
 		"""
 		raise NotImplementedError
+
+	@staticmethod
+	def get_change_log_type(model):
+		"""
+		Returns the 'type' to be stored in
+		the metadata change log info field.
+		"""
+		if isinstance(model, Performance):
+			return "performance"
+
+		raise RuntimeError("unknown meta entity model: {0}".format(model))
+
+	def add_change_log_entry(self, meta_category, old_value, new_value, user, change_method_name):
+		"""
+		Adds a new change log entry.
+		"""
+
+		info = {
+			"type": self.get_change_log_type(self),
+			"entityId": self.meta_entity_id,
+			"categoryId": meta_category.meta_category_id,
+			"oldValue": old_value,
+			"newValue": new_value,
+		}
+
+		entry = MetadataChangeLogEntry(
+			task=self.task,
+			info=info,
+			changer=user,
+			change_method=AudioCheckingChangeMethod.from_name(change_method_name),
+		)
+		db.session.add(entry)
+
+	@property
+	def metadata_change_log_entries(self):
+		"""
+		Returns the related change log entries.
+		"""
+
+		type = self.get_change_log_type(self)
+		entity_id = self.meta_entity_id
+		query = MetadataChangeLogEntry.query\
+			.filter(MetadataChangeLogEntry.info["type"].cast(String)==type)\
+			.filter(MetadataChangeLogEntry.info["entityId"].cast(Integer)==entity_id)
+		
+		return query.all()
 
 
 class MetaValueMixin(object):
@@ -2263,7 +2333,7 @@ class AlbumSchema(Schema):
 		fields = ("albumId", "taskId", "speakerId")
 
 # PerformanceMetaCategory
-class PerformanceMetaCategory(Base, MetaCategoryMixin):
+class PerformanceMetaCategory(Base, ModelMixin, MetaCategoryMixin):
 	__table__ = t_performance_meta_categories
 
 	# relationships
@@ -2433,6 +2503,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 
 	# mixin config
 	MetaValueModel = PerformanceMetaValue
+	MetaCategoryModel = PerformanceMetaCategory
 	FeedbackEntryModel = PerformanceFeedbackEntry
 	FlagModel = PerformanceFlag
 	SelfRelationshipName = "performance"
@@ -2459,6 +2530,10 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 		added.
 		"""
 		return False  # FIXME
+
+	@property
+	def meta_entity_id(self):
+		return self.raw_piece_id
 
 	def import_data(self, data):
 		"""
@@ -2490,7 +2565,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 
 		# add metadata
 		meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
-		resolve_new_metadata(performance, meta_values)
+		resolve_new_metadata(performance, meta_values, add_log_entries=False)
 
 		# add import data
 		performance.import_data(data)
@@ -3040,6 +3115,73 @@ class PerformanceTransitionLogEntrySchema(Schema):
 	class Meta:
 		additional = ("logEntryId", "rawPieceId", "movedAt")
 
+
+# MetadataChangeLogEntry
+class MetadataChangeLogEntry(Base, ModelMixin):
+	__table__ = t_metadata_change_log
+
+	# constants
+	TYPES = {
+		"performance": Performance,
+	}
+
+	# relationships
+	task = relationship("Task")
+	change_method = relationship("AudioCheckingChangeMethod")
+	changer = relationship("User")
+
+	# synonyms
+	log_entry_id = synonym("logEntryId")
+	task_id = synonym("taskId")
+	change_method_id = synonym("changeMethodId")
+	changed_by = synonym("changedBy")
+	changed_at = synonym("changedAt")
+
+	@classmethod
+	def get_type(cls, model):
+		"""
+		Returns the type string for
+		the given model.
+		"""
+		for type, entity_cls in cls.TYPES.items():
+			if isinstance(model, entity_cls):
+				return type
+
+		raise RuntimeError("unknown meta entity: {0}".format(model))
+
+	@classmethod
+	def get_entity_cls(cls, type):
+		"""
+		Returns the model cls from
+		the type string.
+		"""
+
+		if type not in cls.TYPES:
+			raise RuntimeError("unknown meta entity type: {0}".format(type))
+
+		return cls.TYPES[type]
+
+class MetadataChangeLogEntrySchema(Schema):
+	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
+	changer = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+	old_value = fields.Method("get_old_value", dump_to="oldValue")
+	new_value = fields.Method("get_new_value", dump_to="newValue")
+	meta_category = fields.Method("get_meta_category", dump_to="metaCategory")
+
+	def get_old_value(self, obj):
+		return obj.info["oldValue"]
+	
+	def get_new_value(self, obj):
+		return obj.info["newValue"]
+
+	def get_meta_category(self, obj):
+		type = obj.info["type"]
+		meta_entity_cls = obj.get_entity_cls(type)
+		meta_category = meta_entity_cls.MetaCategoryModel.query.get(obj.info["categoryId"])
+		return meta_category.serialize()
+
+	class Meta:
+		additional = ("logEntryId", "changedAt")
 
 #
 # Define model class and its schema (if needed) above

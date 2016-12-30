@@ -209,7 +209,7 @@ def process_received_metadata(received_value_dict, meta_categories, expect_saved
 	return meta_values
 
 
-def resolve_new_metadata(meta_entity, new_meta_values, add_change_requests=False, add_history=False):
+def resolve_new_metadata(meta_entity, new_meta_values, user=None, change_method_name=None, add_change_requests=False, add_log_entries=True):
 	"""
 	Resolves new metadata for a meta entity according to
 	any existing values. If the entity has:
@@ -221,6 +221,9 @@ def resolve_new_metadata(meta_entity, new_meta_values, add_change_requests=False
 	
 	All other cases are ignored.
 	"""
+
+	if (add_log_entries or add_change_requests) and (user is None or change_method_name is None):
+		raise RuntimeError("expecting user and change method when adding log entries or change requests")
 
 	# organise existing values by category
 	existing_meta_values = dict([(value.meta_category.meta_category_id, value) for value in meta_entity.meta_values])
@@ -240,10 +243,17 @@ def resolve_new_metadata(meta_entity, new_meta_values, add_change_requests=False
 
 				# update value
 				else:
-					existing_value.value = new_value
 
-					if add_history:
-						raise NotImplementedError	# TODO
+					if add_log_entries:
+						meta_entity.add_change_log_entry(
+							meta_category,
+							existing_value.value,
+							new_value,
+							user,
+							change_method_name
+						)
+
+					existing_value.value = new_value
 
 		# no existing value
 		else:

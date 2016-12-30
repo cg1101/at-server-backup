@@ -5,6 +5,7 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validator
 from db import database as db
 from db.model import (
 	AudioCheckingChangeMethod,
+	MetadataChangeLogEntry,
 	Performance,
 	PerformanceFeedbackEntry,
 	PerformanceFlag,
@@ -46,7 +47,7 @@ def get_performance_meta_values(performance):
 @get_model(Performance)
 def update_performance_meta_values(performance):
 	meta_values = process_received_metadata(request.json, performance.recording_platform.performance_meta_categories)
-	resolve_new_metadata(performance, meta_values)
+	resolve_new_metadata(performance, meta_values, session["current_user"], AudioCheckingChangeMethod.ADMIN, add_log_entries=True)
 	db.session.flush()
 	return jsonify({"metaValues": PerformanceMetaValue.dump(performance.meta_values)})
 
@@ -112,3 +113,11 @@ def create_performance_feedback_entry(performance):
 @get_model(Performance)
 def get_performance_transition_log_entries(performance):
 	return jsonify(entries=PerformanceTransitionLogEntry.dump(performance.transition_log_entries))
+
+
+@bp.route("performances/<int:raw_piece_id>/metadatachangelog", methods=["GET"])
+@api
+@caps()
+@get_model(Performance)
+def get_performance_metadata_change_log_entries(performance):
+	return jsonify(entries=MetadataChangeLogEntry.dump(performance.metadata_change_log_entries))

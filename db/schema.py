@@ -1399,29 +1399,24 @@ Index("recording_meta_values_by_recording_meta_category_id", t_recording_meta_va
 Index("recording_meta_values_by_recording_id", t_recording_meta_values.c.recordingId, unique=False)
 
 
-t_meta_data_change_methods = Table("meta_data_change_methods", metadata,
-	Column("meta_data_change_method_id", INTEGER, primary_key=True, key="metaDataChangeMethodId", doc=""),
-	Column("name", TEXT, unique=True, nullable=False, key="name", doc=""),
-)
-
-
-t_meta_data_change_log = Table("meta_data_change_log", metadata,
+t_metadata_change_log = Table("meta_data_change_log", metadata,
 	Column("log_entry_id", INTEGER, primary_key=True, key="logEntryId", doc=""),
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
-	Column("meta_data_change_method_id", INTEGER, nullable=False, key="metaDataChangeMethodId", doc=""),
+	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
 	Column("info", JSONB, nullable=False, key="info", doc=""),
 	Column("changed_by", INTEGER, nullable=False, key="changedBy", doc=""),
 	Column("changed_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="changedAt", doc=""),
 	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
-	ForeignKeyConstraint(["metaDataChangeMethodId"], ["meta_data_change_methods.metaDataChangeMethodId"]),
+	ForeignKeyConstraint(["changedBy"], ["users.userId"]),
+	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
 )
-Index("meta_data_change_log_by_task_id", t_meta_data_change_log.c.taskId, unique=False)
+Index("meta_data_change_log_by_task_id", t_metadata_change_log.c.taskId, unique=False)
 
 
-t_meta_data_change_requests = Table("meta_data_change_requests", metadata,
+t_metadata_change_requests = Table("meta_data_change_requests", metadata,
 	Column("meta_data_change_request_id", INTEGER, primary_key=True, key="metaDataChangeRequestId", doc=""),
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
-	Column("meta_data_change_method_id", INTEGER, nullable=False, key="metaDataChangeMethodId", doc=""),
+	Column("change_method_id", INTEGER, nullable=False, key="changeMethodId", doc=""),
 	Column("info", JSONB, nullable=False, key="info", doc=""),
 	Column("requested_by", INTEGER, nullable=False, key="requestedBy", doc=""),
 	Column("requested_at", TIMESTAMP(timezone=True), nullable=False, key="requestedAt", doc=""),
@@ -1429,12 +1424,12 @@ t_meta_data_change_requests = Table("meta_data_change_requests", metadata,
 	Column("checked_by", INTEGER, nullable=False, key="checkedBy", doc=""),
 	Column("checked_at", TIMESTAMP(timezone=True), nullable=False, key="checkedAt", doc=""),
 	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
-	ForeignKeyConstraint(["metaDataChangeMethodId"], ["meta_data_change_methods.metaDataChangeMethodId"]),
+	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
 	ForeignKeyConstraint(["requestedBy"], ["users.userId"]),
 	ForeignKeyConstraint(["checkedBy"], ["users.userId"]),
 	CheckConstraint("status IN ('Pending', 'Rejected', 'Accepted')")
 )
-Index("meta_data_change_requests_by_task_id", t_meta_data_change_requests.c.taskId, unique=False)
+Index("meta_data_change_requests_by_task_id", t_metadata_change_requests.c.taskId, unique=False)
 
 
 t_database_settings = Table("database_settings", metadata,

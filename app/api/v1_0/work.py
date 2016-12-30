@@ -289,7 +289,7 @@ def save_work_entry(batchId):
 			performance.recording_platform.performance_meta_categories,
 			expect_saved_value=True
 		)
-		resolve_new_metadata(performance, meta_values)
+		resolve_new_metadata(performance, meta_values, me, AudioCheckingChangeMethod.WORK_PAGE)
 
 		# performance feedback entry
 		if data["performance"].get("comment") or data["performance"].get("flags"):
