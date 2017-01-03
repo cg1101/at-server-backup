@@ -10,6 +10,8 @@ import db.model as m
 from db.model import (
 	AudioCheckingChangeMethod,
 	AudioCheckingGroup,
+	AudioCheckingSection,
+	CorpusCode,
 	Performance,
 	PerformanceMetaCategory,
 	PerformanceMetaValue,
@@ -154,6 +156,8 @@ def load_batch_context(batchId):
 
 		batch_context.update({
 			"audioCheckingGroups": AudioCheckingGroup.dump(performance.recording_platform.audio_checking_groups),
+			"audioCheckingSections": AudioCheckingSection.dump(performance.recording_platform.audio_checking_sections),
+			"included": CorpusCode.dump([corpus_code for corpus_code in performance.recording_platform.spontaneous_corpus_codes if corpus_code.included]),
 			"metaCategories": PerformanceMetaCategory.dump(performance.recording_platform.performance_meta_categories),
 			"metaValues": PerformanceMetaValue.dump(performance.meta_values),
 			"performance": Performance.dump(performance),
