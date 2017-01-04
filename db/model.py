@@ -258,7 +258,7 @@ class MetaEntityMixin(object):
 		query = MetadataChangeLogEntry.query\
 			.filter(MetadataChangeLogEntry.info["type"].cast(String)==type)\
 			.filter(MetadataChangeLogEntry.info["entityId"].cast(Integer)==entity_id)
-		
+
 		return query.all()
 
 
@@ -3173,7 +3173,7 @@ class MetadataChangeLogEntrySchema(Schema):
 
 	def get_old_value(self, obj):
 		return obj.info["oldValue"]
-	
+
 	def get_new_value(self, obj):
 		return obj.info["newValue"]
 
