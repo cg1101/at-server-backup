@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import jwt
 import logging
 import re
 
 import requests
+import jwt
 from sqlalchemy.orm.exc import NoResultFound
 from flask import Flask, session, request, after_this_request,\
 		redirect, jsonify, make_response, url_for, current_app, g
@@ -196,7 +196,7 @@ def create_app(config_name):
 		# handle auth error
 		except AuthError, e:
 			return make_response(jsonify(error=unicode(e)), 401)
-		
+
 		# successfully authorised
 		else:
 			return None
@@ -374,10 +374,10 @@ def create_app(config_name):
 def check_appen_auth(header="authorization"):
 	"""
 	Decodes the token in the header and updates
-	the session. Returns the User object for the 
+	the session. Returns the User object for the
 	logged in user.
 	"""
-	
+
 	# extract token from header
 	token = request.headers.get(header, None)
 	if token is None:
@@ -405,7 +405,7 @@ def check_appen_auth(header="authorization"):
 		raise AuthError("User not found for appen id: {0}".format(appen_id))
 
 	update_session(user, payload["caps"], payload["userType"], payload["roles"])
-	
+
 	return user
 
 def update_session(user, caps, user_type, roles):
