@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import jwt
 import logging
 import re
 
@@ -12,6 +13,7 @@ from flask_cors import CORS
 
 from config import config
 import db.model as m
+from db.model import User
 from db.db import SS
 from db import database as db
 import auth
@@ -20,6 +22,8 @@ import app.util as util
 
 from LRUtilities.FlaskPlugins import AudioServer
 
+
+class AuthError(Exception): pass
 
 audio_server = AudioServer()
 
@@ -41,15 +45,7 @@ def create_app(config_name):
 		'/webservices',
 		'/logout',
 		'/authorization_response',
-		'/api/1.0/performances/\d+/recordings',
-		'/api/1.0/recordings/\d+/audiofiles',
 		'/api/1.0/status',
-		'/api/1.0/subtasks/\d+',
-		'/api/1.0/subtasks/\d+/performances',
-		'/api/1.0/tasks/\d+/importconfig',
-		'/api/1.0/tasks/\d+/loadconfig',
-		'/api/1.0/tasks/\d+/loaddata',
-		'/api/1.0/recordingplatforms/\d+/importperformance',
 	])
 	json_url_patterns = map(re.compile, [
 		'/api'
@@ -192,6 +188,18 @@ def create_app(config_name):
 		except RuntimeError, e:
 			# current_app.logger.debug('header authentication failed: {}'.format(e))
 			pass
+
+		# authenticate by header (new method)
+		try:
+			check_appen_auth("x-appen-auth")
+
+		# handle auth error
+		except AuthError, e:
+			return make_response(jsonify(error=unicode(e)), 401)
+		
+		# successfully authorised
+		else:
+			return None
 
 		is_json = False
 		for p in json_url_patterns:
@@ -361,3 +369,48 @@ def create_app(config_name):
 	# 	return redirect('/#%s' % request.path)
 
 	return app
+
+
+def check_appen_auth(header="authorization"):
+	"""
+	Decodes the token in the header and updates
+	the session. Returns the User object for the 
+	logged in user.
+	"""
+	
+	# extract token from header
+	token = request.headers.get(header, None)
+	if token is None:
+		raise AuthError("No {0} header found".format(header))
+
+	# decode token
+	try:
+		payload = jwt.decode(token, current_app.config["APPEN_API_SECRET_KEY"])
+	except jwt.DecodeError, e:
+		raise AuthError("Unable to decode token: {0}".format(unicode(e)))
+
+	# check expected payload data
+	expected_keys = ["appenId", "userType", "roles", "caps"]
+
+	for key in expected_keys:
+		if key not in payload:
+			raise AuthError("Token payload missing: {0}".format(key))
+
+	appen_id = payload["appenId"]
+
+	# retrieve user
+	try:
+		user = User.query.filter_by(appen_id=appen_id).one()
+	except NoResultFound:
+		raise AuthError("User not found for appen id: {0}".format(appen_id))
+
+	update_session(user, payload["caps"], payload["userType"], payload["roles"])
+	
+	return user
+
+def update_session(user, caps, user_type, roles):
+	session["current_user"] = user
+	session["current_user_caps"] = caps
+	session["current_user_type"] = user_type
+	session["current_user_roles"] = roles
+

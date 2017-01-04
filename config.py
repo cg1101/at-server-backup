@@ -7,6 +7,7 @@ from LRUtilities.Api import AudioServerApi, AudioServerStageApi, AudioServerDevA
 
 class Config:
 	SECRET_KEY = os.environ['SECRET_KEY']
+	APPEN_API_SECRET_KEY = os.environ['APPEN_API_SECRET_KEY']
 
 	APP_COOKIE_NAME = os.environ['APP_COOKIE_NAME']
 	APP_COOKIE_SECRET = os.environ['APP_COOKIE_SECRET']

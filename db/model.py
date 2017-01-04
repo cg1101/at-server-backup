@@ -1835,6 +1835,8 @@ class User(Base):
 
 	# synonyms
 	user_id = synonym("userId")
+	global_id = synonym("globalId")
+	appen_id = synonym("globalId")
 
 	@hybrid_property
 	def userName(self):
