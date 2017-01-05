@@ -576,7 +576,7 @@ class BatchSchema(Schema):
 class Batch_FullSchema(BatchSchema):
 	def get_pages(self, obj):
 		s = PageSchema(context={'full': True})
-		return s.dump(obj.pages, many=True)
+		return s.dump(obj.pages, many=True).data
 
 # BathchingMode
 class BatchingMode(Base):
