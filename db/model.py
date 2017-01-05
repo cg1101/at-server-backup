@@ -1517,6 +1517,7 @@ class Tag(Base):
 	SUBSTITUTION = 'Substitution'
 	ENTITY = 'Entity'
 	FOOTNOTE = 'Footnote'
+	TIMESTAMPED = "Timestamped"
 	__table__ = t_tags
 	__mapper_args__ = {
 		'polymorphic_on': t_tags.c.tagType,
@@ -1601,6 +1602,15 @@ class FootnoteTag(Tag):
 class FootnoteTagSchema(TagSchema):
 	pass
 
+class TimestampedTag(Tag):
+	__mapper_args__ = {
+		'polymorphic_identity': Tag.TIMESTAMPED,
+	}
+
+class TimestampedTagSchema(EventTagSchema):
+	pass
+
+
 # TagSet
 class TagSet(Base):
 	__table__ = t_tagsets
@@ -1614,6 +1624,7 @@ class TagSetSchema(Schema):
 			Tag.SUBSTITUTION: SubstitutionTagSchema(),
 			Tag.ENTITY: EntityTagSchema(),
 			Tag.FOOTNOTE: FootnoteTagSchema(),
+			Tag.TIMESTAMPED: TimestampedTagSchema(),
 		}
 	tags = fields.Method('get_tags')
 	def get_tags(self, obj):
