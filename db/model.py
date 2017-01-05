@@ -922,7 +922,7 @@ class WorkTypePageMember(PageMember):
 	saved = property(_get_saved)
 
 class WorkTypePageMemberSchema(PageMemberSchema):
-	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words'])
+	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words', "extra"])
 	saved = fields.Method('get_saved')
 	def get_saved(self, obj):
 		if obj.saved == None:
@@ -992,7 +992,7 @@ class QaTypePageMember(PageMember):
 	lookBehind = property(_get_look_behind)
 
 class QaTypePageMemberSchema(PageMemberSchema):
-	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words'])
+	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words', "extra"])
 	qaedEntry = fields.Method('get_qaed_entry')
 	saved = fields.Method('get_saved')
 	lookAhead = fields.Nested('RawPieceSchema', many=True, only=['rawPieceId', 'rawText'])
@@ -1047,7 +1047,7 @@ class ReworkTypePageMember(PageMember):
 	saved = property(_get_saved)
 
 class ReworkTypePageMemberSchema(PageMemberSchema):
-	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words'])
+	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words', "extra"])
 	saved = fields.Method('get_saved')
 	latestEdition = fields.Method('get_latest_edition')
 	def get_saved(self, obj):
@@ -1332,9 +1332,21 @@ class RawPiece(Base, ModelMixin):
 	}
 
 class RawPieceSchema(Schema):
+	extra = fields.Method("get_extra")
+
+	def get_extra(self, obj):
+		extra = {}
+		if obj.task.task_type == TaskType.TRANSCRIPTION:
+			extra.update({"audioUrl": obj.audio_url})
+
+		return extra
+
+	
 	class Meta:
-		fields = ('rawPieceId', 'taskId', 'rawText', 'assemblyContext', 'allocationContext', 'hypothesis', 'words')
+		additional = ('rawPieceId', 'taskId', 'rawText', 'assemblyContext', 'allocationContext', 'hypothesis', 'words', "extra")
 		ordered = True
+
+	
 
 # SelectionCacheEntry
 class SelectionCacheEntry(Base):
@@ -3088,6 +3100,21 @@ class Utterance(RawPiece):
 		)
 
 		return utt
+
+	@property
+	def audio_url(self):
+		"""
+		Returns the audio URL for the utterance.
+		"""
+		from app import audio_server
+		audio_spec = self.data["audioSpec"]
+		audio_data_pointer = self.data["audioDataPointer"]
+		file_path = self.data["filePath"]
+		start_at = self.data.get("startAt", None)
+		end_at = self.data.get("endAt", None)
+		url = audio_server.api.get_ogg_url(audio_spec, audio_data_pointer, file_path, start_at=start_at, end_at=end_at)
+		return url
+
 
 # PerformanceTransitionLogEntry
 class PerformanceTransitionLogEntry(Base, ModelMixin):
