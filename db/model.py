@@ -3060,11 +3060,12 @@ class Utterance(RawPiece):
 		load.
 		"""
 
-		stored_data = {
+		stored_data = data.get("data", {})
+		stored_data.update({
 			"audioSpec": data["audioSpec"],
 			"audioDataPointer": data["audioDataPointer"],
 			"filePath": data["filePath"],
-		}
+		})
 
 		# TODO shouldnt be required
 		assembly_context_parts = [data["filePath"]]
