@@ -13,10 +13,20 @@ from db.db import SS
 
 bp = tagimages = Blueprint('tagimages', __name__, template_folder='../templates')
 
+CANVASES = {
+	"Event": "event.png",
+	"Timestamped": "timestamped.png",
+}
 
-def generate_tag_image(text):
+
+def generate_tag_image(text, tag_type):
+
+	if tag_type not in CANVASES:
+		raise ValueError("No canvas for tag type: {0}".format(tag_type))
+
 	_dir = os.path.dirname(__file__)
-	canvas_file = os.path.join(_dir, 'event.png')
+	filename = CANVASES[tag_type]
+	canvas_file = os.path.join(_dir, filename)
 	font_file = os.path.join(_dir, 'Code2000b2.ttf')
 
 	img = Image.open(canvas_file)
@@ -50,7 +60,10 @@ def create_tag_image_preview():
 		text = text.strip()
 		if not text:
 			raise ValueError('tag label text must not be blank')
-		image = generate_tag_image(text)
+		
+		tag_type = request.json["tagType"]
+
+		image = generate_tag_image(text, tag_type)
 	except ValueError, e:
 		return make_response(jsonify(error='{}'.format(e)), 400)
 	except Exception, e:

@@ -4,6 +4,7 @@ import sqlalchemy.orm
 
 import db.model as m
 from db.db import SS
+from db.model import Tag
 from app.api import api, caps, MyForm, Field, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
@@ -141,7 +142,8 @@ def create_tag(tagSetId):
 				m.Tag.EMBEDDABLE,
 				m.Tag.SUBSTITUTION,
 				m.Tag.ENTITY,
-				m.Tag.FOOTNOTE)),
+				m.Tag.FOOTNOTE,
+				Tag.TIMESTAMPED)),
 		]),
 		Field('extractStart', is_mandatory=True, validators=[
 			validators.non_blank,

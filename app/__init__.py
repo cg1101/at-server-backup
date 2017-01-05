@@ -195,7 +195,7 @@ def create_app(config_name):
 
 		# handle auth error
 		except AuthError, e:
-			return make_response(jsonify(error=unicode(e)), 401)
+			pass
 
 		# successfully authorised
 		else:
