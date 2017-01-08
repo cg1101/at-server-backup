@@ -1607,8 +1607,13 @@ class TimestampedTag(Tag):
 		'polymorphic_identity': Tag.TIMESTAMPED,
 	}
 
-class TimestampedTagSchema(EventTagSchema):
-	pass
+# TODO share with event tag
+class TimestampedTagSchema(TagSchema):
+	imageUrl = fields.Method('get_image_url')
+	def get_image_url(self, obj):
+		return '/tagimages/{}.png'.format(obj.tagId)
+	class Meta:
+		additional = ('imageUrl',)
 
 
 # TagSet
