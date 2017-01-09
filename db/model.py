@@ -1459,10 +1459,23 @@ class SubTaskContentEvent(Base):
 	__table__ = t_reworkcontenthistory
 	amount = synonym('itemCount')
 	populating = synonym('isAdding')
-
+	selection = relationship('UtteranceSelection')
+	operatedBy = relationship('User',
+		primaryjoin='SubTaskContentEvent.operator == User.userId',
+		foreign_keys='User.userId',
+		uselist=False,
+	)
 class SubTaskContentEventSchema(Schema):
+	selection = fields.Nested('UtteranceSelectionSchema')
+	operatedBy = fields.Method('get_operated_by')
+	def get_operated_by(self, obj):
+		if obj.operator is None:
+			return None
+		s = UserSchema(only=['userId', 'userName'])
+		return s.dump(obj.operatedBy).data
 	class Meta:
-		fields = ('subTaskId', 'selectionId', 'itemCount', 'isAdding', 'tProcessedAt', 'operator')
+		fields = ('subTaskId', 'selectionId', 'selection', 'itemCount',
+			'isAdding', 'tProcessedAt', 'operatedBy')
 		ordered = True
 
 # SubTaskMetric
