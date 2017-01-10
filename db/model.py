@@ -1786,7 +1786,7 @@ class Task(Base, ModelMixin):
 			assert sub_task.task == performance.recording_platform.task
 			performance.batch.sub_task_id = sub_task.sub_task_id
 
-		return utts
+		return [load] + utts
 
 
 class TaskSchema(Schema):
