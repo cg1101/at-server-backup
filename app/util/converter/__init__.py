@@ -4,6 +4,9 @@ import unicodedata
 
 from lxml import etree
 
+import db.model as m
+
+
 _dir = os.path.dirname(__file__)
 
 class ConversionError(Exception):
