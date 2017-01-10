@@ -4,6 +4,9 @@ import unicodedata
 
 from lxml import etree
 
+import db.model as m
+
+
 _dir = os.path.dirname(__file__)
 
 class ConversionError(Exception):
@@ -87,7 +90,7 @@ class Converter(object):
 					tag = tags.setdefault(tagId, m.Tag.query.get(tagId))
 					extractStart = tag.extractStart or ''
 					extractEnd = tag.extractEnd or ''
-				except:
+				except Exception, e:
 					pass
 
 			buf = [element.text or '']
