@@ -1898,14 +1898,24 @@ def create_transition(task):
 @bp.route("tasks/<int:task_id>/config", methods=['PUT'])
 @api
 @get_model(Task)
-def update_task_config(task):
+def update_task(task):
+	
 	data = MyForm(
-		Field("config", is_mandatory=True, normalizer=normalizers.to_json, validators=[
+		Field("config", normalizer=normalizers.to_json, validators=[
 			simple_validators.is_dict(),
 		]),
+		Field("loaderId", validators=[
+			simple_validators.is_number(),
+			m.Loader.check_exists,
+		])
 	).get_data()
 
-	task.config = data["config"]
+	if "config" in data:
+		task.config = data["config"]
+
+	if "loaderId" in data:
+		task.loaderId = data["loaderId"]
+
 	db.session.flush()
 	return jsonify(task=Task.dump(task))
 

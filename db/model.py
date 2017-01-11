@@ -1804,7 +1804,7 @@ class TaskSchema(Schema):
 		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
 			'taskType', 'status', 'srcDir', 'lastStatusChange',
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
-			'globalProjectId', 'config')
+			'globalProjectId', 'config', "loaderId")
 		ordered = True
 
 
