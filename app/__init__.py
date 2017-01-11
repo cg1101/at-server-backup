@@ -195,6 +195,7 @@ def create_app(config_name):
 
 		# handle auth error
 		except AuthError, e:
+			current_app.logger.error("failed x-appen-auth authentication: {0}".format(e))
 			pass
 
 		# successfully authorised
