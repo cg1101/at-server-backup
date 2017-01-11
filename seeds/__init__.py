@@ -1,5 +1,13 @@
 from db import database as db
-from db.model import AudioCheckingChangeMethod, AudioImporter, Loader, RecordingPlatformType, TaskType, WorkType
+from db.model import (
+	AudioCheckingChangeMethod,
+	AudioImporter,
+	BatchingMode,
+	Loader,
+	RecordingPlatformType,
+	TaskType,
+	WorkType
+)
 from db.schema import t_database_settings
 
 
@@ -16,6 +24,13 @@ models = [
 	AudioImporter(name=AudioImporter.AMR_CONVERSATIONAL),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_SCRIPTED),
 	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_CONVERSATIONAL, metadata_sources=["Log File"]),
+
+	# batching modes
+	BatchingMode(name=BatchingMode.NONE, requires_context=False),
+	BatchingMode(name=BatchingMode.PERFORMANCE, requires_context=True),
+	BatchingMode(name=BatchingMode.FILE, requires_context=True),
+	BatchingMode(name=BatchingMode.CUSTOM_CONTEXT, requires_context=True),
+	BatchingMode(name=BatchingMode.ALLOCATION_CONTEXT, requires_context=False),
 
 	# loaders
 	Loader(name=Loader.STORAGE),

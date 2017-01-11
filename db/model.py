@@ -580,13 +580,17 @@ class Batch_FullSchema(BatchSchema):
 
 # BathchingMode
 class BatchingMode(Base):
+	__table__ = t_batchingmodes
+	
+	# constants
 	NONE = 'None'
-	SESSION = 'Session'
-	RECORDING = 'Recording'
-	LONG_RECORDING = 'Long Recordings'
+	PERFORMANCE = 'Performance'
+	FILE = 'File'
 	CUSTOM_CONTEXT = 'Custom Context'
 	ALLOCATION_CONTEXT = 'Allocation Context'
-	__table__ = t_batchingmodes
+
+	# synonyms
+	requires_context = synonym("requiresContext")
 
 class BatchingModeSchema(Schema):
 	class Meta:

@@ -6,6 +6,7 @@ from flask import url_for
 
 from app.i18n import get_text as _
 import db.model as m
+from db.model import BatchingMode
 from db.db import SS
 from .converter import Converter
 from .extractor import Extractor
@@ -22,41 +23,73 @@ def split_by_size(seq, size):
 class _batcher(object):
 	@staticmethod
 	def _create_work_batches(subTask, rawPieces, priority):
+
+		order_by = None
+
+		# no context
 		if subTask.batchingMode == m.BatchingMode.NONE:
 			key_gen = lambda i, x: (None, i / subTask.maxPageSize)
+
+		# allocation context
 		elif subTask.batchingMode == m.BatchingMode.ALLOCATION_CONTEXT:
 			key_gen = lambda i, x: x.allocationContext
-		elif subTask.batchingMode in (m.BatchingMode.SESSION, m.BatchingMode.RECORDING,
-				m.BatchingMode.LONG_RECORDING, m.BatchingMode.CUSTOM_CONTEXT):
-			raise RuntimeError(_('unsupported batching mode {0}'
-				).format(subTask.batchingMode))
+
+		# file
+		elif subTask.batchingMode == BatchingMode.FILE:
+			key_gen = lambda index, raw_piece: raw_piece.data["filePath"]
+			order_by = lambda raw_piece: raw_piece.data.get("startAt")
+
+		# performance
+		elif subTask.batchingMode == BatchingMode.PERFORMANCE:
+			raise NotImplementedError #TODO
+		
+		# custom
+		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:
+			raise NotImplementedError #TODO
+		
+		# unknown
 		else:
-			raise RuntimeError(_('unsupported batching mode {0}'
+			raise RuntimeError(_('unknown batching mode {0}'
 				).format(subTask.batchingMode))
 
+		# group raw pieces into batches
 		loads = OrderedDict()
 		for i, rawPiece in enumerate(rawPieces):
 			key = key_gen(i, rawPiece)
-			loads.setdefault(key, []).append(rawPiece.rawPieceId)
+			loads.setdefault(key, []).append(rawPiece)
+
+		# apply batch ordering if required
+		if order_by is not None:
+			for key, batch_raw_pieces in loads.items():
+				batch_raw_pieces = sorted(batch_raw_pieces, key=order_by)
+				loads[key] = batch_raw_pieces
 
 		batches = []
 		for key, batch_load in loads.iteritems():
+			
 			if isinstance(key, tuple):
 				name = key[0]
 			else:
 				name = key
-			b = m.Batch(taskId=subTask.taskId,
-				subTaskId=subTask.subTaskId, priority=priority,
-				name=name)
-			for pageIndex, page_load in enumerate(split_by_size(
-					batch_load, subTask.maxPageSize)):
+			
+			b = m.Batch(
+				taskId=subTask.taskId,
+				subTaskId=subTask.subTaskId,
+				priority=priority,
+				name=name
+			)
+			
+			for pageIndex, page_load in enumerate(split_by_size(batch_load, subTask.maxPageSize)):
 				p = m.Page(pageIndex=pageIndex)
 				b.pages.append(p)
-				for memberIndex, rawPieceId in enumerate(page_load):
+				
+				for memberIndex, rawPiece in enumerate(page_load):
 					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
-					memberEntry.rawPieceId = rawPieceId
+					memberEntry.rawPieceId = rawPiece.rawPieceId
 					p.memberEntries.append(memberEntry)
+
 			batches.append(b)
+
 		return batches
 
 	@staticmethod
