@@ -21,6 +21,7 @@ import errorclasses
 import errortypes
 import filehandlers
 import labelsets
+import loaders
 import misc
 import performances
 import performance_feedback
