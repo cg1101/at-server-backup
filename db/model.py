@@ -3145,6 +3145,13 @@ class Utterance(RawPiece):
 		file_path = self.data["filePath"]
 		start_at = self.data.get("startAt", None)
 		end_at = self.data.get("endAt", None)
+		
+		if start_at is not None:
+			start_at = datetime.timedelta(seconds=start_at)
+		
+		if end_at is not None:
+			end_at = datetime.timedelta(seconds=end_at)
+
 		url = audio_server.api.get_ogg_url(audio_spec, audio_data_pointer, file_path, start_at=start_at, end_at=end_at)
 		return url
 
