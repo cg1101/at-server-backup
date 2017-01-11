@@ -42,11 +42,11 @@ class _batcher(object):
 		# performance
 		elif subTask.batchingMode == BatchingMode.PERFORMANCE:
 			raise NotImplementedError #TODO
-		
+
 		# custom
 		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:
 			raise NotImplementedError #TODO
-		
+
 		# unknown
 		else:
 			raise RuntimeError(_('unknown batching mode {0}'
@@ -66,23 +66,23 @@ class _batcher(object):
 
 		batches = []
 		for key, batch_load in loads.iteritems():
-			
+
 			if isinstance(key, tuple):
 				name = key[0]
 			else:
 				name = key
-			
+
 			b = m.Batch(
 				taskId=subTask.taskId,
 				subTaskId=subTask.subTaskId,
 				priority=priority,
 				name=name
 			)
-			
+
 			for pageIndex, page_load in enumerate(split_by_size(batch_load, subTask.maxPageSize)):
 				p = m.Page(pageIndex=pageIndex)
 				b.pages.append(p)
-				
+
 				for memberIndex, rawPiece in enumerate(page_load):
 					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
 					memberEntry.rawPieceId = rawPiece.rawPieceId
