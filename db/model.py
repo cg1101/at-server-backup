@@ -1489,9 +1489,30 @@ class SubTaskMetric(Base):
 	errorEntries = relationship('SubTaskMetricErrorEntry')
 
 class SubTaskMetricSchema(Schema):
+	errors = fields.Method('get_errors')
+	def get_errors(self, obj):
+		errors = {}
+		for i in obj.errorEntries:
+			errors[i.errorTypeId] = i.occurences
+		return errors
+	abnormalTags = fields.Method('get_abnormal_tags')
+	def get_abnormal_tags(self, obj):
+		abnormal_tags = {}
+		for i in obj.abnormalUsageEntries:
+			if i.tagId is not None:
+				abnormal_tags[i.tagId] = i.degree
+		return abnormal_tags
+	abnormalLabels = fields.Method('get_abnormal_labels')
+	def get_abnormal_labels(self, obj):
+		abnormal_labels = {}
+		for i in obj.abnormalUsageEntries:
+			if i.labelId is not None:
+				abnormal_labels[i.labelId] = i.degree
+		return abnormal_labels
 	class Meta:
 		fields = ('metricId', 'userId', 'workIntervalId', 'subTaskId', 'itemCount',
-			'unitCount', 'workRate', 'accuracy', 'lastUpdated')
+			'unitCount', 'workRate', 'accuracy', 'lastUpdated',
+			'errors', 'abnormalTags', 'abnormalLabels')
 		ordered = True
 
 # SubTaskRate
