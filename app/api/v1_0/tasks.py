@@ -1899,7 +1899,7 @@ def create_transition(task):
 @api
 @get_model(Task)
 def update_task(task):
-	
+
 	data = MyForm(
 		Field("config", normalizer=normalizers.to_json, validators=[
 			simple_validators.is_dict(),
