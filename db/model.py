@@ -413,10 +413,10 @@ class WorkType(Base):
 	def from_name(cls, name):
 		return cls.query.filter_by(name=name).one()
 
-
 class WorkTypeSchema(Schema):
 	class Meta:
 		fields = ('workTypeId', 'name', 'description', 'modifiesTranscription')
+
 
 # Batch
 class Batch(Base):
@@ -554,7 +554,6 @@ class Batch(Base):
 			db.session.delete(p)
 		db.session.delete(self)
 
-
 class BatchSchema(Schema):
 	user = fields.Method('get_user')
 	def get_user(self, obj):
@@ -577,6 +576,14 @@ class Batch_FullSchema(BatchSchema):
 	def get_pages(self, obj):
 		s = PageSchema(context={'full': True})
 		return s.dump(obj.pages, many=True).data
+
+class Batch_BriefSchema(Schema):
+	priority = fields.Integer()
+	onHold = fields.Boolean()
+	leaseExpires = fields.DateTime()
+	class Meta:
+		fields = ('batchId', 'priority', 'onHold', 'leaseExpires')
+
 
 # BathchingMode
 class BatchingMode(Base):

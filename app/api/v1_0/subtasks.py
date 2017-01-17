@@ -5,6 +5,7 @@ import datetime
 
 from flask import request, session, jsonify
 import pytz
+import iso8601
 
 import db.model as m
 from db.db import SS
@@ -213,14 +214,13 @@ def normalize_prority_expression(data, key, value):
 
 def normalize_expiry_date_expression(data, key, value):
 	literal = str(value)
-	formatter = '%Y-%m-%dT%H:%M:%S.%fZ'
 	# print 'leaseExpires literal', `literal`
 	try:
 		if literal.startswith('+'):
 			delay = int(literal[1:])
 			delta = datetime.timedelta(seconds=delay * 60 * 60)
 			return lambda x: None if x is None else x + delta
-		expires_by = datetime.datetime.strptime(literal, formatter)
+		expires_by = iso8601.parse_date(literal)
 		return lambda x: None if x is None else expires_by
 	except:
 		raise ValueError, _('invalid expiry date expression')
@@ -281,7 +281,7 @@ def update_batches(subTaskId):
 
 	return jsonify({
 		'message': message,
-		'updatedBatches': updated,
+		'updatedBatches': m.Batch.dump(updated, use='brief'),
 	})
 
 
