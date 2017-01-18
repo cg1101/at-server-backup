@@ -248,7 +248,7 @@ def create_app(config_name):
 	@app.route('/whoami')
 	def who_am_i():
 		me = session['current_user']
-		return jsonify(
+		resp = jsonify(
 			user=m.User.dump(me, use='full'),
 			caps=session['current_user_caps'],
 			userType=session['current_user_type'],
@@ -259,6 +259,8 @@ def create_app(config_name):
 				'go': util.go.get_url_root(),
 			}
 		)
+		resp.headers['Cache-Control'] = 'max-age=0, must-revalidate'
+		return resp
 
 	@app.route('/logout')
 	def logout():
