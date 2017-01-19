@@ -28,6 +28,7 @@ import performances
 import performance_feedback
 import performance_flags
 import performance_meta_categories
+import payrolls
 import pools
 import projects
 import rates
