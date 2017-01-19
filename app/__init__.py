@@ -48,6 +48,7 @@ def create_app(config_name):
 		'/api/1.0/status',
 	])
 	json_url_patterns = map(re.compile, [
+		'/whoami',
 		'/api'
 	])
 
