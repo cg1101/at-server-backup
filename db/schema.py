@@ -739,7 +739,7 @@ t_reworkcontenthistory =  Table('reworkcontenthistory', metadata,
 	Column(u'operator', INTEGER, key=u'operator', doc=''),
 	ForeignKeyConstraint([u'selectionId'], [u'utteranceselections.selectionId']),
 	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
-	CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
+	# CheckConstraint('populating AND selectionid IS NOT NULL OR NOT populating AND selectionid IS NULL'),
 )
 Index('reworkcontenthistorybysubtaskid', t_reworkcontenthistory.c.subTaskId, unique=False)
 
