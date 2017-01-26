@@ -14,6 +14,7 @@ from app.api import api, caps, MyForm, Field, validators, get_model
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Warnings
+from app.util.tx_loader import TxLoader
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -699,6 +700,54 @@ def get_sub_task_workers(subTaskId):
 	return jsonify({
 		'workers': m.TaskWorker.dump(workers),
 	})
+
+from .pools import normalize_bool_literal
+
+@bp.route(_name + '/<int:subTaskId>/populate', methods=['POST'])
+@api
+@caps()
+def populate_rework_sub_task_from_extract(subTaskId):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask:
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
+	if not subTask.workType == m.WorkType.REWORK:
+		raise InvalidUsage(_('work type {0} not supported').format(m.WorkType.REWORK))
+	data = MyForm(
+		Field('srcSubTaskId',),
+		Field('dataFile', is_mandatory=True,
+			validators=[
+				validators.is_file,
+			]),
+		Field('validation', default='false',
+			normalizer=normalize_bool_literal,
+			validators=[
+				validators.is_bool,
+			]),
+	).get_data(is_json=False)
+	if data['validation']:
+		return jsonify(message=_('data file validated'))
+
+	srcSubTask = m.SubTask.query.get(data['srcSubTaskId'])
+	dstSubTask = subTask
+	fakeUser = m.User.query.get(os.environ['CURRENT_USER_ID'])
+
+	tx_loader = TxLoader(subTask.taskId)
+	result = tx_loader.load_tx_file(data['dataFile'], srcSubTask, fakeUser, dstSubTask)
+	itemCount = result['itemCount']
+
+	me = session['current_user']
+	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+	# add rework content event
+	content_event = m.SubTaskContentEvent(subTaskId=subTaskId,
+		isAdding=True, tProcessedAt=now, itemCount=itemCount,
+		operator=me.userId)
+	SS.add(content_event)
+	SS.flush()
+	return jsonify(
+		message=_('okay'),
+		event=m.SubTaskContentEvent.dump(content_event),
+	)
 
 
 @bp.route(_name + '/<int:subTaskId>/workers/<int:userId>', methods=['PUT'])
