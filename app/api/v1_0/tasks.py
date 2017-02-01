@@ -21,7 +21,7 @@ from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag,
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, email
 from lib.audio_import import ImportConfigSchema
 from lib.audio_load import LoadConfigSchema
 
@@ -712,6 +712,13 @@ def create_task_load(taskId):
 		unitCount += (rawPiece.words or 0)
 		load.rawPieces.append(rawPiece)
 	SS.flush()
+	receipients = [i.emailAddress for i in task.supervisors if i.informLoads]
+	if me.emailAddress not in receipients:
+		receipients.append(me.emailAddress)
+	subject = _('New load created for task {}').format(taskId)
+	message = _('A new load was created by {}, total items: {}, total units: {}'
+		).format(me.userName, len(rawPieces), unitCount)
+	result = email.send_email(receipients, subject, message)
 	return jsonify({
 		'message': _('loaded {0} raw pieces into task {0} successfully'
 			).format(len(rawPieces), taskId),
