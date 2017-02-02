@@ -9,7 +9,6 @@ from collections import OrderedDict
 
 import requests
 import jmespath
-import boto3
 from lxml import etree
 
 import db.model as m
@@ -352,38 +351,6 @@ class AppenOnlineAgent(object):
 		return receipts
 
 
-class EmailAgent(object):
-	def __init__(self, access_key_id, secret_access_key):
-		self.access_key_id = access_key_id
-		self.secret_access_key = secret_access_key
-		self.client = boto3.client(service_name='ses',
-			region_name='us-west-2',
-			aws_access_key_id=access_key_id,
-			aws_secret_access_key=secret_access_key)
-		self.me = 'do-not-reply@appen.com'
-	def send_email(self, to, subject, data, html=True):
-		message = {
-			'Subject': {'Data': subject},
-			'Body': {'Html' if html else 'Text': {'Data': data}}
-		}
-		if isinstance(to, basestring):
-			receipients = [to]
-		elif not isinstance(to, list):
-			receipients = list(to)
-		else:
-			receipients = to
-		destination = {
-			'ToAddresses': receipients,
-			'CcAddresses': [],
-			'BccAddresses': [],
-		}
-		result = self.client.send_email(
-			Source=self.me,
-			Destination=destination,
-			Message=message,
-		)
-		return result if 'ErrorResponse' in result else ''
-
 assert os.environ['APP_ROOT_URL']
 
 tiger = TigerAgent(os.environ['TIGER_URL'], os.environ['APPEN_API_SECRET_KEY'])
@@ -391,4 +358,3 @@ go = GoAgent(os.environ['GO_URL'], os.environ['APPEN_API_SECRET_KEY'])
 edm = EdmAgent(os.environ['EDM_URL'], os.environ['APPEN_API_SECRET_KEY'])
 pdb = PdbAgent(os.environ['PDB_API_URL'], os.environ['PDB_API_KEY'], os.environ['PDB_API_SECRET'])
 ao = AppenOnlineAgent(os.environ['AO_WEB_SERVICES_URL'], os.environ['AO_WEB_SERVICES_KEY'])
-email = EmailAgent(os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY'])

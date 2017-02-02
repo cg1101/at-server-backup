@@ -11,7 +11,6 @@ from sqlalchemy.orm import make_transient
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
-import boto3
 # from sqlalchemy import and_
 
 import db.model as m
@@ -21,16 +20,12 @@ from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag,
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, email
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
 from lib.audio_import import ImportConfigSchema
 from lib.audio_load import LoadConfigSchema
 
 
 _name = __file__.split('/')[-1].split('.')[0]
-
-
-s3 = boto3.resource('s3')
-bucket_name = os.environ.get('BUCKET_NAME', '')
 
 
 @bp.route(_name + '/', methods=['GET'])
@@ -718,7 +713,7 @@ def create_task_load(taskId):
 	subject = _('New load created for task {}').format(taskId)
 	message = _('A new load was created by {}, total items: {}, total units: {}'
 		).format(me.userName, len(rawPieces), unitCount)
-	result = email.send_email(receipients, subject, message)
+	result = logistics.send_email(receipients, subject, message)
 	return jsonify({
 		'message': _('loaded {0} raw pieces into task {0} successfully'
 			).format(len(rawPieces), taskId),
@@ -787,15 +782,7 @@ def get_task_user_guides(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	bucket = s3.Bucket(bucket_name)
-	files = []
-	key_prefix = 'tasks/{0}/guidelines/'.format(taskId)
-	for obj in bucket.objects.all():
-		if not obj.key.startswith(key_prefix):
-			continue
-		path = obj.key[len(key_prefix):]
-		if path and path == os.path.basename(path):
-			files.append({'name': path, 'updatedAt': obj.last_modified})
+	files = logistics.list_guidelines(taskId)
 	return jsonify(userGuides=files)
 
 
@@ -813,8 +800,8 @@ def create_task_user_guide(taskId):
 	).get_data(is_json=False)
 	basename = data['dataFile'].filename
 	body = data['dataFile'].read()
-	key = 'tasks/{0}/guidelines/{1}'.format(taskId, basename)
-	obj = s3.Object(bucket_name, key).put(Body=body)
+	relpath = 'tasks/{0}/guidelines/{1}'.format(taskId, basename)
+	logistics.save_file(relpath, body)
 	updated_at = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 	return jsonify(userGuide={'name': basename, 'updatedAt': updated_at})
 

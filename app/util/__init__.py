@@ -12,7 +12,8 @@ from .converter import Converter
 from .extractor import Extractor
 from .selector  import Selector
 from .filehandler import get_handler
-from .agent import tiger, go, edm, pdb, email
+from .agent import tiger, go, edm, pdb
+from .logistics import logistics
 
 def split_by_size(seq, size):
 	if not size >= 1:

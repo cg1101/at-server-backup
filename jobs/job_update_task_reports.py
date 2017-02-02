@@ -7,18 +7,14 @@ import datetime
 
 import numpy
 from jinja2 import Environment, FileSystemLoader
-import boto3
 
 from db.db import SS
 import db.model as m
+from app.util import logistics
 from .job_update_task_report_metrics import RegularCounter, SubtotalCounter
 
 
 log = logging.getLogger(__name__)
-
-s3 = boto3.resource('s3')
-bucket_name = os.environ.get('BUCKET_NAME', '')
-use_s3 = bool(bucket_name)
 
 class ReportWorker(object):
 	def __init__(self, task):
@@ -141,19 +137,8 @@ class ReportWorker(object):
 			template = env.get_template(report_name + '.template')
 			data = template.render(task=self.task, datetime=datetime,
 				data=self).encode('utf-8')
-			if use_s3:
-				key = 'tasks/{0}/reports/{1}.html'.format(task.taskId, report_name)
-				s3.Object(bucket_name, key).put(Body=data)
-			else:
-				filepath = os.path.abspath('/tmp/{0}_{1}.html'.format(
-					task.taskId, report_name))
-				filepath = os.path.abspath(report_name + '.html')
-				file_dir = os.path.dirname(filepath)
-				print file_dir, 'path', filepath
-				if not os.path.exists(file_dir):
-					os.makedirs(file_dir)
-				with open(filepath, 'w') as f:
-					f.write(data)
+			relpath = 'tasks/{0}/reports/{1}.html'.format(task.taskId, report_name)
+			logistics.save_file(relpath, data)
 	def __call__(self):
 		self.count_work_entries()
 		self.run_stats()
