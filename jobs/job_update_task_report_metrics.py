@@ -100,7 +100,7 @@ class RegularCounter(object):
 			if degree:
 				self.abnormalTagUsage[tagId] = degree
 		for labelId, stat in refLabelUsage.iteritems():
-			value = self.get_label_rate(tagId)
+			value = self.get_label_rate(labelId)
 			degree = round((value - stat['mean']) / stat['std'])\
 				if stat['std'] else 0
 			if abs(degree) > self.THRESHOLD:
