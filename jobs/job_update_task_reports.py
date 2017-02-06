@@ -4,9 +4,11 @@ import cStringIO
 import traceback
 import os
 import datetime
+import json
 
-import numpy
 from jinja2 import Environment, FileSystemLoader
+import numpy
+import pytz
 
 from db.db import SS
 import db.model as m
@@ -15,6 +17,22 @@ from .job_update_task_report_metrics import RegularCounter, SubtotalCounter
 
 
 log = logging.getLogger(__name__)
+
+def encode_regular_counter(obj):
+	if isinstance(obj, RegularCounter):
+		return dict(
+			itemCount=obj.itemCount,
+			unitCount=obj.unitCount,
+			qaedItemCount=obj.qaedItemCount,
+			qaedUnitCount=obj.qaedUnitCount,
+			totalQaScore=obj.totalQaScore,
+			workRate=obj.workRate,
+			accuracy=obj.accuracy,
+			flaggedErrors=obj.flaggedErrors,
+			abnormalTagUsage=obj.abnormalTagUsage,
+			abnormalLabelUsage=obj.abnormalLabelUsage,
+		)
+	return json.JSONEncoder.default(self, obj)
 
 class ReportWorker(object):
 	def __init__(self, task):
@@ -83,7 +101,7 @@ class ReportWorker(object):
 		# populate error_stats
 		for userId, c in self.per_user.iteritems():
 			self.error_stats[userId] = user_stats = {}
-			print userId
+			# print userId
 			for errorTypeId in c.flaggedErrors:
 				errorClass = self.taskErrorTypeById[errorTypeId].errorClass
 				user_stats[errorClass] = user_stats.setdefault(errorClass, 0) + c.flaggedErrors[errorTypeId]
@@ -139,6 +157,21 @@ class ReportWorker(object):
 				data=self).encode('utf-8')
 			relpath = 'tasks/{0}/reports/{1}.html'.format(task.taskId, report_name)
 			logistics.save_file(relpath, data)
+
+		now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+		fp = cStringIO.StringIO()
+		json.dump({
+			'timestamp': now.strftime('%Y-%m-%dT%H:%M:%S%z'),
+			'tag_stats': self.tag_stats,
+			'label_stats': self.label_stats,
+			'error_stats': self.error_stats,
+			'per_user': dict([(userId, encode_regular_counter(c)) for
+					userId, c in self.per_user.iteritems()]),
+		}, fp, indent=2)
+		relpath = 'tasks/{0}/reports/report_stats.json'.format(task.taskId)
+		logistics.save_file(relpath, fp.getvalue())
+		fp.close()
+
 	def __call__(self):
 		self.count_work_entries()
 		self.run_stats()

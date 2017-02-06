@@ -1,5 +1,6 @@
 
 import os
+import json
 
 import boto3
 
@@ -62,6 +63,21 @@ class LogisticsManager(object):
 			if path and path == os.path.basename(path):
 				files.append({'name': path, 'updatedAt': obj.last_modified})
 		return files
+	def get_report_stats(self, taskId):
+		relpath = 'tasks/{0}/reports/report_stats.json'.format(taskId)
+		print relpath
+		try:
+			resp = s3.Object(bucket_name, relpath).get()
+			body = resp['Body'].read()
+		except Exception, e:
+			# not exists
+			return None
+		try:
+			reportStats = json.loads(body)
+		except Exception, e:
+			# data corrupted
+			return None
+		return reportStats
 
 
 logistics = LogisticsManager(os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY'])

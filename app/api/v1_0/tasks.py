@@ -777,6 +777,15 @@ def get_task_raw_pieces(taskId):
 	})
 
 
+@bp.route(_name + '/<int:taskId>/report-stats', methods=['GET'])
+def get_task_report_stats(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	reportStats = logistics.get_report_stats(taskId)
+	return jsonify(reportStats=reportStats)
+
+
 @bp.route(_name + '/<int:taskId>/user-guides/')
 def get_task_user_guides(taskId):
 	task = m.Task.query.get(taskId)
