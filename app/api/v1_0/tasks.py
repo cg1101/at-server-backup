@@ -516,7 +516,6 @@ def set_task_key_expansion(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	print 'set_task_key_expansion', request.args, request.form
 	data = MyForm(
 		Field('char', is_mandatory=True, validators=[
 			(validators.is_string, (), dict(length=1)),
@@ -1691,6 +1690,17 @@ def unassign_all_task_workers(taskId):
 	return jsonify({
 		'message': _('removed all workers from task {0}').format(taskId),
 	})
+
+
+@bp.route(_name + '/q/with-key-expansions', methods=['GET'])
+def get_tasks_with_key_expansions():
+	task_dicts = []
+	for task in m.Task.query.filter(m.Task.taskId.in_(SS.query(
+			m.KeyExpansion.taskId.distinct()))).all():
+		td = m.Task.dump(task)
+		td['keyExpansions'] = m.KeyExpansion.dump(task.expansions)
+		task_dicts.append(td)
+	return jsonify(tasks=task_dicts)
 
 
 @bp.route("tasks/<int:task_id>/recordingplatforms")
