@@ -1863,6 +1863,7 @@ class TaskSupervisor(Base):
 	__table__ = t_tasksupervisors
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
+	emailAddress = association_proxy('user', 'emailAddress')
 
 class TaskSupervisorSchema(Schema):
 	class Meta:
