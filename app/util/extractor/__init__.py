@@ -89,7 +89,7 @@ class Extractor(object):
 			except:
 				return ''
 			buf = []
-			for er in entry.appliedErrors:
+			for er in qaEntry.appliedErrors:
 				t = errorLookUpTable.get(er.errorTypeId, None)
 				if t != None:
 					buf.append(t)
@@ -121,22 +121,26 @@ class Extractor(object):
 		else:
 			raise ValueError('invalid file format {}'.format(fileFormat))
 
+		q_s = select([m.SubTask.subTaskId]
+			).select_from(join(m.SubTask, m.WorkType)
+			).where(m.WorkType.modifiesTranscription
+			).where(m.SubTask.taskId==task.taskId)
 		if len(groupIds):
 			# include rawPieces that members of selected groups
 			q_r = SS.query(m.CustomUtteranceGroupMember.rawPieceId.distinct()
 				).join(m.CustomUtteranceGroup
 				).filter(m.CustomUtteranceGroup.taskId==task.taskId
 				).filter(m.CustomUtteranceGroup.groupId.in_(groupIds))
+			q_result = m.WorkEntry.query.distinct(m.WorkEntry.rawPieceId
+				).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc()
+				).filter(m.WorkEntry.taskId==task.taskId
+				).filter(m.WorkEntry.subTaskId.in_(q_s))
 			q = SS.query(m.RawPiece, m.WorkEntry
 				).filter(m.RawPiece.taskId==task.taskId
 				).filter(m.RawPiece.rawPieceId.in_(q_r)
-				).outerjoin(m.WorkEntry)
+				).outerjoin(q_result.subquery('sub_q'))
 		else:
 			# include rawPieces all have been worked on at least once
-			q_s = select([m.SubTask.subTaskId]
-				).select_from(join(m.SubTask, m.WorkType)
-				).where(m.WorkType.modifiesTranscription
-				).where(m.SubTask.taskId==task.taskId)
 			q = SS.query(m.RawPiece, m.WorkEntry).distinct(m.WorkEntry.rawPieceId
 				).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc()
 				).filter(m.WorkEntry.rawPieceId==m.RawPiece.rawPieceId
