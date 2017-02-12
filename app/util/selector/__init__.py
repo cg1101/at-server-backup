@@ -53,7 +53,10 @@ class MyFilter(object):
 		if func is None:
 			raise RuntimeError('unsupported filter type \'{}\''.format(filter.filterType))
 		pieces = [p.data for p in filter.pieces]
-		return func(task, *pieces)
+		rs = func(task, *pieces)
+		if not isinstance(rs, set):
+			rs = set(rs)
+		return rs
 
 
 
@@ -585,7 +588,7 @@ def filter_sub_task_work(task, workOption, subTaskId):
 	if not subTask or subTask.taskId != task.taskId:
 		return set()
 
-	inner == SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.subTaskId
+	inner = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.subTaskId
 		).distinct(m.WorkEntry.rawPieceId
 		).filter(m.WorkEntry.taskId==task.taskId)
 
@@ -603,7 +606,7 @@ def filter_sub_task_work(task, workOption, subTaskId):
 	sel_stmt = select([sub_q.c.rawPieceId], distinct=True, from_obj=sub_q
 		).where(sub_q.c.subTaskId==subTaskId)
 
-	return [r.rawPieceId for r in SS.bind.execute(sel_stmt)]
+	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
 
 # SUB_TASK_BATCHING
 @MyFilter.register
@@ -670,7 +673,7 @@ def filter_work_type_work(task, workOption, workTypeId):
 			).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
 
 	sub_q = inner.subquery('sub_q')
-	sel_stmt = select(sub_q.c.rawPieceId, from_obj=sub_q
+	sel_stmt = select([sub_q.c.rawPieceId], from_obj=sub_q
 		).where(sub_q.c.workTypeId==workTypeId)
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
 
