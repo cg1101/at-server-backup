@@ -135,10 +135,12 @@ class Extractor(object):
 				).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc()
 				).filter(m.WorkEntry.taskId==task.taskId
 				).filter(m.WorkEntry.subTaskId.in_(q_s))
-			q = SS.query(m.RawPiece, m.WorkEntry
-				).filter(m.RawPiece.taskId==task.taskId
-				).filter(m.RawPiece.rawPieceId.in_(q_r)
-				).outerjoin(q_result.subquery('sub_q'))
+			q = SS.query(m.RawPiece, m.WorkEntry).distinct(m.WorkEntry.rawPieceId
+				).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc()
+				).filter(m.WorkEntry.rawPieceId==m.RawPiece.rawPieceId
+				).filter(m.WorkEntry.taskId==task.taskId
+				).filter(m.WorkEntry.subTaskId.in_(q_s)
+				).filter(m.WorkEntry.rawPieceId.in_(q_r))
 		else:
 			# include rawPieces all have been worked on at least once
 			q = SS.query(m.RawPiece, m.WorkEntry).distinct(m.WorkEntry.rawPieceId
