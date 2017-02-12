@@ -332,7 +332,7 @@ class FeedbackEntryMixin(object):
 def set_schema(cls, schema_class, schema_key=None):
 	if not issubclass(schema_class, Schema):
 		raise TypeError('schema must be subclass of Schema')
-	registry = getattr(cls, '_schema_registry', None)
+	registry = cls.__dict__.get('_schema_registry', None)
 	if registry is None:
 		cls._schema_registry = {}
 	cls._schema_registry[schema_key] = schema_class
