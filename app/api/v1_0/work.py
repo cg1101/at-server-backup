@@ -114,19 +114,20 @@ def load_batch_context(batchId):
 
 	# check if current user has the capability to view batch
 	# this allows supervisors to check progress
-	has_cap = True
+	view_only = bool(request.args.get('viewOnly', None) and
+		'admin' in session['current_user_caps'])
 
-	if batch.userId != me.userId and not has_cap:
-		raise InvalidUsage(_('Sorry, you have requested a batch that you don\'t own.'
+	if batch.userId != me.userId and not view_only:
+		raise InvalidUsage(_('Sorry, you have requested a batch that you don\'t own. '
 			'If you have any questions, please contact your transcription supervisor.'))
 
 	permit = m.TaskWorker.query.get((me.userId, task.taskId, subTask.subTaskId))
-	if (not permit or permit.removed) and not has_cap:
+	if (not permit or permit.removed) and not view_only:
 		# TODO: take back assigned batch if user got removed?
 		raise InvalidUsage(_('Sorry, you are not assigned to this sub task.'))
 
 	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-	if batch.leaseExpires and batch.leaseExpires <= now and not has_cap:
+	if batch.leaseExpires and batch.leaseExpires <= now and not view_only:
 		# TODO: take back expired batch
 		raise InvalidUsage(_().format('Sorry, you current work lease is expired.',
 			'Please select another item to work on.',
