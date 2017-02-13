@@ -766,6 +766,8 @@ def get_task_payment_records(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/rawpieces/', methods=['GET'])
+@api
+@caps()
 def get_task_raw_pieces(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -777,6 +779,8 @@ def get_task_raw_pieces(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/report-stats', methods=['GET'])
+@api
+@caps()
 def get_task_report_stats(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -786,6 +790,8 @@ def get_task_report_stats(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/user-guides/')
+@api
+@caps()
 def get_task_user_guides(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -795,6 +801,8 @@ def get_task_user_guides(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/user-guides/', methods=['POST'])
+@api
+@caps()
 def create_task_user_guide(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -815,6 +823,8 @@ def create_task_user_guide(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['GET'])
+@api
+@caps()
 def get_task_utterance_selections(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1578,6 +1588,8 @@ def get_task_warnings(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/work/', methods=['GET'])
+@api
+@caps()
 def get_task_work_queues(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1613,6 +1625,8 @@ def get_task_work_queues(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['GET'])
+@api
+@caps()
 def get_task_workers(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1681,6 +1695,8 @@ def get_task_workers(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/workers/', methods=['DELETE'])
+@api
+@caps()
 def unassign_all_task_workers(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1693,6 +1709,8 @@ def unassign_all_task_workers(taskId):
 
 
 @bp.route(_name + '/q/with-key-expansions', methods=['GET'])
+@api
+@caps()
 def get_tasks_with_key_expansions():
 	task_dicts = []
 	for task in m.Task.query.filter(m.Task.taskId.in_(SS.query(
