@@ -327,6 +327,28 @@ def dismiss_all_batches(subTaskId):
 	})
 
 
+@bp.route(_name + '/<int:subTaskId>/confirm', methods=['PUT'])
+@api
+@caps()
+def confirm_having_read_guidelines(subTaskId):
+	subTask = m.SubTask.query.get(subTaskId)
+	if not subTask:
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
+
+	me = session['current_user']
+
+	try:
+		entry = m.TaskWorker.query.filter(m.TaskWorker.subTaskId==subTaskId
+			).filter(m.TaskWorker.userId==me.userId).one()
+	except:
+		raise InvalidUsage(_('user is not assigned to sub task {0}').format(subTaskId))
+	if entry.removed:
+		raise InvalidUsage(_('user is removed from sub task {0}').format(subTaskId))
+	entry.hasReadInstructions = True
+	return jsonify(message='user {0} confirmed having read instructions of sub task {1}'.format(
+		me.userId, subTaskId))
+
+
 @bp.route(_name + '/<int:subTaskId>/dailysubtotals/', methods=['GET'])
 @api
 @caps()
@@ -383,7 +405,7 @@ def get_sub_task_work_metrics(subTaskId):
 def get_sub_task_worker_performance_records(subTaskId):
 	subTask = m.SubTask.query.get(subTaskId)
 	if not subTask:
-		raise InvalidUsage(_('sub task {0} not found').format(subTaskId))
+		raise InvalidUsage(_('sub task {0} not found').format(subTaskId), 404)
 
 	# TODO: filter result if user can't view all workers
 	workers = m.TaskWorker.query.filter_by(subTaskId=subTaskId).all()
