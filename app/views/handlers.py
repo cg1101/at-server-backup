@@ -5,6 +5,7 @@ from flask import session, redirect, url_for, send_file, request, abort
 
 import db.model as m
 from . import views as bp
+from app.util import logistics
 
 @bp.route('/')
 def index():
@@ -34,6 +35,11 @@ def task_config(taskId):
 @bp.route('/tasks/<int:taskId>/workers')
 def task_workers(taskId):
 	return redirect('/#' + request.path)
+
+
+@bp.route('/tasks/<int:taskId>/instructions/<filename>')
+def task_guideline(taskId, filename):
+	return logistics.get_guideline(taskId, filename)
 
 
 @bp.route('/subtasks/<int:subTaskId>/rate')

@@ -129,9 +129,10 @@ def load_batch_context(batchId):
 	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 	if batch.leaseExpires and batch.leaseExpires <= now and not view_only:
 		# TODO: take back expired batch
-		raise InvalidUsage(_().format('Sorry, you current work lease is expired.',
+		raise InvalidUsage(_('Sorry, you current work lease is expired.',
 			'Please select another item to work on.',
-			'If you have any questions, please contact your transcription supervisor.'))
+			'If you have any questions, please contact your transcription supervisor.'
+			).format())
 
 	showGuideline = (subTask.instructionPage != None
 				and subTask.instructionPage.strip()

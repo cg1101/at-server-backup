@@ -40,6 +40,17 @@ class LogisticsManager(object):
 			Message=message,
 		)
 		return result if 'ErrorResponse' in result else ''
+	def get_file(self, relpath):
+		bucket = s3.Bucket(bucket_name)
+		files = [obj for obj in bucket.objects.all() if obj.key == relpath]
+		if len(files):
+			resp = files[0].get()
+			body = resp['Body'].read()
+			return body
+		return None
+	def get_guideline(self, taskId, filename):
+		relpath = 'tasks/{0}/guidelines/{1}'.format(taskId, filename)
+		return self.get_file(relpath)
 	def save_file(self, relpath, data):
 		if use_s3:
 			key = relpath
@@ -65,7 +76,6 @@ class LogisticsManager(object):
 		return files
 	def get_report_stats(self, taskId):
 		relpath = 'tasks/{0}/reports/report_stats.json'.format(taskId)
-		print relpath
 		try:
 			resp = s3.Object(bucket_name, relpath).get()
 			body = resp['Body'].read()
