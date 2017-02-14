@@ -14,7 +14,7 @@ def index():
 	#if me.userId != 699:
 	#	return redirect(current_app.config['NON_ADMIN_REDIRECT_URL'])
 	index_html = os.path.join(os.path.dirname(__file__), '../index.html')
-	return send_file(index_html)
+	return send_file(index_html, cache_timeout=0)
 
 
 @bp.route('/work/<int:subTaskId>')
