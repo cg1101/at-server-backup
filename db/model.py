@@ -1908,6 +1908,7 @@ class User(Base):
 	__table__ = t_users
 
 	# synonyms
+	globalId = synonym('userId')
 	user_id = synonym("userId")
 	global_id = synonym("globalId")
 	appen_id = synonym("globalId")

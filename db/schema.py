@@ -301,12 +301,11 @@ t_projects =  Table('projects', metadata,
 
 
 t_users =  Table('users', metadata,
-	Column(u'userid', INTEGER, primary_key=True, autoincrement=True, nullable=False, key=u'userId', doc=''),
+	Column(u'userid', INTEGER, primary_key=True, autoincrement=False, nullable=False, key=u'userId', doc=''),
 	Column('emailaddress', TEXT, nullable=False, key=u'emailAddress', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', TEXT, key=u'familyName', doc=''),
 	Column('givenname', TEXT, key=u'givenName', doc=''),
-	Column('global_id', INTEGER, key=u'globalId', doc=''),
 	UniqueConstraint(u'emailAddress'),
 )
 
