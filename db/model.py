@@ -1010,6 +1010,10 @@ class QaTypePageMemberSchema(PageMemberSchema):
 	lookBehind = fields.Nested('RawPieceSchema', many=True, only=['rawPieceId', 'rawText'])
 	def get_qaed_entry(self, obj):
 		s = WorkEntrySchema()
+		if obj.qaedEntry.workType == WorkType.WORK:
+			s = WorkTypeEntrySchema()
+		elif obj.qaedEntry.workType == WorkType.REWORK:
+			s = ReworkTypeEntrySchema()
 		return s.dump(obj.qaedEntry).data
 	def get_saved(self, obj):
 		if obj.saved == None:
