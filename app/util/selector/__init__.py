@@ -265,18 +265,20 @@ def filter_date_interval(task, workOption, startDate, endDate):
 @MyFilter.register
 def filter_text(task, text, searchType=MyFilter.TEXT):
 	if searchType == MyFilter.TEXT:
+		func_ok = lambda (t): t.find(text) >= 0
 		pass
 	elif searchType == MyFilter.REGEX:
 		try:
 			pattern = re.compile(text)
 		except:
 			raise ValueError(_('invalid regular expression: {}').format(text))
+		func_ok = lambda (t): patter.search(t) >= 0
 
 	def check(t):
 		try:
 			extractText = Converter.asExtract(t)
 			return func_ok(extractText)
-		except:
+		except Exception, e:
 			return False
 
 	q = SS.query(m.WorkEntry.rawPieceId, m.WorkEntry.result
