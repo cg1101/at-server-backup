@@ -1,5 +1,7 @@
+import base64
 import jsonschema
 import os
+import zlib
 
 from marshmallow import Schema, fields
 
@@ -166,3 +168,10 @@ def validate_import_performance_data(data):
 	Validates the import data.
 	"""
 	jsonschema.validate(data, PERFORMANCE_DATA_SCHEMA)
+
+
+def decompress_import_data(data):
+	"""
+	Decompresses import data uploaded to the API.
+	"""
+	return zlib.decompress(base64.b64decode(data))

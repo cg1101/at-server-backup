@@ -1,3 +1,4 @@
+import json
 import jsonschema
 
 from flask import jsonify, request
@@ -8,6 +9,7 @@ from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from db import database as db
 from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, Performance, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
+from lib.audio_import import decompress_import_data
 from lib.metadata_validation import MetaValidator
 
 
@@ -392,8 +394,8 @@ def get_performances(recording_platform):
 @api
 @get_model(RecordingPlatform)
 def import_performance(recording_platform):
-	data = request.json
-	import_model = recording_platform.import_data(data)
+	data = decompress_import_data(request.json)
+	import_model = recording_platform.import_data(json.loads(data))
 	db.session.add(import_model)
 	db.session.commit()
 	return jsonify(success=True)
