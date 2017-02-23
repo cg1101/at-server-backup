@@ -809,11 +809,12 @@ class Load(Base):
 	__table__ = t_loads
 
 	# relationships
-	rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId', viewonly=True)
+	rawPieces = relationship('RawPiece', order_by='RawPiece.rawPieceId', viewonly=True, backref="load")
 	_createdByUser = relationship('User')
 	task = relationship("Task")
 
 	# synonyms
+	raw_pieces = synonym("rawPieces")
 	load_id = synonym("loadId")
 	created_by = synonym("createdBy")
 
@@ -1791,7 +1792,7 @@ class Task(Base, ModelMixin):
 
 		return sub_task
 
-	def load_transcription_data(self, data):
+	def load_transcription_data(self, data, load):
 		"""
 		Loads data into a transcription task.
 		"""
@@ -1801,13 +1802,13 @@ class Task(Base, ModelMixin):
 		assert data
 
 		# validate
-		validate_load_utterance_data(data)
+		#validate_load_utterance_data(data)
 
 		# create load
-		load = Load(
-			task=self,
-			created_by=os.environ.get("CURRENT_USER_ID"),	# FIXME this should be the logged in user when api access is allowed
-		)
+		#load = Load(
+		#	task=self,
+		#	created_by=os.environ.get("CURRENT_USER_ID"),	# FIXME this should be the logged in user when api access is allowed
+		#)
 
 		# create utterances
 		utts = []
@@ -1822,7 +1823,7 @@ class Task(Base, ModelMixin):
 			assert sub_task.task == performance.recording_platform.task
 			performance.batch.sub_task_id = sub_task.sub_task_id
 
-		return [load] + utts
+		return utts
 
 
 class TaskSchema(Schema):

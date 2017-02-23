@@ -16,13 +16,13 @@ import pytz
 import db.model as m
 from db.db import SS
 from db import database as db
-from db.model import AudioImporter, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, SubTask, Transition, Task, TaskType
+from db.model import AudioImporter, Load, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, SubTask, Transition, Task, TaskType
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
 from lib.audio_import import ImportConfigSchema
-from lib.audio_load import LoadConfigSchema
+from lib.audio_load import LoadConfigSchema, validate_load_utterance_data
 
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -1981,11 +1981,23 @@ def load_data(task):
 	if not task.is_type(TaskType.TRANSCRIPTION):
 		raise InvalidUsage("data can only be loaded for transcription tasks", 400)
 
+	# get load data
 	data = request.json
-	models = task.load_transcription_data(data)
+	validate_load_utterance_data(data)
 
+	# create load # TODO shouldnt need to flush load before adding utts, should be one transaction
+	user = session["current_user"]
+	load = Load(
+		task=task,
+		created_by=user.user_id,
+	)
+	db.session.add(load)
+	db.session.flush()
+
+	# create utterances
+	models = task.load_transcription_data(data, load)
 	for model in models:
 		db.session.add(model)
 
-	db.session.commit()
+	db.session.flush()
 	return jsonify(success=True)
