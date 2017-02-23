@@ -581,7 +581,9 @@ class Batch_FullSchema(BatchSchema):
 		s = PageSchema(context={'full': True})
 		return s.dump(obj.pages, many=True).data
 	class Meta:
-		additional = ('pages',)
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
+			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
+			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount', 'pages')
 
 class Batch_BriefSchema(Schema):
 	priority = fields.Integer()
