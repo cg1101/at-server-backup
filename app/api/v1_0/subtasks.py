@@ -601,8 +601,7 @@ def get_sub_task_statistics(subTaskId):
 		'stats': {
 			'batchCount': len(batches),
 			'offlineBatchCount': len([b for b in batches if b.checkedOut]),
-			'itemCount': sum([len(p.members) for b in batches
-				for p in b.pages]),
+			'itemCount': sum([b.itemCount for b in batches]),
 			'unitCount': sum([b.unitCount for b in batches]),
 			'meanAmount': subTask.meanAmount,
 			'maxAmount': subTask.maxAmount,
