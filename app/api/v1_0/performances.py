@@ -1,7 +1,7 @@
 from flask import jsonify, request, session
 
 from . import api_1_0 as bp
-from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, validators
+from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators, validators
 from db import database as db
 from db.model import (
 	AudioCheckingChangeMethod,
@@ -46,8 +46,24 @@ def get_performance_meta_values(performance):
 @caps()
 @get_model(Performance)
 def update_performance_meta_values(performance):
-	meta_values = process_received_metadata(request.json, performance.recording_platform.performance_meta_categories)
-	resolve_new_metadata(performance, meta_values, session["current_user"], AudioCheckingChangeMethod.ADMIN, add_log_entries=True)
+	data = MyForm(
+		Field("method", is_mandatory=True, validators=[AudioCheckingChangeMethod.is_valid]),
+		Field("values", is_mandatory=True, validators=[simple_validators.is_dict()]),	# TODO all keys should be valid categories
+	).get_data()
+	
+	meta_values = process_received_metadata(
+		data["values"],
+		performance.recording_platform.performance_meta_categories
+	)
+	
+	resolve_new_metadata(
+		performance,
+		meta_values,
+		session["current_user"],
+		data["method"],
+		add_log_entries=True
+	)
+	
 	db.session.flush()
 	return jsonify({"metaValues": PerformanceMetaValue.dump(performance.meta_values)})
 
@@ -58,7 +74,7 @@ def update_performance_meta_values(performance):
 @get_model(Performance)
 def move_performance(performance):
 	data = MyForm(
-		Field('subTaskId', is_mandatory=True,
+		Field("subTaskId", is_mandatory=True,
 			validators=[
 				SubTask.check_exists,
 				SubTask.for_task(performance.sub_task.task.task_id),
