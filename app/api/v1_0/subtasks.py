@@ -836,3 +836,28 @@ def get_sub_task_performances(sub_task):
 				performances.append(performance)
 
 	return jsonify(performances=Performance.dump(performances))
+
+
+# TODO check audio checking task
+@bp.route("subtasks/<int:sub_task_id>/audiostats", methods=["GET"])
+@api
+@get_model(SubTask)
+def get_sub_task_audio_stats(sub_task):
+	num_performances = len(sub_task.batches)
+	num_recordings = 0
+	total_duration = datetime.timedelta(0)
+
+	for batch in sub_task.batches:
+		for page in batch.pages:
+			for member in page.members:
+				performance = member.rawPiece
+				num_recordings += len(performance.recordings)
+				
+				for recording in performance.recordings:
+					total_duration += recording.duration
+					
+	return jsonify(stats=dict(
+		numPerformances=num_performances,
+		numRecordings=num_recordings,
+		duration=total_duration.total_seconds(),
+	))
