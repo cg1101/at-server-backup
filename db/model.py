@@ -462,6 +462,10 @@ class Batch(Base):
 		return count
 
 	@property
+	def itemCount(self):
+		return sum([len(p.members) for p in self.pages])
+
+	@property
 	def unitCount(self):
 		if self.subTask.workType in (WorkType.WORK, WorkType.REWORK):
 			r = SS.query(func.sum(RawPiece.words)
@@ -569,13 +573,17 @@ class BatchSchema(Schema):
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
 			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
-			'workIntervalId', 'checkedOut', 'pages', 'name')
+			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount')
 		# ordered = True
 
 class Batch_FullSchema(BatchSchema):
 	def get_pages(self, obj):
 		s = PageSchema(context={'full': True})
 		return s.dump(obj.pages, many=True).data
+	class Meta:
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
+			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
+			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount', 'pages')
 
 class Batch_BriefSchema(Schema):
 	priority = fields.Integer()
