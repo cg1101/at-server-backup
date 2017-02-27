@@ -3089,6 +3089,7 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 
 	# constants
 	ADMIN = "Admin"
+	PERFORMANCE_SEARCH_PAGE = "Performance Search Page"
 	WORK_PAGE = "Work Page"
 
 	@classmethod
@@ -3097,7 +3098,7 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 		MyForm validator for checking that the
 		name is valid.
 		"""
-		if value not in (cls.ADMIN, cls.WORK_PAGE):
+		if value not in (cls.ADMIN, cls.PERFORMANCE_SEARCH_PAGE, cls.WORK_PAGE):
 			raise ValueError("{0} is not a valid change method".format(value))
 
 	@classmethod
