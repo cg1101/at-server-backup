@@ -20,10 +20,24 @@ class Extractor(object):
 	HTML = 'html'
 	XML = 'xml'
 	TEXT = 'text'
+	RAW_PIECE_ID = 'rawPieceId'
+	ASSEMBLY_CONTEXT = 'assemblyContext'
+	RAW_TEXT = 'rawText'
+	RESULT = 'result'
+	EMAIL = 'email'
+	USER_NAME = 'userName'
+	LABELS = 'labels'
+	QA_ERRORS = 'qaErrors'
+
+	MANDATORY_COLUMNS = {ASSEMBLY_CONTEXT, RESULT}
+	OPTIONAL_COLUMNS = {RAW_PIECE_ID, RAW_TEXT, EMAIL, USER_NAME, LABELS, QA_ERRORS}
 	@staticmethod
-	def extract(task, fileFormat=EXTRACT, sourceFormat=TEXT,
+	def extract(task, columns=[], fileFormat=EXTRACT, sourceFormat=TEXT,
 			resultFormat=TEXT, groupIds=[], keepLineBreaks=False,
 			withQaErrors=False, compress=True):
+
+		columns = set(set(columns) & Extractor.OPTIONAL_COLUMNS |
+			Extractor.MANDATORY_COLUMNS)
 
 		tagById = {}
 		tagSet = None
@@ -106,6 +120,9 @@ class Extractor(object):
 				value = ''
 			return value
 
+		def showColumn(column):
+			return column in columns
+
 		env = Environment(loader=FileSystemLoader(_dir, followlinks=True),
 			trim_blocks=True, lstrip_blocks=True)
 		env.filters['formatResult'] = formatResult
@@ -153,7 +170,7 @@ class Extractor(object):
 		for rawPiece, entry in q.all():
 			items.append((rawPiece, entry))
 
-		data = template.render(items=items).encode('utf-8')
+		data = template.render(items=items, showColumn=showColumn).encode('utf-8')
 		if compress:
 			sio = cStringIO.StringIO()
 			with gzip.GzipFile(None, mode='w', compresslevel=9, fileobj=sio) as f:

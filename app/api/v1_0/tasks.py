@@ -344,6 +344,10 @@ def disable_task_error_type(taskId, errorTypeId):
 	})
 
 
+def normalize_columns(data, key, columns):
+	return list(set(columns) & Extractor.OPTIONAL_COLUMNS | Extractor.MANDATORY_COLUMNS)
+
+
 def normalize_utterance_group_ids(data, key, groupIds):
 	taskId= data['taskId']
 	try:
@@ -376,6 +380,9 @@ def get_task_extract(taskId, timestamp):
 		Field('resultFormat', is_mandatory=True, validators=[
 			(validators.enum, (Extractor.HTML, Extractor.XML, Extractor.TEXT)),
 		]),
+		Field('columns', is_mandatory=True, default=[],
+			normalizer=normalize_columns,
+		),
 		Field('groupIds', is_mandatory=True, default=[],
 			normalizer=normalize_utterance_group_ids,
 		),

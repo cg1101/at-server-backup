@@ -1,4 +1,18 @@
-{{ '\t'.join(['RAW_PIECE_ID', 'FILE', 'TRANSCRIPTION', 'SOURCE', 'LABELS', 'USER', 'USERNAME', 'QAERRORS']) }}
+{% if showColumn('rawPieceId') %}RAW_PIECE_ID{{'\t'}}{% endif %}
+FILE{{'\t'}}TRANSCRIPTION
+{%- if showColumn('rawText') %}{{'\t'}}SOURCE{% endif %}
+{% if showColumn('labels') %}{{'\t'}}LABELS{% endif %}
+{% if showColumn('email') %}{{'\t'}}USER{% endif %}
+{% if showColumn('userName') %}{{'\t'}}USERNAME{% endif %}
+{% if showColumn('qaErrors') %}{{'\t'}}QAERRORS{% endif %}
+
 {% for rawPiece, entry in items -%}
-{{ rawPiece.rawPieceId }}{{'\t'}}{{rawPiece.assemblyContext}}{{'\t'}}{{entry | formatResult}}{{'\t'}}{{rawPiece.rawText | formatSource}}{{'\t'}}{{entry | formatLabels }}{{'\t'}}{{entry | formatUser('emailAddress') }}{{'\t'}}{{entry | formatUser('userName') }}{{'\t'}}{{entry | formatQaErrors }}
+{% if showColumn('rawPieceId') %}{{ rawPiece.rawPieceId }}{{'\t'}}{% endif %}
+{{rawPiece.assemblyContext}}{{'\t'}}{{entry | formatResult}}
+{%- if showColumn('rawText') %}{{'\t'}}{{rawPiece.rawText | formatSource}}{% endif %}
+{% if showColumn('labels') %}{{'\t'}}{{entry | formatLabels }}{% endif %}
+{% if showColumn('email') %}{{'\t'}}{{entry | formatUser('emailAddress') }}{% endif %}
+{% if showColumn('userName') %}{{'\t'}}{{entry | formatUser('userName') }}{% endif %}
+{% if showColumn('qaErrors') %}{{'\t'}}{{entry | formatQaErrors }}{% endif %}
+
 {% endfor %}

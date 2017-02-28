@@ -1,11 +1,23 @@
 {% for rawPiece, entry in items %}
+{% if showColumn('rawPieceId') %}
 RAW_PIECE_ID: {{rawPiece.rawPieceId}}
+{% endif %}
 FILE: {{rawPiece.assemblyContext}}
 TRANSCRIPTION: {{entry | formatResult}}
+{% if showColumn('rawText') %}
 SOURCE: {{rawPiece.rawText | formatSource}}
+{% endif %}
+{% if showColumn('labels') %}
 LABELS: {{entry | formatLabels }}
+{% endif %}
+{% if showColumn('email') %}
 USER: {{entry | formatUser('emailAddress') }}
+{% endif %}
+{% if showColumn('userName') %}
 USERNAME: {{entry | formatUser('userName') }}
+{% endif %}
+{% if showColumn('qaErrors') %}
 QAERRORS: {{entry | formatQaErrors }}
+{% endif %}
 
-{% endfor %}
+{%+ endfor %}
