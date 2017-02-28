@@ -851,10 +851,10 @@ def get_sub_task_audio_stats(sub_task):
 			for member in page.members:
 				performance = member.rawPiece
 				num_recordings += len(performance.recordings)
-				
+
 				for recording in performance.recordings:
 					total_duration += recording.duration
-					
+
 	return jsonify(stats=dict(
 		numPerformances=num_performances,
 		numRecordings=num_recordings,
