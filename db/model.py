@@ -3074,6 +3074,16 @@ class Transition(Base, ModelMixin):
 
 		return validator
 
+	@classmethod
+	def is_valid_transition(cls, source_id, destination_id):
+		"""
+		Checks that the transition exists.
+		"""
+		return bool(cls.query.filter_by(
+			source_id=source_id,
+			destination_id=destination_id,
+		).count())
+
 
 class TransitionSchema(Schema):
 	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
