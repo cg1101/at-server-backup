@@ -45,8 +45,7 @@ class LogisticsManager(object):
 		files = [obj for obj in bucket.objects.all() if obj.key == relpath]
 		if len(files):
 			resp = files[0].get()
-			body = resp['Body'].read()
-			return body
+			return resp
 		return None
 	def get_guideline(self, taskId, filename):
 		relpath = 'tasks/{0}/guidelines/{1}'.format(taskId, filename)

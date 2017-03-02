@@ -1,7 +1,8 @@
 
 import os
+import mimetypes
 
-from flask import session, redirect, url_for, send_file, request, abort
+from flask import session, redirect, url_for, send_file, request, abort, make_response
 
 import db.model as m
 from . import views as bp
@@ -39,7 +40,14 @@ def task_workers(taskId):
 
 @bp.route('/tasks/<int:taskId>/instructions/<filename>')
 def task_guideline(taskId, filename):
-	return logistics.get_guideline(taskId, filename)
+	s3_obj = logistics.get_guideline(taskId, filename)
+	if not s3_obj:
+		return abort(404, 'instruction file not found')
+	resp = make_response(s3_obj['Body'].read())
+	mimetype, encoding = mimetypes.guess_type(filename)
+	if mimetype:
+		resp.headers['Content-Type'] = mimetype
+	return resp
 
 
 @bp.route('/subtasks/<int:subTaskId>/rate')
