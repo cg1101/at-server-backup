@@ -88,40 +88,43 @@ def create_app(config_name):
 
 		# current_app.logger.debug('{} {}'.format(request.method, request.url))
 
-		# check SSO cookie first
-		try:
-			sso_cookie = request.cookies.get(current_app.config['SSO_COOKIE_NAME'])
-			appenId = jwt.decode(sso_cookie, current_app.config['APPEN_API_SECRET_KEY'])['appen_id']
-
-			# only validate gnx's own cookie when sso_cookie is present
+		if not current_app.config['CHECK_SSO_COOKIE']:
+			check = lambda (x): True
+		else:
 			try:
-				cookie_name = current_app.config['APP_COOKIE_NAME']
-				cookie = request.cookies.get(cookie_name)
-				if not cookie:
-					raise RuntimeError('cookie {} not found'\
-						.format(cookie_name))
+				sso_cookie = request.cookies.get(current_app.config['SSO_COOKIE_NAME'])
+				appenId = jwt.decode(sso_cookie, current_app.config['APPEN_API_SECRET_KEY'])['appen_id']
+				check = lambda (x): appenId == int(x)
+			except:
+				check = lambda (x): False
 
-				secret = current_app.config['APP_COOKIE_SECRET']
-				try:
-					user_dict = auth.decode_cookie(cookie, secret)
-					if appenId != int(user_dict['REMOTE_USER_ID']):
-						# current_app.logger.debug('gnx cookie stale')
-						raise RuntimeError('gnx cookie is stale')
-					user = m.User.query.get(user_dict['REMOTE_USER_ID'])
-					session['current_user'] = user
-					session['current_user_caps'] = user_dict['CAPABILITIES']
-					session['current_user_type'] = user_dict['USER_TYPE']
-					session['current_user_roles'] = user_dict['ROLES']
-					return None
-				except:
-					raise RuntimeError('cookie corrupted or expired')
 
-			except RuntimeError, e:
-				# current_app.logger.debug('cookie authentication failed: {}'\
-				# 	.format(e))
-				pass
-		except:
-			# sso cookie does not exist or is corrupted
+		# authenticate by cookie
+		try:
+			cookie_name = current_app.config['APP_COOKIE_NAME']
+			cookie = request.cookies.get(cookie_name)
+			if not cookie:
+				raise RuntimeError('cookie {} not found'\
+					.format(cookie_name))
+
+			secret = current_app.config['APP_COOKIE_SECRET']
+			try:
+				user_dict = auth.decode_cookie(cookie, secret)
+				if not check(user_dict['REMOTE_USER_ID']):
+					# current_app.logger.debug('gnx cookie stale')
+					raise RuntimeError('gnx cookie is stale')
+				user = m.User.query.get(user_dict['REMOTE_USER_ID'])
+				session['current_user'] = user
+				session['current_user_caps'] = user_dict['CAPABILITIES']
+				session['current_user_type'] = user_dict['USER_TYPE']
+				session['current_user_roles'] = user_dict['ROLES']
+				return None
+			except:
+				raise RuntimeError('cookie corrupted or expired')
+
+		except RuntimeError, e:
+			# current_app.logger.debug('cookie authentication failed: {}'\
+			# 	.format(e))
 			pass
 
 		# authenticate by header

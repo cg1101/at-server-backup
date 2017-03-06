@@ -10,6 +10,7 @@ class Config:
 	APPEN_API_SECRET_KEY = os.environ['APPEN_API_SECRET_KEY']
 
 	SSO_COOKIE_NAME = os.environ['SSO_COOKIE_NAME']
+	CHECK_SSO_COOKIE = os.environ.has_key('CHECK_SSO_COOKIE')
 
 	APP_COOKIE_NAME = os.environ['APP_COOKIE_NAME']
 	APP_COOKIE_SECRET = os.environ['APP_COOKIE_SECRET']
