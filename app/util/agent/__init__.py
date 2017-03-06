@@ -188,12 +188,17 @@ class PdbAgent(object):
 	def update_token(self):
 		url = os.path.join(self.url_root, '/login'.lstrip('/'))
 		resp = requests.post(url,
-			data={'apiKey': self.api_key, 'apiSecret': self.api_secret})
+			headers={'Content-Type': 'application/json'},
+			data=json.dumps({'apiKey': self.api_key, 'apiSecret': self.api_secret}))
 		if resp.status_code == 200:
 			try:
 				self.token = resp.json()
-			except:
+			except Exception, e:
+				# TODO: log this error
 				pass
+		else:
+			# TODO: log this error
+			pass
 	def get_project(self, projectId):
 		if self.token is None:
 			self.update_token()
