@@ -10,14 +10,8 @@ use_s3 = bool(bucket_name)
 
 class LogisticsManager(object):
 	DOCUMENT_ROOT = '/tmp'
-	def __init__(self, access_key_id, secret_access_key):
-		self.access_key_id = access_key_id
-		self.secret_access_key = secret_access_key
-		self.client = boto3.client(service_name='ses',
-			region_name='us-west-2',
-			aws_access_key_id=access_key_id,
-			aws_secret_access_key=secret_access_key)
-		self.me = 'do-not-reply@appen.com'
+	def __init__(self):
+		self.client = boto3.client('ses', region_name='us-west-2')
 	def send_email(self, to, subject, data, html=True):
 		message = {
 			'Subject': {'Data': subject},
@@ -35,7 +29,7 @@ class LogisticsManager(object):
 			'BccAddresses': [],
 		}
 		result = self.client.send_email(
-			Source=self.me,
+			Source='do-not-reply@appen.com',
 			Destination=destination,
 			Message=message,
 		)
@@ -89,4 +83,4 @@ class LogisticsManager(object):
 		return reportStats
 
 
-logistics = LogisticsManager(os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY'])
+logistics = LogisticsManager()
