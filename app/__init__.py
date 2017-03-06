@@ -45,7 +45,7 @@ def create_app(config_name):
 		'/webservices',
 		'/logout',
 		'/authorization_response',
-		'/api/1.0/status',
+		'/health-check',
 	])
 	json_url_patterns = map(re.compile, [
 		'/whoami',
@@ -359,6 +359,10 @@ def create_app(config_name):
 		# 	current_app.config['APP_COOKIE_SECRET'], timeout=0)
 		# response.set_cookie(current_app.config['APP_COOKIE_NAME'], value)
 		return response
+
+	@app.route('/health-check')
+	def health_check():
+		return make_response('OK', 200, {'Content-Type': 'text/plain'})
 
 	# @app.errorhandler(404)
 	# def default_hander(exc):
