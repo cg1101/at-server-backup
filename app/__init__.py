@@ -88,7 +88,7 @@ def create_app(config_name):
 
 		# current_app.logger.debug('{} {}'.format(request.method, request.url))
 
-		if not current_app.config['CHECK_SSO_COOKIE']:
+		if not current_app.config['SSO_COOKIE_NAME']:
 			check = lambda (x): True
 		else:
 			try:
@@ -97,7 +97,6 @@ def create_app(config_name):
 				check = lambda (x): appenId == int(x)
 			except:
 				check = lambda (x): False
-
 
 		# authenticate by cookie
 		try:
