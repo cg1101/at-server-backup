@@ -423,6 +423,8 @@ class Batch(Base):
 	__table__ = t_batches
 	user = relationship('User', foreign_keys=[t_batches.c.userId])
 	userName = association_proxy('user', 'userName')
+	qaedUser = relationship('User', foreign_keys=[t_batches.c.notUserId])
+	qaedUserName = association_proxy('qaedUser', 'userName')
 	pages = relationship('Page', order_by='Page.pageIndex',
 		cascade='all, delete-orphan')
 	task = relationship('Task')
@@ -431,6 +433,12 @@ class Batch(Base):
 	# synonyms
 	sub_task = synonym("subTask")
 	sub_task_id = synonym("subTaskId")
+
+	@property
+	def qaedInterval(self):
+		if self.workIntervalId is None:
+			return None
+		return WorkInterval.query.get(self.workIntervalId)
 
 	@property
 	def isExpired(self):
@@ -570,10 +578,15 @@ class BatchSchema(Schema):
 	name = fields.Method('get_name')
 	def get_name(self, obj):
 		return obj.name if obj.name is not None else 'b-%s' % obj.batchId
+	qaedInterval = fields.Nested('WorkIntervalSchema')
+	def get_work_type(self, obj):
+		return obj.subTask.workType
 	class Meta:
-		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
-			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
-			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount')
+		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName',
+			'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires',
+			'notUserId', 'qaedUserName', 'workIntervalId',
+			'qaedInterval', 'checkedOut', 'name', 'itemCount',
+			'unitCount')
 		# ordered = True
 
 class Batch_FullSchema(BatchSchema):
