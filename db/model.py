@@ -2701,6 +2701,18 @@ class PerformanceSchema(Schema):
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 
+class Performance_FullSchema(PerformanceSchema):
+	meta_values = fields.Method("get_meta_values", dump_to="metaValues")
+
+	def get_meta_values(self, obj):
+		values = {}
+
+		for meta_value in obj.meta_values:
+			values[meta_value.performance_meta_category_id] = meta_value.value
+
+		return values
+
+
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
 	__table__ = t_recording_meta_categories
@@ -3074,6 +3086,16 @@ class Transition(Base, ModelMixin):
 
 		return validator
 
+	@classmethod
+	def is_valid_transition(cls, source_id, destination_id):
+		"""
+		Checks that the transition exists.
+		"""
+		return bool(cls.query.filter_by(
+			source_id=source_id,
+			destination_id=destination_id,
+		).count())
+
 
 class TransitionSchema(Schema):
 	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
@@ -3089,6 +3111,7 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 
 	# constants
 	ADMIN = "Admin"
+	PERFORMANCE_SEARCH_PAGE = "Performance Search Page"
 	WORK_PAGE = "Work Page"
 
 	@classmethod
@@ -3097,7 +3120,7 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 		MyForm validator for checking that the
 		name is valid.
 		"""
-		if value not in (cls.ADMIN, cls.WORK_PAGE):
+		if value not in (cls.ADMIN, cls.PERFORMANCE_SEARCH_PAGE, cls.WORK_PAGE):
 			raise ValueError("{0} is not a valid change method".format(value))
 
 	@classmethod

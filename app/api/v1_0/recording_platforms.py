@@ -1,14 +1,26 @@
 import json
 import jsonschema
 
-from flask import jsonify, request
+from flask import jsonify, request, session
 
 from LRUtilities.Api import format_audio_cutup_config
 from LRUtilities.DataCollection import AmrConfigFile
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from db import database as db
-from db.model import AudioCheckingGroup, AudioCheckingSection, CorpusCode, Performance, PerformanceMetaCategory, RecordingPlatform, RecordingPlatformType, Track
+from db.model import (
+	AudioCheckingChangeMethod,
+	AudioCheckingGroup,
+	AudioCheckingSection,
+	CorpusCode,
+	Performance,
+	PerformanceMetaCategory,
+	RecordingPlatform,
+	RecordingPlatformType,
+	SubTask,
+	Track,
+	Transition,
+)
 from lib.audio_import import decompress_import_data
 from lib.metadata_validation import MetaValidator
 
@@ -387,7 +399,12 @@ def include_spontaneous_corpus_codes(recording_platform):
 @caps()
 @get_model(RecordingPlatform)
 def get_performances(recording_platform):
-	return jsonify(performances=Performance.dump(recording_platform.performances))
+	kwargs = {}
+	
+	if request.args.get("full"):
+		kwargs.update(dict(use="full"))
+
+	return jsonify(performances=Performance.dump(recording_platform.performances, **kwargs))
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/importperformance", methods=["POST"])
@@ -409,3 +426,55 @@ def update_audio_quality(recording_platform):
 	recording_platform.audio_quality = request.json
 	db.session.commit()
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
+
+
+@bp.route("recordingplatforms/<int:recording_platform_id>/moveperformances", methods=["PUT"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def move_performances(recording_platform):
+
+	data = MyForm(
+		Field("changeMethod", is_mandatory=True, validators=[AudioCheckingChangeMethod.is_valid]),
+		Field("subTaskId", is_mandatory=True, validators=[SubTask.check_exists]),
+		Field("rawPieceIds", is_mandatory=True,
+			validators=[
+				validators.is_list,
+				Performance.check_all_exists,
+			]
+		),
+	).get_data()
+
+	destination = SubTask.query.get(data["subTaskId"])
+
+	performances = []
+	at_destination = []		# already at the destination
+	no_transition = []		# no transition exists
+	moved = []				# successfully moved
+
+	for raw_piece_id in data["rawPieceIds"]:
+		performance = Performance.query.get(raw_piece_id)
+		performances.append(performance)
+
+		# check if performance is already at destination
+		if performance.sub_task.sub_task_id == destination.sub_task_id:
+			at_destination.append(performance)
+			continue
+		
+		# check if valid transition exists
+		if not Transition.is_valid_transition(performance.sub_task.sub_task_id, destination.sub_task_id):
+			no_transition.append(performance)
+			continue
+
+		# move performance
+		performance.move_to(destination.sub_task_id, data["changeMethod"], session["current_user"].user_id)
+		moved.append(performance)
+
+	db.session.flush()
+
+	return jsonify({
+		"atDestination": len(at_destination),
+		"noTransition": len(no_transition),
+		"moved": len(moved),
+		"performances": Performance.dump(performances),
+	})
