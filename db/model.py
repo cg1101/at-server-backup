@@ -2701,6 +2701,18 @@ class PerformanceSchema(Schema):
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
 
 
+class Performance_FullSchema(PerformanceSchema):
+	meta_values = fields.Method("get_meta_values", dump_to="metaValues")
+
+	def get_meta_values(self, obj):
+		values = {}
+
+		for meta_value in obj.meta_values:
+			values[meta_value.performance_meta_category_id] = meta_value.value
+
+		return values
+
+
 # RecordingMetaCategory
 class RecordingMetaCategory(Base):
 	__table__ = t_recording_meta_categories

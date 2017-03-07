@@ -399,7 +399,12 @@ def include_spontaneous_corpus_codes(recording_platform):
 @caps()
 @get_model(RecordingPlatform)
 def get_performances(recording_platform):
-	return jsonify(performances=Performance.dump(recording_platform.performances))
+	kwargs = {}
+	
+	if request.args.get("full"):
+		kwargs.update(dict(use="full"))
+
+	return jsonify(performances=Performance.dump(recording_platform.performances, **kwargs))
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/importperformance", methods=["POST"])
