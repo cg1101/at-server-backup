@@ -23,7 +23,12 @@ from lib.metadata_validation import process_received_metadata, resolve_new_metad
 @caps()
 @get_model(Performance)
 def get_performance(performance):
-	return jsonify(performance=Performance.dump(performance))
+	kwargs = {}
+	
+	if request.args.get("full"):
+		kwargs.update(dict(use="full"))
+
+	return jsonify(performance=Performance.dump(performance, **kwargs))
 
 
 @bp.route("performances/<int:raw_piece_id>/recordings", methods=["GET"])
