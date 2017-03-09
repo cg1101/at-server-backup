@@ -1183,7 +1183,10 @@ def get_task_summary(taskId):
 	qaedItemCount = len(qrs)
 	qaedUnitCount = sum([x.words for x in qrs])
 
-	overallQaScore = sum([i.qaScore for i in qaed])
+	qaEntries = m.QaTypeEntry.query.filter(m.QaTypeEntry.taskId==taskId
+		).distinct(m.QaTypeEntry.qaedEntryId
+		).order_by(m.QaTypeEntry.qaedEntryId, m.QaTypeEntry.created.desc())
+	overallQaScore = sum([i.qaScore for i in qaEntries])
 
 	return jsonify({
 		'summary': {

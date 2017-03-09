@@ -162,7 +162,7 @@ class ReportWorker(object):
 				section_data["medianDuration"] = float(numpy.median(durations))
 				section_data["stdDev"] = float(numpy.std(durations))
 				section_data["distribution"] = self.get_utt_duration_distribution(durations)
-				
+
 			data[key] = section_data
 
 		return data
@@ -212,7 +212,7 @@ class ReportWorker(object):
 		self.task.stats[key] = data
 
 	def run_stats(self):
-	
+
 		# utt duration stats
 		if self.task.is_type(TaskType.TRANSCRIPTION):
 			utt_duration_stats = self.get_utt_duration_stats()
