@@ -1183,6 +1183,8 @@ def get_task_summary(taskId):
 	qaedItemCount = len(qrs)
 	qaedUnitCount = sum([x.words for x in qrs])
 
+	overallQaScore = sum([i.qaScore for i in qaed])
+
 	return jsonify({
 		'summary': {
 			'itemCount': itemCount,
@@ -1194,8 +1196,8 @@ def get_task_summary(taskId):
 			'completionRate': None if itemCount == 0 else (1 - float(newItemCount) / itemCount),
 			'qaedItemCount': qaedItemCount,
 			'qaedUnitCount': qaedUnitCount,
-			'overallQaScore': None,
-			'overallAccuracy': None,
+			'overallQaScore': overallQaScore,
+			'overallAccuracy': None if qaedItemCount == 0 else (overallQaScore / qaedItemCount),
 		}
 	})
 
