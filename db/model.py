@@ -2057,7 +2057,7 @@ class QaTypeEntry(WorkEntry):
 		return [e.errorTypeId for e in self.appliedErrors]
 	@property
 	def qaScore(self):
-		return 1 - min(1, sum([e.severity for e in self.appliedErrors]))
+		return 1.0 - min(1, sum([e.severity for e in self.appliedErrors]))
 
 class QaTypeEntrySchema(WorkEntrySchema):
 	class Meta:
