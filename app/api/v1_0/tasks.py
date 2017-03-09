@@ -2008,3 +2008,20 @@ def load_data(task):
 
 	db.session.flush()
 	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/utt-duration-report", methods=["GET"])
+@api
+@get_model(Task)
+def get_utt_duration_report(task):
+	"""
+	Returns the stats for the utterance
+	duration report.
+	"""
+	if not task.is_type(TaskType.TRANSCRIPTION):
+		raise InvalidUsage("utterance duration report stats are only available for transcription tasks", 400)
+
+	if task.stats and task.stats.get("uttDurationReport"):
+		return jsonify(report=task.stats.get("uttDurationReport"))
+
+	raise InvalidUsage("report not available", 400)

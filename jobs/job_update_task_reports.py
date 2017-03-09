@@ -10,8 +10,10 @@ import numpy
 import pytz
 from jinja2 import Environment, FileSystemLoader
 
+from LRUtilities.Audio import AudioSpec, AudioDataPointer
 from db.db import SS
 import db.model as m
+from db.model import TaskType
 from app.util import logistics
 from .job_update_task_report_metrics import RegularCounter, SubtotalCounter
 
@@ -37,6 +39,9 @@ def encode_regular_counter(obj):
 
 
 class ReportWorker(object):
+
+	UTT_DURATION_BINS = 10
+
 	def __init__(self, task):
 		self.task = task
 		self.per_user = {}
@@ -92,7 +97,127 @@ class ReportWorker(object):
 				errors = []
 			self.per_user.setdefault(userId, RegularCounter())(time_slot_key,
 				units, tags, labels, is_qaed, qa_score, errors)
+
+	def get_utt_duration_stats(self):
+		"""
+		Returns the utterance duration stats
+		for a transcription task.
+		"""
+		data = {}
+		overall_durations = []
+		transcribed_durations = []
+		untranscribed_durations = []
+
+		for utt in self.task.raw_pieces:
+			start_at = utt.data.get("startAt")
+			end_at = utt.data.get("endAt")
+			audio_spec = AudioSpec(**utt.data["audioSpec"])
+			audio_data_pointer = AudioDataPointer(**utt.data["audioDataPointer"])
+			file_duration = audio_spec.get_duration(audio_data_pointer.size)
+
+			# start offset or 0
+			if start_at is None:
+				start_at = datetime.timedelta(seconds=0)
+			else:
+				start_at = datetime.timedelta(seconds=float(start_at))
+
+			# end offset or file duration
+			if end_at is None:
+				end_at = file_duration
+			else:
+				end_at = datetime.timedelta(seconds=float(end_at))
+
+			duration = (end_at - start_at).total_seconds()
+
+			# add to duration lists
+			overall_durations.append(duration)
+
+			if utt.isNew:
+				untranscribed_durations.append(duration)
+			else:
+				transcribed_durations.append(duration)
+
+		# order durations for analysis
+		overall_durations.sort()
+		untranscribed_durations.sort()
+		transcribed_durations.sort()
+
+		# report sections
+		sections = [
+			("overall", overall_durations),
+			("transcribed", transcribed_durations),
+			("untranscribed", untranscribed_durations),
+		]
+
+		# calculate stats for each section
+		for key, durations in sections:
+			section_data = {}
+
+			section_data["count"] = len(durations)
+			if durations:
+				section_data["totalDuration"] = sum(durations)
+				section_data["minDuration"] = durations[0]
+				section_data["maxDuration"] = durations[-1]
+				section_data["meanDuration"] = float(numpy.mean(durations))
+				section_data["medianDuration"] = float(numpy.median(durations))
+				section_data["stdDev"] = float(numpy.std(durations))
+				section_data["distribution"] = self.get_utt_duration_distribution(durations)
+				
+			data[key] = section_data
+
+		return data
+
+	def get_utt_duration_distribution(self, durations):
+		"""
+		Return the distribution counts for
+		the given durations in UTT_DURATION_BINS
+		number of bins. Assumes the durations
+		list is ordered and non-empty.
+		"""
+
+		# define bin width
+		min_duration = durations[0]
+		max_duration = durations[-1]
+
+		bin_width = (max_duration - min_duration) / self.UTT_DURATION_BINS
+
+		current_bin = min_duration + bin_width
+		count = 0
+		distribution = []
+
+		for duration in durations:
+
+			# reach bin limit, update current bin
+			if duration > current_bin:
+				distribution.append(count)
+				current_bin += bin_width
+				count = 1
+
+			# within current bin
+			else:
+				count += 1
+
+		# add last bin count
+		distribution.append(count)
+
+		return distribution
+
+	def add_task_stats(self, key, data):
+		"""
+		Add data to task stats.
+		"""
+		if self.task.stats is None:
+			self.task.stats = {}
+
+		self.task.stats[key] = data
+
 	def run_stats(self):
+	
+		# utt duration stats
+		if self.task.is_type(TaskType.TRANSCRIPTION):
+			utt_duration_stats = self.get_utt_duration_stats()
+			self.add_task_stats("uttDurationReport", utt_duration_stats)
+
 		if not self.per_user:
 			return
 		self.timestamp = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
