@@ -14,6 +14,8 @@ class MyFilter(object):
 	ON = 'on'
 	AFTER = 'after'
 	BEFORE = 'before'
+	IN = 'in'
+	NOT_IN = 'notin'
 
 	EQUALS = '='
 	NOT_EQUALS = '!='
@@ -117,13 +119,13 @@ def filter_load(task, loadOption, loadId):
 	except:
 		raise ValueError(_('invalid load id: {}').format(loadId))
 
-	if loadOption == MyFilter.EQUALS:
+	if loadOption in (MyFilter.EQUALS, MyFilter.IN):
 		cond = m.RawPiece.loadId==loadId
-	elif loadOption == MyFilter.NOT_EQUALS:
+	elif loadOption in (MyFilter.NOT_EQUALS, MyFilter.NOT_IN):
 		cond = m.RawPiece.loadId!=loadId
-	elif loadOption == MyFilter.LESS_THAN:
+	elif loadOption in (MyFilter.LESS_THAN, MyFilter.BEFORE):
 		cond = m.RawPiece.loadId<loadId
-	elif loadOption == MyFilter.GREATER_THAN:
+	elif loadOption in (MyFilter.GREATER_THAN, MyFilter.AFTER):
 		cond = m.RawPiece.loadId>loadId
 	else:
 		raise ValueError(_('invalid load option: {}').format(loadOption))
