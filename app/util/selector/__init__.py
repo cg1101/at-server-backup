@@ -9,6 +9,7 @@ from app.i18n import get_text as _
 from db.db import SS
 import db.model as m
 
+
 class MyFilter(object):
 	ON = 'on'
 	AFTER = 'after'
@@ -57,7 +58,6 @@ class MyFilter(object):
 		if not isinstance(rs, set):
 			rs = set(rs)
 		return rs
-
 
 
 # SOURCE_TAG
@@ -411,6 +411,7 @@ def filter_word_count_gap(task, wordCountOption, gap):
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)
 		if check(r.result, r.words)])
 
+
 # LABEL
 @MyFilter.register
 def filter_label(task, labelId):
@@ -517,6 +518,7 @@ def filter_qa_error_type(task, errorTypeId):
 
 	return set([r.rawPieceId for r in q.all()])
 
+
 # QA_ERROR_CLASS
 @MyFilter.register
 def filter_qa_error_class(task, errorClassId):
@@ -540,6 +542,7 @@ def filter_qa_error_class(task, errorClassId):
 				).filter(m.ErrorType.errorClassId==errorClassId)))
 	return set([r.rawPieceId for r in q.all()])
 
+
 # PP_GROUP
 @MyFilter.register
 def filter_pp_group(task, groupId):
@@ -557,6 +560,7 @@ def filter_pp_group(task, groupId):
 		).filter(cond)
 
 	return set([r.rawPieceId for r in q.all()])
+
 
 # CUSTOM_GROUP
 @MyFilter.register
@@ -609,6 +613,7 @@ def filter_sub_task_work(task, workOption, subTaskId):
 		).where(sub_q.c.subTaskId==subTaskId)
 
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
+
 
 # SUB_TASK_BATCHING
 @MyFilter.register
@@ -703,6 +708,7 @@ def filter_work_type_batching(task, workTypeId):
 	else:
 		return set()
 	return set([r.rawPieceId for r in q.all()])
+
 
 class Selector(object):
 	FILTER_TYPES = {
