@@ -516,6 +516,7 @@ def get_task_key_expansions(taskId):
 		keyExpansions=m.KeyExpansion.dump(task.expansions)
 	)
 
+
 @bp.route(_name + '/<int:taskId>/key-expansions/', methods=['PUT'])
 @api
 @caps()
@@ -550,6 +551,7 @@ def set_task_key_expansion(taskId):
 		keyExpansion=m.KeyExpansion.dump(keyExpansion),
 	)
 
+
 @bp.route(_name + '/<int:taskId>/key-expansions/', methods=['DELETE'])
 @api
 @caps()
@@ -575,6 +577,7 @@ def delete_task_key_expansion(taskId):
 		_('expansion of key {0} has been removed from task {1}'
 		).format(char, taskId))
 
+
 @bp.route(_name + '/<int:taskId>/loads/')
 @api
 @caps()
@@ -583,9 +586,11 @@ def get_task_loads(taskId):
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	loads = m.Load.query.filter_by(taskId=taskId).all()
-	return jsonify({
-		'loads': m.Load.dump(loads),
-	})
+	if request.args.get('stats'):
+		rs = m.Load.dump(loads, use='full')
+	else:
+		rs = m.Load.dump(loads)
+	return jsonify(loads=rs)
 
 
 @bp.route(_name + '/<int:taskId>/loads/<int:loadId>/stats', methods=['GET'])
@@ -1183,7 +1188,10 @@ def get_task_summary(taskId):
 	qaedItemCount = len(qrs)
 	qaedUnitCount = sum([x.words for x in qrs])
 
-	overallQaScore = sum([i.qaScore for i in qaed])
+	qaEntries = m.QaTypeEntry.query.filter(m.QaTypeEntry.taskId==taskId
+		).distinct(m.QaTypeEntry.qaedEntryId
+		).order_by(m.QaTypeEntry.qaedEntryId, m.QaTypeEntry.created.desc())
+	overallQaScore = sum([i.qaScore for i in qaEntries])
 
 	return jsonify({
 		'summary': {

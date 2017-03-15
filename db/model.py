@@ -839,6 +839,14 @@ class Load(Base):
 	load_id = synonym("loadId")
 	created_by = synonym("createdBy")
 
+	@property
+	def itemCount(self):
+		return len(self.rawPieces)
+
+	@property
+	def unitCount(self):
+		return sum([i.words for i in self.rawPieces])
+
 
 class LoadSchema(Schema):
 	createdBy = fields.Method('get_created_by')
@@ -847,6 +855,10 @@ class LoadSchema(Schema):
 		return s.dump(obj._createdByUser).data
 	class Meta:
 		fields = ('loadId', 'createdBy', 'createdAt', 'taskId')
+
+class Load_FullSchema(LoadSchema):
+	class Meta:
+		fields = ('loadId', 'createdBy', 'createdAt', 'taskId', 'unitCount', 'itemCount')
 
 # KeyExpansion
 class KeyExpansion(Base):
