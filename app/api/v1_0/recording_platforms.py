@@ -476,5 +476,5 @@ def move_performances(recording_platform):
 		"atDestination": len(at_destination),
 		"noTransition": len(no_transition),
 		"moved": len(moved),
-		"performances": Performance.dump(performances),
+		"performances": Performance.dump(performances, use="full"),
 	})
