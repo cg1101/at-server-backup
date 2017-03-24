@@ -755,7 +755,7 @@ class Label(Base):
 
 class LabelSchema(Schema):
 	class Meta:
-		fields = ('labelId', 'name', 'description', 'shortcutKey', 'extract', 'labelGroupId', 'labelSetId')
+		fields = ('labelId', 'name', 'description', 'shortcutKey', 'extract', 'labelGroupId', 'labelSetId', 'enabled')
 		# skip_missing = True
 
 # LabelGroup

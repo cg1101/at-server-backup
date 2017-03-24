@@ -145,6 +145,9 @@ def update_label(labelSetId, labelId):
 		Field('labelGroupId', validators=[
 			(check_label_group_existence, (labelSetId,)),
 		]),
+		Field('enabled', validators=[
+			validators.is_bool,
+		]),
 	).get_data()
 	# data['labelSetId'] = labelSetId
 
