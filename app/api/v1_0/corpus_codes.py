@@ -22,7 +22,6 @@ def update_corpus_code(corpus_code):
 
 	data = MyForm(
 		Field("code", is_mandatory=True, validators=[
-			validators.non_blank,
 			corpus_code.check_updated_code_unique,
 		]),
 		Field("regex"),
@@ -31,7 +30,7 @@ def update_corpus_code(corpus_code):
 		]),
 	).get_data()
 	
-	corpus_code.code = data["code"]
+	corpus_code.code = data.get("code")
 	corpus_code.regex = data["regex"]
 	corpus_code.is_scripted = data["isScripted"]
 	db.session.commit()
