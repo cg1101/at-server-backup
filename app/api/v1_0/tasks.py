@@ -4,6 +4,7 @@ import datetime
 import re
 import json
 import subprocess
+import requests
 
 from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy import or_
@@ -16,7 +17,20 @@ import pytz
 import db.model as m
 from db.db import SS
 from db import database as db
-from db.model import AudioImporter, Load, Performance, PerformanceFlag, RecordingFlag, RecordingPlatform, RecordingPlatformType, SubTask, Transition, Task, TaskType
+from db.model import (
+	AudioImporter,
+	Load,
+	Performance,
+	PerformanceFlag,
+	RecordingFlag,
+	RecordingPlatform,
+	RecordingPlatformType,
+	SubTask,
+	Transition,
+	Task,
+	TaskType
+)
+from app import audio_server
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
@@ -2035,3 +2049,44 @@ def get_utt_duration_report(task):
 		return jsonify(report=task.stats.get("uttDurationReport"))
 
 	raise InvalidUsage("report not available", 400)
+
+
+@bp.route("tasks/<int:task_id>/upload-audio", methods=["POST"])
+@api
+@get_model(Task)
+def start_task_audio_upload(task):
+	
+	# TODO add to Api cls
+	data = {
+		"gnxEnv": current_app.config["ENV"],
+		"appenId": session["current_user"].appen_id
+	}
+	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
+	response = requests.post(url, json=data)
+
+	if response.status_code != 200:
+		raise InvalidUsage("unable to start audio load", 500)
+
+	data = response.json()
+	return jsonify(pid=data["pid"])
+
+
+@bp.route("tasks/<int:task_id>/upload-audio", methods=["GET"])
+@api
+@get_model(Task)
+def get_task_audio_upload(task):
+	
+	# TODO add to Api cls
+	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
+	response = requests.get(url)
+
+	if response.status_code == 200:
+		data = response.json()
+		return jsonify({
+			"loadManager": data["loadManager"]
+		})
+
+	if response.status_code == 404:
+		return jsonify({"loadManager": None})
+
+	raise InvalidUsage("unable to retrieve load manager", 500)

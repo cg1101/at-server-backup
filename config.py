@@ -6,6 +6,7 @@ from LRUtilities.Api import AudioServerApi, AudioServerStageApi, AudioServerDevA
 
 
 class Config:
+	ENV = None
 	SECRET_KEY = os.environ['SECRET_KEY']
 	APPEN_API_SECRET_KEY = os.environ['APPEN_API_SECRET_KEY']
 
@@ -48,6 +49,7 @@ class Config:
 
 class DevelopmentConfig(Config):
 	DEBUG = True
+	ENV = "dev"
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_SECRET = "secret"
 	AUDIO_SERVER_API_CLS = AudioServerDevApi
@@ -55,6 +57,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
 	TESTING = True
+	ENV = "test"
 
 
 class AwsConfig(Config):
@@ -63,17 +66,20 @@ class AwsConfig(Config):
 
 class QaConfig(AwsConfig):
 	DEBUG = True
+	ENV = "qa"
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_CLS = AudioServerStageApi
 
 
 class StageConfig(AwsConfig):
 	DEBUG = True
+	ENV = "stage"
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_CLS = AudioServerStageApi
 
 
 class ProductionConfig(AwsConfig):
+	ENV = "prod"
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
 	AUDIO_SERVER_API_CLS = AudioServerApi
 
