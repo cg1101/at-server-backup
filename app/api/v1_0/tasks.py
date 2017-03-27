@@ -19,7 +19,6 @@ from db.db import SS
 from db import database as db
 from db.model import (
 	Load,
-	Performance,
 	PerformanceFlag,
 	RecordingFlag,
 	RecordingPlatform,
@@ -2003,7 +2002,7 @@ def load_data(task):
 		raise InvalidUsage("data can only be loaded for transcription tasks", 400)
 
 	# get load data
-	data = request.json
+	data = decompress_load_data(request.json)
 	validate_load_utterance_data(data)
 
 	# create load # TODO shouldnt need to flush load before adding utts, should be one transaction
