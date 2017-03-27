@@ -21,7 +21,7 @@ from db.model import (
 	Track,
 	Transition,
 )
-from lib.audio_import import decompress_import_data
+from lib.audio_load import decompress_load_data
 from lib.metadata_validation import MetaValidator
 
 
@@ -407,13 +407,13 @@ def get_performances(recording_platform):
 	return jsonify(performances=Performance.dump(recording_platform.performances, **kwargs))
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/importperformance", methods=["POST"])
+@bp.route("recordingplatforms/<int:recording_platform_id>/load-performance", methods=["POST"])
 @api
 @get_model(RecordingPlatform)
-def import_performance(recording_platform):
-	data = decompress_import_data(request.json)
-	import_model = recording_platform.import_data(json.loads(data))
-	db.session.add(import_model)
+def load_performance(recording_platform):
+	data = decompress_load_data(request.json)
+	model = recording_platform.load_data(json.loads(data))
+	db.session.add(model)
 	db.session.commit()
 	return jsonify(success=True)
 

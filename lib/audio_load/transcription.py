@@ -54,7 +54,7 @@ UTTERANCES_DATA_SCHEMA = {
 }
 
 
-class LoadConfigSchema(Schema):
+class TranscriptionLoadConfigSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	task_type = fields.String(dump_to="taskType")
 	loader = fields.Function(lambda obj: obj.loader.name)

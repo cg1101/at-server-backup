@@ -23,8 +23,7 @@ from . import database, mode
 from .db import SS
 from .db import database as db
 from lib import utcnow, validator
-from lib.audio_import import validate_import_performance_data
-from lib.audio_load import validate_load_utterance_data
+from lib.audio_load import validate_load_performance_data, validate_load_utterance_data
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *
 
@@ -123,16 +122,16 @@ class ModelMixin(object):
 		return self.dump(self)
 
 
-class ImportMixin(object):
+class LoadMixin(object):
 	"""
 	Adds extra functionality for models created
-	during audio import.
+	during audio loading.
 	"""
 
 	@classmethod
-	def from_import(cls, data, *args, **kwargs):
+	def from_load(cls, data, *args, **kwargs):
 		"""
-		Parses the validated import data and returns
+		Parses the validated load data and returns
 		the created model.
 		"""
 		raise NotImplementedError
@@ -1794,23 +1793,24 @@ class Task(Base, ModelMixin):
 	def is_type(self, task_type):
 		return self.task_type == task_type
 
+	# FIXME update for transcription loading?
 	@property
-	def importable(self):
+	def loadable(self):
 		if not self.is_type(TaskType.AUDIO_CHECKING):
 			raise RuntimeError
 
-		return bool(self.importable_recording_platforms)
+		return bool(self.loadable_recording_platforms)
 
 	@property
-	def importable_recording_platforms(self):
+	def loadable_recording_platforms(self):
 		if not self.is_type(TaskType.AUDIO_CHECKING):
 			raise RuntimeError
 
-		return [rp for rp in self.recording_platforms if rp.audio_importer]
+		return [rp for rp in self.recording_platforms if rp.loader]
 
-	def get_import_sub_task(self):
+	def get_load_sub_task(self):
 		"""
-		Gets the import sub task. Expects
+		Gets the load sub task. Expects
 		a single Work sub task.
 		"""
 		work_type = WorkType.from_name(WorkType.WORK)
@@ -1821,7 +1821,7 @@ class Task(Base, ModelMixin):
 				work_type_id=work_type.work_type_id,
 			).one()
 		except SQLAlchemyError:
-			raise RuntimeError("unable to find import sub task")
+			raise RuntimeError("unable to find load sub task")
 
 		return sub_task
 
@@ -2165,14 +2165,14 @@ class RecordingPlatform(Base, ModelMixin):
 
 	# relationships
 	task = relationship("Task", backref="recording_platforms")
-	audio_importer = relationship("AudioImporter")
+	loader = relationship("Loader")
 	recording_platform_type = relationship("RecordingPlatformType")
 
 	# synonyms
 	recording_platform_id = synonym("recordingPlatformId")
 	recording_platform_type_id = synonym("recordingPlatformTypeId")
 	task_id = synonym("taskId")
-	audio_importer_id = synonym("audioImporterId")
+	loader_id = synonym("loaderId")
 	recording_platform_id = synonym("recordingPlatformId")
 	storage_location = synonym("storageLocation")
 	audio_cutup_config = synonym("audioCutupConfig")
@@ -2181,9 +2181,9 @@ class RecordingPlatform(Base, ModelMixin):
 	master_hypothesis_file = synonym("masterHypothesisFile")
 
 	@property
-	def importable_performance_meta_categories(self):
+	def loadable_performance_meta_categories(self):
 		"""
-		Meta categories that are populated during import.
+		Meta categories that are populated during loading.
 		"""
 		return [meta_category for meta_category in self.performance_meta_categories if meta_category.extractor]
 
@@ -2192,12 +2192,12 @@ class RecordingPlatform(Base, ModelMixin):
 		"""
 		Returns the metadata sources for the recording platform.
 		This is the combination of the metadata sources of the
-		associated audio importer (if any) and any custom metadata
-		sources defined in the recording platform config.
+		associated loader (if any) and any custom metadata sources 
+		defined in the recording platform config.
 		"""
 
-		if self.audio_importer and self.audio_importer.metadata_sources:
-			return self.audio_importer.metadata_sources
+		if self.loader and self.loader.metadata_sources:
+			return self.loader.metadata_sources
 
 		return []
 
@@ -2246,17 +2246,17 @@ class RecordingPlatform(Base, ModelMixin):
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
 
-	def import_data(self, data):
+	def load_data(self, data):
 		"""
-		Imports audio data to the recording	platforms.
-		If importing for an existing performance,
-		returns the Performance object, with newly added
-		data. If importing for a new Performance, returns
-		the Batch object containing the new performance.
+		Loads audio data to the recording platforms.
+		If loading for an existing performance, returns
+		the Performance object, with newly added data. 
+		If loading for a new Performance, returns the
+		Batch object containing the new performance.
 		"""
 
-		# validate import data
-		validate_import_performance_data(data)
+		# validate load data
+		validate_load_performance_data(data)
 
 		# if adding new data to an existing performance
 		if data["rawPieceId"]:
@@ -2265,19 +2265,19 @@ class RecordingPlatform(Base, ModelMixin):
 			if performance.recording_platform != self:
 				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, self.record_platform_id))
 
-			performance.import_data(data)
+			performance.load_data(data)
 			return performance
 
 		# adding a new performance
 		else:
 
-			# get import sub task
-			sub_task = self.task.get_import_sub_task()
+			# get load sub task
+			sub_task = self.task.get_load_sub_task()
 
 			# create performance
-			performance = Performance.from_import(data, self)
+			performance = Performance.from_load(data, self)
 
-			# add batch to import sub task TODO move this to app.api...?
+			# add batch to load sub task TODO move this to app.api...?
 			from app.util import Batcher
 			batches = Batcher.batch(sub_task, [performance])
 			assert len(batches) == 1
@@ -2285,7 +2285,7 @@ class RecordingPlatform(Base, ModelMixin):
 
 
 class RecordingPlatformSchema(Schema):
-	audio_importer = fields.Nested("AudioImporterSchema", dump_to="audioImporter")
+	loader = fields.Nested("LoaderSchema")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	task = fields.Nested("TaskSchema", only=("taskId", "name"))
@@ -2299,7 +2299,7 @@ class RecordingPlatformSchema(Schema):
 
 
 # AudioFile
-class AudioFile(Base, ImportMixin):
+class AudioFile(Base, LoadMixin):
 	__table__ = t_audio_files
 
 	# relationships
@@ -2317,7 +2317,7 @@ class AudioFile(Base, ImportMixin):
 	audio_data_location = synonym("audioDataLocation")
 
 	@classmethod
-	def from_import(cls, data, recording):
+	def from_load(cls, data, recording):
 		track = Track.query.get(data["trackId"])
 
 		if track.recording_platform != recording.recording_platform:
@@ -2342,27 +2342,6 @@ class AudioFileSchema(Schema):
 	class Meta:
 		additional = ("audioFileId", "recordingId", "filePath", "audioSpec", "audioDataLocation", "stats")
 
-# AudioImporter
-class AudioImporter(Base, ModelMixin):
-	__table__ = t_audio_importers
-
-	# constants
-	UNSTRUCTURED = "Unstructured"
-	STANDARD = "Standard"
-	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
-	AMR_CONVERSATIONAL = "Appen Mobile Recorder - Conversational"
-	APPEN_TELEPHONY_SCRIPTED = "Appen Telephony - Scripted"
-	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
-
-	# synonyms
-	audio_importer_id = synonym("audioImporterId")
-	all_performances_incomplete = synonym("allPerformancesIncomplete")
-	metadata_sources = synonym("metadataSources")
-
-
-class AudioImporterSchema(Schema):
-	class Meta:
-		fields = ("audioImporterId", "name")
 
 # SpeakerMetaCategory
 class SpeakerMetaCategory(Base):
@@ -2598,7 +2577,7 @@ class PerformanceFlagSchema(Schema):
 
 
 # Performance
-class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
+class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 	__table__ = t_performances
 
 	# relationships
@@ -2611,7 +2590,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 	album_id = synonym("albumId")
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
-	imported_at = synonym("importedAt")
+	loaded_at = synonym("loadedAt")
 
 	# associations
 	task_id = association_proxy("raw_piece", "taskId")
@@ -2641,7 +2620,7 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 		"""
 		Placeholder for audio loading. To be
 		replaced when queue functionality and
-		incomplete performance importing is
+		incomplete performance loading is
 		added.
 		"""
 		return False  # FIXME
@@ -2650,22 +2629,22 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 	def meta_entity_id(self):
 		return self.raw_piece_id
 
-	def import_data(self, data):
+	def load_data(self, data):
 		"""
 		Adds data for the performance from
-		audio import.
+		audio load.
 		"""
 
 		# add new recordings
 		for recording_data in data["recordings"]:
-			recording = Recording.from_import(recording_data, self)
+			recording = Recording.from_load(recording_data, self)
 			self.recordings.append(recording)
 
 	@classmethod
-	def from_import(cls, data, recording_platform):
+	def from_load(cls, data, recording_platform):
 		"""
 		Creates a new performance during audio
-		import.
+		loading.
 		"""
 
 		# create performance
@@ -2675,15 +2654,15 @@ class Performance(RawPiece, ImportMixin, MetaEntityMixin, AddFeedbackMixin):
 			recording_platform=recording_platform,
 			name=data["name"],
 			script_id=data["scriptId"],
-			imported_at=utcnow()
+			loaded_at=utcnow()
 		)
 
 		# add metadata
 		meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
 		resolve_new_metadata(performance, meta_values, add_log_entries=False)
 
-		# add import data
-		performance.import_data(data)
+		# add load data
+		performance.load_data(data)
 		return performance
 
 	def move_to(self, sub_task_id, change_method, user_id=None):
@@ -2723,7 +2702,7 @@ class PerformanceSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 
 	class Meta:
-		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "importedAt")
+		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "loadedAt")
 
 
 class Performance_FullSchema(PerformanceSchema):
@@ -2852,7 +2831,7 @@ class RecordingFeedbackEntrySchema(Schema):
 
 
 # Recording
-class Recording(Base, ModelMixin, ImportMixin, AddFeedbackMixin):
+class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 	__table__ = t_recordings
 
 	# relationships
@@ -2871,7 +2850,7 @@ class Recording(Base, ModelMixin, ImportMixin, AddFeedbackMixin):
 	SelfRelationshipName = "recording"
 
 	@classmethod
-	def from_import(cls, data, performance):
+	def from_load(cls, data, performance):
 		corpus_code = CorpusCode.query.get(data["corpusCodeId"])
 
 		if corpus_code.recording_platform != performance.recording_platform:
@@ -2890,7 +2869,7 @@ class Recording(Base, ModelMixin, ImportMixin, AddFeedbackMixin):
 		)
 
 		for audio_file_data in data["audioFiles"]:
-			audio_file = AudioFile.from_import(audio_file_data, recording)
+			audio_file = AudioFile.from_load(audio_file_data, recording)
 			recording.audio_files.append(audio_file)
 
 		return recording
@@ -3165,9 +3144,47 @@ class Loader(Base, ModelMixin):
 	# constants
 	STORAGE = "Storage"
 	LINKED = "Linked"
+	UNSTRUCTURED = "Unstructured"
+	STANDARD = "Standard"
+	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
+	AMR_CONVERSATIONAL = "Appen Mobile Recorder - Conversational"
+	APPEN_TELEPHONY_SCRIPTED = "Appen Telephony - Scripted"
+	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
 
 	# synonyms
 	loader_id = synonym("loaderId")
+	all_performances_incomplete = synonym("allPerformancesIncomplete")
+	metadata_sources = synonym("metadataSources")
+
+	@classmethod
+	def get_valid_loaders(cls, task_type):
+		"""
+		Returns a list of Loaders that are valid
+		for the task type.
+		"""
+
+		names = []
+
+		# audio checking
+		if task_type == TaskType.AUDIO_CHECKING:
+			names = [
+				cls.UNSTRUCTURED,
+				cls.STANDARD,
+				cls.AMR_SCRIPTED,
+				cls.AMR_CONVERSATIONAL,
+				cls.APPEN_TELEPHONY_SCRIPTED,
+				cls.APPEN_TELEPHONY_CONVERSATIONAL,
+			]
+
+		# transcription
+		elif task_type == TaskType.TRANSCRIPTION:
+			names = [
+				cls.STORAGE,
+				cls.LINKED
+			]
+
+		# return loaders
+		return [cls.query.filter_by(name=name).one() for name in names]
 
 
 class LoaderSchema(Schema):

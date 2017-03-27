@@ -1,7 +1,6 @@
 from db import database as db
 from db.model import (
 	AudioCheckingChangeMethod,
-	AudioImporter,
 	BatchingMode,
 	Loader,
 	RecordingPlatformType,
@@ -17,14 +16,6 @@ models = [
 	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.ADMIN),
 	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.WORK_PAGE),
 
-	# audio importers
-	AudioImporter(name=AudioImporter.UNSTRUCTURED, all_performances_incomplete=True),
-	AudioImporter(name=AudioImporter.STANDARD),
-	AudioImporter(name=AudioImporter.AMR_SCRIPTED, metadata_sources=["Log File"]),
-	AudioImporter(name=AudioImporter.AMR_CONVERSATIONAL),
-	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_SCRIPTED),
-	AudioImporter(name=AudioImporter.APPEN_TELEPHONY_CONVERSATIONAL, metadata_sources=["Log File"]),
-
 	# batching modes
 	BatchingMode(name=BatchingMode.NONE, requires_context=False),
 	BatchingMode(name=BatchingMode.PERFORMANCE, requires_context=True),
@@ -35,6 +26,12 @@ models = [
 	# loaders
 	Loader(name=Loader.STORAGE),
 	Loader(name=Loader.LINKED),
+	Loader(name=Loader.UNSTRUCTURED, all_performances_incomplete=True),
+	Loader(name=Loader.STANDARD, all_performances_incomplete=False),
+	Loader(name=Loader.AMR_SCRIPTED, all_performances_incomplete=False, metadata_sources=["Log File"]),
+	Loader(name=Loader.AMR_CONVERSATIONAL, all_performances_incomplete=False),
+	Loader(name=Loader.APPEN_TELEPHONY_SCRIPTED, all_performances_incomplete=False),
+	Loader(name=Loader.APPEN_TELEPHONY_CONVERSATIONAL, all_performances_incomplete=False, metadata_sources=["Log File"]),
 
 	# recording platform types
 	RecordingPlatformType(name=RecordingPlatformType.UNSPECIFIED),

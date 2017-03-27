@@ -18,7 +18,6 @@ import db.model as m
 from db.db import SS
 from db import database as db
 from db.model import (
-	AudioImporter,
 	Load,
 	Performance,
 	PerformanceFlag,
@@ -35,8 +34,7 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalize
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
-from lib.audio_import import ImportConfigSchema
-from lib.audio_load import LoadConfigSchema, validate_load_utterance_data
+from lib.audio_load import AudioCheckingLoadConfigSchema, TranscriptionLoadConfigSchema, validate_load_utterance_data
 
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -1770,9 +1768,9 @@ def create_recording_platform(task):
 			validators=[
 				RecordingPlatformType.check_exists
 		]),
-		Field('audioImporterId',
+		Field('loaderId',
 			validators=[
-				AudioImporter.check_exists
+				m.Loader.check_exists
 		]),
 		Field('storageLocation', validators=[
 			validators.is_string,
@@ -1875,29 +1873,41 @@ def create_recording_flag(task):
 
 
 
-@bp.route("tasks/<int:task_id>/importconfig")
+@bp.route("tasks/<int:task_id>/load-config")
 @api
 @get_model(Task)
-def get_import_config(task):
+def get_load_config(task):
 	"""
-	Returns the audio import config for an
-	audio checking task.
+	Returns the load config for a audio task.
 	"""
-	if not task.is_type(TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("import config only available for audio checking tasks", 400)
 
-	if not task.importable:
-		raise InvalidUsage("cannot import audio for task {0}".format(task.task_id), 400)
+	# audio checking validation
+	if task.is_type(TaskType.AUDIO_CHECKING):
 
-	try:
-		task.get_import_sub_task()
-	except RuntimeError:
-		raise InvalidUsage("unable to find import sub task", 400)
+		if not task.loadable:
+			raise InvalidUsage("cannot import audio for task {0}".format(task.task_id), 400)
 
-	schema = ImportConfigSchema()
-	import_config = schema.dump(task).data
+		try:
+			task.get_load_sub_task()
+		except RuntimeError:
+			raise InvalidUsage("unable to find load sub task", 400)
+	
+		schema = AudioCheckingLoadConfigSchema()
 
-	return jsonify({"importConfig": import_config})
+	# transcription validation
+	elif task.is_type(TaskType.TRANSCRIPTION):
+	
+		if not task.loader:
+			raise InvalidUsage("no loader configured for task {0}".format(task.task_id), 400)
+	
+		schema = TranscriptionLoadConfigSchema()
+
+	# unhandled task type
+	else:
+		raise InvalidUsage("load config only available for audio checking or transcription tasks", 400)
+
+	load_config = schema.dump(task).data
+	return jsonify({"loadConfig": load_config})
 
 
 @bp.route("tasks/<int:task_id>/transitions", methods=["GET"])
@@ -1980,26 +1990,6 @@ def update_task(task):
 
 	db.session.flush()
 	return jsonify(task=Task.dump(task))
-
-
-@bp.route("tasks/<int:task_id>/loadconfig", methods=["GET"])
-@api
-@get_model(Task)
-def get_task_load_config(task):
-	"""
-	Returns the audio import config for an
-	audio checking task.
-	"""
-	if not task.is_type(TaskType.TRANSCRIPTION):
-		raise InvalidUsage("load config only available for transcription tasks", 400)
-
-	if not task.loader:
-		raise InvalidUsage("no loader configured for task {0}".format(task.task_id), 400)
-
-	schema = LoadConfigSchema()
-	load_config = schema.dump(task).data
-
-	return jsonify({"loadConfig": load_config})
 
 
 @bp.route("tasks/<int:task_id>/loaddata", methods=["POST"])

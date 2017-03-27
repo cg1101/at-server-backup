@@ -1246,7 +1246,7 @@ t_performances = Table("performances", metadata,
 	Column("name", TEXT, key="name", doc=""),
 	Column("data", JSONB, key="data", doc=""),
 	Column("key", VARCHAR(8), key="key", doc=""),
-	Column("imported_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="importedAt", doc=""),
+	Column("loaded_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow(), key="loadedAt", doc=""),
 	ForeignKeyConstraint(["rawPieceId"], ["rawpieces.rawPieceId"]),
 	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
@@ -1281,7 +1281,7 @@ t_recording_platforms = Table("recording_platforms", metadata,
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
 	Column("recording_platform_type_id", INTEGER, nullable=False, key="recordingPlatformTypeId", doc=""),
 	Column("storage_location", TEXT, key="storageLocation", doc=""),
-	Column("audio_importer_id", INTEGER, key="audioImporterId", doc=""),
+	Column("loader_id", INTEGER, key="loaderId", doc=""),
 	Column("default_audio_spec", JSONB, key="defaultAudioSpec", doc=""),
 	Column("master_script_file", JSONB, key="masterScriptFile", doc=""),
 	Column("master_hypothesis_file", JSONB, key="masterHypothesisFile", doc=""),
@@ -1290,17 +1290,17 @@ t_recording_platforms = Table("recording_platforms", metadata,
 	Column("config", JSONB, key="config", doc=""),
 	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
 	ForeignKeyConstraint(["recordingPlatformTypeId"], ["recording_platform_types.recordingPlatformTypeId"]),
-	ForeignKeyConstraint(["audioImporterId"], ["audio_importers.audioImporterId"]),
+	ForeignKeyConstraint(["loaderId"], ["loaders.loaderId"]),
 )
 Index("recording_platforms_by_task_id", t_recording_platforms.c.taskId, unique=False)
 
 
-t_audio_importers = Table("audio_importers", metadata,
-	Column("audio_importer_id", INTEGER, primary_key=True, key="audioImporterId", doc=""),
-	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
-	Column("all_performances_incomplete", BOOLEAN, nullable=False, server_default=text("FALSE"), key="allPerformancesIncomplete", doc=""),
-	Column("metadata_sources", JSONB, key="metadataSources", doc="")
-)
+#t_audio_importers = Table("audio_importers", metadata,
+#	Column("audio_importer_id", INTEGER, primary_key=True, key="audioImporterId", doc=""),
+#	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
+#	Column("all_performances_incomplete", BOOLEAN, nullable=False, server_default=text("FALSE"), key="allPerformancesIncomplete", doc=""),
+#	Column("metadata_sources", JSONB, key="metadataSources", doc="")
+#)
 
 
 t_speaker_meta_categories = Table("speaker_meta_categories", metadata,
@@ -1553,6 +1553,8 @@ Index("recording_feedback_flags_by_recording_feedback_entry_id", t_recording_fee
 t_loaders = Table("loaders", metadata,
 	Column("loader_id", INTEGER, primary_key=True, key="loaderId", doc=""),
 	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
+	Column("all_performances_incomplete", BOOLEAN, key="allPerformancesIncomplete", doc=""),
+	Column("metadata_sources", JSONB, key="metadataSources", doc="")
 )
 
 t_utterances = Table("utterances", metadata,

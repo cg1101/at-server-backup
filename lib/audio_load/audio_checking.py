@@ -1,7 +1,5 @@
-import base64
 import jsonschema
 import os
-import zlib
 
 from marshmallow import Schema, fields
 
@@ -73,43 +71,43 @@ PERFORMANCE_DATA_SCHEMA = {
 }
 
 
-class ImportConfigSchema(Schema):
+class AudioCheckingLoadConfigSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	name = fields.String()
 	task_type = fields.String(dump_to="taskType")
-	importable_recording_platforms = fields.Nested("ImportRecordingPlatformSchema", dump_to="recordingPlatforms", many=True)
+	loadable_recording_platforms = fields.Nested("LoadRecordingPlatformSchema", dump_to="recordingPlatforms", many=True)
 
 
-class ImportTrackSchema(Schema):
+class LoadTrackSchema(Schema):
 	track_id = fields.Integer(dump_to="trackId")
 	name = fields.String()
 	track_index = fields.Integer(dump_to="trackIndex")
 
 
-class ImportCorpusCodeSchema(Schema):
+class LoadCorpusCodeSchema(Schema):
 	corpus_code_id = fields.Integer(dump_to="corpusCodeId")
 	code = fields.String()
 	is_scripted = fields.Boolean(dump_to="isScripted")
 	regex = fields.String()
 
 
-class ImportPerformanceMetaCategorySchema(Schema):
+class LoadPerformanceMetaCategorySchema(Schema):
 	performance_meta_category_id = fields.Integer(dump_to="performanceMetaCategoryId")
 	extractor = fields.Dict()
 
 
-class ImportRecordingPlatformSchema(Schema):
+class LoadRecordingPlatformSchema(Schema):
 	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
 	storage_location = fields.String(dump_to="storageLocation")
 	master_hypothesis_file = fields.Dict(dump_to="masterHypothesisFile")
 	master_script_file = fields.Dict(dump_to="masterScriptFile")
-	importer = fields.Function(lambda obj: obj.audio_importer.name)
+	loader = fields.Function(lambda obj: obj.loader.name)
 	config = fields.Dict()
 	completed_performances = fields.Method("get_completed_performances", dump_to="completedPerformances")
 	incomplete_performances = fields.Method("get_incomplete_performances", dump_to="incompletePerformances")
-	tracks = fields.Nested(ImportTrackSchema, many=True)
-	corpus_codes = fields.Nested(ImportCorpusCodeSchema, many=True, dump_to="corpusCodes")
-	importable_performance_meta_categories = fields.Nested(ImportPerformanceMetaCategorySchema, many=True, dump_to="performanceMetaCategories")
+	tracks = fields.Nested(LoadTrackSchema, many=True)
+	corpus_codes = fields.Nested(LoadCorpusCodeSchema, many=True, dump_to="corpusCodes")
+	loadable_performance_meta_categories = fields.Nested(LoadPerformanceMetaCategorySchema, many=True, dump_to="performanceMetaCategories")
 
 	def get_completed_performances(self, obj):
 		"""
@@ -117,7 +115,7 @@ class ImportRecordingPlatformSchema(Schema):
 		"""
 		completed = []
 
-		if not obj.audio_importer.all_performances_incomplete:
+		if not obj.loader.all_performances_incomplete:
 			for performance in obj.performances:
 				if not performance.incomplete:
 					completed.append(performance.name)
@@ -147,7 +145,7 @@ class ImportRecordingPlatformSchema(Schema):
 		for performance in obj.performances:
 			
 			# if performance is incomplete
-			if obj.audio_importer.all_performances_incomplete or performance.incomplete:
+			if obj.loader.all_performances_incomplete or performance.incomplete:
 				
 				# get list of existing filenames
 				existing_files = []
@@ -163,15 +161,8 @@ class ImportRecordingPlatformSchema(Schema):
 		return incomplete
 
 
-def validate_import_performance_data(data):
+def validate_load_performance_data(data):
 	"""
-	Validates the import data.
+	Validates the load data.
 	"""
 	jsonschema.validate(data, PERFORMANCE_DATA_SCHEMA)
-
-
-def decompress_import_data(data):
-	"""
-	Decompresses import data uploaded to the API.
-	"""
-	return zlib.decompress(base64.b64decode(data))
