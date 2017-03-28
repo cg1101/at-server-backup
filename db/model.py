@@ -2246,7 +2246,7 @@ class RecordingPlatform(Base, ModelMixin):
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
 
-	def load_data(self, data):
+	def load_data(self, data, load):
 		"""
 		Loads audio data to the recording platforms.
 		If loading for an existing performance, returns
@@ -2275,7 +2275,7 @@ class RecordingPlatform(Base, ModelMixin):
 			sub_task = self.task.get_load_sub_task()
 
 			# create performance
-			performance = Performance.from_load(data, self)
+			performance = Performance.from_load(data, self, load)
 
 			# add batch to load sub task TODO move this to app.api...?
 			from app.util import Batcher
@@ -2641,7 +2641,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 			self.recordings.append(recording)
 
 	@classmethod
-	def from_load(cls, data, recording_platform):
+	def from_load(cls, data, recording_platform, load):
 		"""
 		Creates a new performance during audio
 		loading.
@@ -2650,6 +2650,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		# create performance
 		performance = cls(
 			task=recording_platform.task,
+			load_id=load.load_id,
 			assembly_context="{0}_{1}".format(data["name"], int(time.time())),	# TODO shouldnt be required
 			recording_platform=recording_platform,
 			name=data["name"],

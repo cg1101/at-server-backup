@@ -13,6 +13,7 @@ from db.model import (
 	AudioCheckingGroup,
 	AudioCheckingSection,
 	CorpusCode,
+	Load,
 	Performance,
 	PerformanceMetaCategory,
 	RecordingPlatform,
@@ -296,13 +297,14 @@ def create_performance_meta_category(recording_platform):
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
 
 
+# TODO load through task for consistency
 @bp.route("recording_platforms/<int:recording_platform_id>/performancemetacategories/upload", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
 def upload_performance_meta_categories(recording_platform):
 
-	# TODO check configured audio importer
+	# TODO check configured loader
 
 	if recording_platform.performance_meta_categories:
 		raise InvalidUsage("performance meta categories already exist; unable to upload config file")
@@ -318,7 +320,7 @@ def upload_performance_meta_categories(recording_platform):
 		meta_category = PerformanceMetaCategory(
 			recording_platform=recording_platform,
 			name=amr_category.title,
-			extractor={"source": "Log File", "key": amr_category.id},	# TODO get log file string from audio importer constant
+			extractor={"source": "Log File", "key": amr_category.id},	# TODO get log file string from loader constant
 			validator_spec=validator.to_dict(),
 		)
 
@@ -411,8 +413,20 @@ def get_performances(recording_platform):
 @api
 @get_model(RecordingPlatform)
 def load_performance(recording_platform):
+
+	# get load data
 	data = decompress_load_data(request.json)
-	model = recording_platform.load_data(json.loads(data))
+
+	# create load # TODO shouldnt need to flush load before adding performance data, should be one transaction
+	user = session["current_user"]
+	load = Load(
+		task=recording_platform.task,
+		created_by=user.user_id,
+	)
+	db.session.add(load)
+	db.session.flush()
+
+	model = recording_platform.load_data(json.loads(data), load)
 	db.session.add(model)
 	db.session.commit()
 	return jsonify(success=True)
