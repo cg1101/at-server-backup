@@ -42,6 +42,7 @@ import tasks
 import tests
 import tracks
 import transitions
+import users
 
 # workflow control apis
 import work
