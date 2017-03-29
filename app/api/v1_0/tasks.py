@@ -3,6 +3,7 @@ import glob
 import datetime
 import re
 import json
+import jwt
 import subprocess
 import requests
 
@@ -2046,12 +2047,16 @@ def get_utt_duration_report(task):
 def start_task_audio_upload(task):
 	
 	# TODO add to Api cls
+	payload = {"appen_id": session["current_user"].appen_id}
+	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
+	headers = {"X-Appen-Auth": token}
+
 	data = {
 		"gnxEnv": current_app.config["ENV"],
-		"appenId": session["current_user"].appen_id
 	}
 	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-	response = requests.post(url, json=data)
+
+	response = requests.post(url, headers=headers, json=data)
 
 	if response.status_code != 200:
 		raise InvalidUsage("unable to start audio load", 500)
@@ -2066,8 +2071,11 @@ def start_task_audio_upload(task):
 def get_task_audio_upload(task):
 	
 	# TODO add to Api cls
+	payload = {"appen_id": session["current_user"].appen_id}
+	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
+	headers = {"X-Appen-Auth": token}
 	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-	response = requests.get(url)
+	response = requests.get(url, headers=headers)
 
 	if response.status_code == 200:
 		data = response.json()
