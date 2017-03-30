@@ -48,10 +48,6 @@ class QaGenerator(object):
 					[m.WorkType.WORK, m.WorkType.REWORK]))
 				))
 		for subTask in q.all():
-			if not subTask.qaConfig:
-				# QA not configured
-				print 'skipping sub task {} due to lack of qa config'.format(subTask.subTaskId)
-				continue
 			yield subTask
 	def iter_intervals(self, subTaskId):
 		q_target_intervals = m.WorkInterval.query.\
@@ -141,15 +137,15 @@ class QaGenerator(object):
 			# TODO: add checks for lastStatusChange
 			return
 		for subTask in self.iter_sub_tasks(taskId):
-			print 'trying sub task', subTask.subTaskId
 			for interval in self.iter_intervals(subTask.subTaskId):
-				print 'scanning interval {}'.format(interval.workIntervalId)
-				for userId, pool in self.iter_user_work_pool(subTask, interval):
-					print 'userId:', userId, 'work pool:', pool
-					samples = self.get_qa_samples(subTask, userId, pool)
-					qaSubTask = m.SubTask.query.get(subTask.qaConfig.qaSubTaskId)
-					self.create_qa_batches(qaSubTask, userId,
-							interval.workIntervalId, samples)
+				if subTask.qaConfig:
+					print 'scanning interval {}'.format(interval.workIntervalId)
+					for userId, pool in self.iter_user_work_pool(subTask, interval):
+						print 'userId:', userId, 'work pool:', pool
+						samples = self.get_qa_samples(subTask, userId, pool)
+						qaSubTask = m.SubTask.query.get(subTask.qaConfig.qaSubTaskId)
+						self.create_qa_batches(qaSubTask, userId,
+								interval.workIntervalId, samples)
 				if interval.status == m.WorkInterval.STATUS_ADDING_FINAL_CHECKS:
 					interval.status = m.WorkInterval.STATUS_CHECKING
 
