@@ -15,6 +15,7 @@ models = [
 	# audio checking change methods
 	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.ADMIN),
 	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.WORK_PAGE),
+	AudioCheckingChangeMethod(name=AudioCheckingChangeMethod.PERFORMANCE_SEARCH_PAGE),
 
 	# batching modes
 	BatchingMode(name=BatchingMode.NONE, requires_context=False),
