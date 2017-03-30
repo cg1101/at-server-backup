@@ -1779,10 +1779,12 @@ class Task(Base, ModelMixin):
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
 	loader_id = synonym("loaderId")
+	audio_uploads = synonym("audioUploads")
 
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
+	
 	@property
 	def workers(self):
 		return SS.query(User
@@ -1790,8 +1792,8 @@ class Task(Base, ModelMixin):
 				).filter(TaskWorker.taskId==self.taskId))
 			).order_by(User.userName).all()
 
-	def is_type(self, task_type):
-		return self.task_type == task_type
+	def is_type(self, *task_types):
+		return self.task_type in task_types
 
 	# FIXME update for transcription loading?
 	@property
@@ -1833,15 +1835,6 @@ class Task(Base, ModelMixin):
 			raise RuntimeError
 
 		assert data
-
-		# validate
-		#validate_load_utterance_data(data)
-
-		# create load
-		#load = Load(
-		#	task=self,
-		#	created_by=os.environ.get("CURRENT_USER_ID"),	# FIXME this should be the logged in user when api access is allowed
-		#)
 
 		# create utterances
 		utts = []

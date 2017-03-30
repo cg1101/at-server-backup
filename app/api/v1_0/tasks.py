@@ -10,6 +10,7 @@ import requests
 from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy import or_
 from sqlalchemy.orm import make_transient
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
@@ -2041,10 +2042,14 @@ def get_utt_duration_report(task):
 	raise InvalidUsage("report not available", 400)
 
 
+# TODO change to /audio-uploads/current
 @bp.route("tasks/<int:task_id>/upload-audio", methods=["POST"])
 @api
 @get_model(Task)
-def start_task_audio_upload(task):
+def start_audio_upload(task):
+	
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
 	
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
@@ -2065,10 +2070,14 @@ def start_task_audio_upload(task):
 	return jsonify(pid=data["pid"])
 
 
+# TODO change to /audio-uploads/current
 @bp.route("tasks/<int:task_id>/upload-audio", methods=["GET"])
 @api
 @get_model(Task)
-def get_task_audio_upload(task):
+def get_current_audio_upload(task):
+	
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
 	
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
@@ -2087,3 +2096,33 @@ def get_task_audio_upload(task):
 		return jsonify({"loadManager": None})
 
 	raise InvalidUsage("unable to retrieve load manager", 500)
+
+
+@bp.route("tasks/<int:task_id>/audio-uploads", methods=["GET"])
+@api
+@get_model(Task)
+def get_audio_uploads(task):
+	
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
+
+	return jsonify({"audioUploads": task.audio_uploads or []})
+
+
+@bp.route("tasks/<int:task_id>/audio-uploads", methods=["POST"])
+@api
+@get_model(Task)
+def save_audio_upload(task):
+	
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
+
+	# TODO validate audio upload json
+	
+	audio_uploads = task.audio_uploads or []
+	audio_uploads.append(request.json)
+	task.audio_uploads = audio_uploads
+	
+	flag_modified(task, 'audioUploads')
+	db.session.commit()
+	return jsonify(success=True)
