@@ -1787,7 +1787,7 @@ def create_recording_platform(task):
 	recording_platform = RecordingPlatform(
 		task=task,
 		recording_platform_type_id=data["recordingPlatformTypeId"],
-		audio_importer_id=data.get("audioImporterId"),
+		loader_id=data.get("loaderId"),
 		storage_location=data.get("storageLocation"),
 		master_script_file=data.get("masterScriptFile"),
 		master_hypothesis_file=data.get("masterHypothesisFile"),
