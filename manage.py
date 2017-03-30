@@ -22,7 +22,7 @@ manager.add_command('db', MigrateCommand)
 
 def clean_docstring(docstring):
 	"""
-	Removes leading whitespace (indentation) from 
+	Removes leading whitespace (indentation) from
 	a docstring.
 	"""
 	return re.sub("\n\s+", "\n", docstring)
@@ -40,7 +40,7 @@ def list(detailed=False):
 			module = fn.__module__
 			name = fn.func_name
 			fmt = "{0}\n{1} {2}\n{3}\n\nEndpoint: {4}\n  Module: {5}\nFunction: {6}\n"
-			
+
 			print(fmt.format(
 				divider,
 				",".join(rule.methods),
