@@ -2083,8 +2083,13 @@ def get_current_audio_upload(task):
 	payload = {"appen_id": session["current_user"].appen_id}
 	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
 	headers = {"X-Appen-Auth": token}
+	
+	params = {
+		"gnxEnv": current_app.config["ENV"],
+	}
 	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-	response = requests.get(url, headers=headers)
+	
+	response = requests.get(url, params=params, headers=headers)
 
 	if response.status_code == 200:
 		data = response.json()
