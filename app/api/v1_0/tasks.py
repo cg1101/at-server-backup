@@ -1892,15 +1892,15 @@ def get_load_config(task):
 			task.get_load_sub_task()
 		except RuntimeError:
 			raise InvalidUsage("unable to find load sub task", 400)
-	
+
 		schema = AudioCheckingLoadConfigSchema()
 
 	# transcription validation
 	elif task.is_type(TaskType.TRANSCRIPTION):
-	
+
 		if not task.loader:
 			raise InvalidUsage("no loader configured for task {0}".format(task.task_id), 400)
-	
+
 		schema = TranscriptionLoadConfigSchema()
 
 	# unhandled task type
@@ -2047,10 +2047,10 @@ def get_utt_duration_report(task):
 @api
 @get_model(Task)
 def start_audio_upload(task):
-	
+
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
-	
+
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
 	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
@@ -2075,20 +2075,20 @@ def start_audio_upload(task):
 @api
 @get_model(Task)
 def get_current_audio_upload(task):
-	
+
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
-	
+
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
 	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
 	headers = {"X-Appen-Auth": token}
-	
+
 	params = {
 		"gnxEnv": current_app.config["ENV"],
 	}
 	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-	
+
 	response = requests.get(url, params=params, headers=headers)
 
 	if response.status_code == 200:
@@ -2107,7 +2107,7 @@ def get_current_audio_upload(task):
 @api
 @get_model(Task)
 def get_audio_uploads(task):
-	
+
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
 
@@ -2118,16 +2118,16 @@ def get_audio_uploads(task):
 @api
 @get_model(Task)
 def save_audio_upload(task):
-	
+
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
 
 	# TODO validate audio upload json
-	
+
 	audio_uploads = task.audio_uploads or []
 	audio_uploads.append(request.json)
 	task.audio_uploads = audio_uploads
-	
+
 	flag_modified(task, 'audioUploads')
 	db.session.commit()
 	return jsonify(success=True)
