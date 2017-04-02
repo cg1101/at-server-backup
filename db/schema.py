@@ -307,7 +307,9 @@ t_users =  Table('users', metadata,
 	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
 	Column('familyname', TEXT, key=u'familyName', doc=''),
 	Column('givenname', TEXT, key=u'givenName', doc=''),
+	Column('countryid', INTEGER, nullable=True, key=u'countryId', doc=''), # TODO: change nullable to FALSE
 	UniqueConstraint(u'emailAddress'),
+	ForeignKeyConstraint([u'countryId'], [u'countries.countryId']),
 )
 
 
@@ -1131,6 +1133,7 @@ t_countries =  Table('countries', metadata,
 	Column('iso_num', INTEGER, nullable=True, unique=True, key=u'isoNum', doc=''),
 	Column('internet', VARCHAR(3), nullable=True, unique=True, key=u'internet', doc=''),
 	Column('active', BOOLEAN, nullable=False, server_default=text(u'TRUE'), key=u'active', doc=''),
+	Column('hourly_rate', DOUBLE_PRECISION, nullable=True, key=u'hourlyRate', doc=''), # TODO: change nullable to False
 	PrimaryKeyConstraint(u'countryId'),
 )
 
