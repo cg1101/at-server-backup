@@ -35,7 +35,7 @@ from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalize
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
 from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
-from lib.audio_load import AudioCheckingLoadConfigSchema, TranscriptionLoadConfigSchema, validate_load_utterance_data
+from lib.audio_load import AudioCheckingLoadConfigSchema, TranscriptionLoadConfigSchema, decompress_load_data
 
 
 _name = __file__.split('/')[-1].split('.')[0]
@@ -1993,21 +1993,19 @@ def update_task(task):
 	return jsonify(task=Task.dump(task))
 
 
-@bp.route("tasks/<int:task_id>/loaddata", methods=["POST"])
+@bp.route("tasks/<int:task_id>/load-data", methods=["POST"])
 @api
 @get_model(Task)
 def load_data(task):
 	"""
-	Loads data into a transcription task.
+	Loads data into an audio checking or transcription task.
 	"""
-	if not task.is_type(TaskType.TRANSCRIPTION):
-		raise InvalidUsage("data can only be loaded for transcription tasks", 400)
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("data can only be loaded for audio checking and transcription tasks", 400)
 
-	# get load data
 	data = decompress_load_data(request.json)
-	validate_load_utterance_data(data)
 
-	# create load # TODO shouldnt need to flush load before adding utts, should be one transaction
+	# create load # TODO shouldnt need to flush load before adding data, should be one transaction
 	user = session["current_user"]
 	load = Load(
 		task=task,
@@ -2016,12 +2014,22 @@ def load_data(task):
 	db.session.add(load)
 	db.session.flush()
 
-	# create utterances
-	models = task.load_transcription_data(data, load)
-	for model in models:
-		db.session.add(model)
+	# transcription
+	if task.is_type(TaskType.TRANSCRIPTION):
 
-	db.session.flush()
+		# create utterances
+		models = task.load_transcription_data(data, load)
+		for model in models:
+			db.session.add(model)
+
+		db.session.flush()
+
+	# audio checking
+	elif task.is_type(TaskType.AUDIO_CHECKING):
+		model = task.load_audio_checking_data(json.loads(data), load)
+		db.session.add(model)
+		db.session.commit()
+
 	return jsonify(success=True)
 
 
