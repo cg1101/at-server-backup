@@ -1920,10 +1920,11 @@ class TaskWorker(Base):
 	__table__ = t_taskusers
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
+	countryId = association_proxy('user', 'countryId')
 
 class TaskWorkerSchema(Schema):
 	class Meta:
-		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions')
+		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions', 'countryId')
 		ordered = True
 
 # TrackingEvent
