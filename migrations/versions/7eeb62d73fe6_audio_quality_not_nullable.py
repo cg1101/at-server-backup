@@ -1,14 +1,14 @@
 """audio quality not nullable
 
 Revision ID: 7eeb62d73fe6
-Revises: ed4ac60bc3fb
+Revises: 43396d8ae515
 Create Date: 2017-03-31 16:45:08.998260
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '7eeb62d73fe6'
-down_revision = 'ed4ac60bc3fb'
+down_revision = '43396d8ae515'
 branch_labels = None
 depends_on = None
 
