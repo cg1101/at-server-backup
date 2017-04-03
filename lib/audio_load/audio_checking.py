@@ -6,10 +6,13 @@ from marshmallow import Schema, fields
 
 PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
-	"required": ["rawPieceId", "name", "scriptId", "recordings", "metadata"],
+	"required": ["rawPieceId", "recordingPlatformId", "name", "scriptId", "recordings", "metadata"],
 	"properties": {
 		"rawPieceId": {
 			"type": ["integer", "null"]
+		},
+		"recordingPlatformId": {
+			"type": "integer"
 		},
 		"name": {
 			"type": ["string", "null"]
@@ -97,6 +100,7 @@ class LoadPerformanceMetaCategorySchema(Schema):
 
 
 class LoadRecordingPlatformSchema(Schema):
+	task_id = fields.Integer(dump_to="taskId")
 	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
 	storage_location = fields.String(dump_to="storageLocation")
 	master_hypothesis_file = fields.Dict(dump_to="masterHypothesisFile")

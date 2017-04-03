@@ -297,7 +297,6 @@ def create_performance_meta_category(recording_platform):
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
 
 
-# TODO load through task for consistency
 @bp.route("recording_platforms/<int:recording_platform_id>/performancemetacategories/upload", methods=["POST"])
 @api
 @caps()
@@ -407,29 +406,6 @@ def get_performances(recording_platform):
 		kwargs.update(dict(use="full"))
 
 	return jsonify(performances=Performance.dump(recording_platform.performances, **kwargs))
-
-
-@bp.route("recordingplatforms/<int:recording_platform_id>/load-performance", methods=["POST"])
-@api
-@get_model(RecordingPlatform)
-def load_performance(recording_platform):
-
-	# get load data
-	data = decompress_load_data(request.json)
-
-	# create load # TODO shouldnt need to flush load before adding performance data, should be one transaction
-	user = session["current_user"]
-	load = Load(
-		task=recording_platform.task,
-		created_by=user.user_id,
-	)
-	db.session.add(load)
-	db.session.flush()
-
-	model = recording_platform.load_data(json.loads(data), load)
-	db.session.add(model)
-	db.session.commit()
-	return jsonify(success=True)
 
 
 @bp.route("recordingplatforms/<int:recording_platform_id>/audioquality", methods=["PUT"])

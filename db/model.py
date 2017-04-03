@@ -1834,6 +1834,7 @@ class Task(Base, ModelMixin):
 		if not self.is_type(TaskType.TRANSCRIPTION):
 			raise RuntimeError
 
+		validate_load_utterance_data(data)
 		assert data
 
 		# create utterances
@@ -1850,6 +1851,47 @@ class Task(Base, ModelMixin):
 			performance.batch.sub_task_id = sub_task.sub_task_id
 
 		return utts
+
+	def load_audio_checking_data(self, data, load):
+		"""
+		Loads data into an audio checking task.
+		
+		If loading for an existing performance, returns
+		the Performance object, with newly added data. 
+		If loading for a new Performance, returns the
+		Batch object containing the new performance.
+		"""
+
+		if not self.is_type(TaskType.AUDIO_CHECKING):
+			raise RuntimeError
+
+		# validate load data
+		validate_load_performance_data(data)
+
+		# if adding new data to an existing performance
+		if data["rawPieceId"]:
+			performance = Performance.query.get(data["rawPieceId"])
+
+			if performance.task != self:
+				raise ValueError("Performance {0} does not belong to task {1}".format(performance.raw_piece_id, self.task_id))
+
+			performance.load_data(data)
+			return performance
+
+		# adding a new performance
+		else:
+
+			# get load sub task
+			sub_task = self.get_load_sub_task()
+
+			# create performance
+			performance = Performance.from_load(data, self, load)
+
+			# add batch to load sub task TODO move this to app.api...?
+			from app.util import Batcher
+			batches = Batcher.batch(sub_task, [performance])
+			assert len(batches) == 1
+			return batches[0]
 
 
 class TaskSchema(Schema):
@@ -2240,43 +2282,6 @@ class RecordingPlatform(Base, ModelMixin):
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
 
-	def load_data(self, data, load):
-		"""
-		Loads audio data to the recording platforms.
-		If loading for an existing performance, returns
-		the Performance object, with newly added data. 
-		If loading for a new Performance, returns the
-		Batch object containing the new performance.
-		"""
-
-		# validate load data
-		validate_load_performance_data(data)
-
-		# if adding new data to an existing performance
-		if data["rawPieceId"]:
-			performance = Performance.query.get(data["rawPieceId"])
-
-			if performance.recording_platform != self:
-				raise ValueError("Performance {0} does not belong to recording platform {1}".format(performance.raw_piece_id, self.record_platform_id))
-
-			performance.load_data(data)
-			return performance
-
-		# adding a new performance
-		else:
-
-			# get load sub task
-			sub_task = self.task.get_load_sub_task()
-
-			# create performance
-			performance = Performance.from_load(data, self, load)
-
-			# add batch to load sub task TODO move this to app.api...?
-			from app.util import Batcher
-			batches = Batcher.batch(sub_task, [performance])
-			assert len(batches) == 1
-			return batches[0]
-
 
 class RecordingPlatformSchema(Schema):
 	loader = fields.Nested("LoaderSchema")
@@ -2635,15 +2640,20 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 			self.recordings.append(recording)
 
 	@classmethod
-	def from_load(cls, data, recording_platform, load):
+	def from_load(cls, data, task, load):
 		"""
 		Creates a new performance during audio
 		loading.
 		"""
+		
+		recording_platform = RecordingPlatform.query.get(data["recordingPlatformId"])
+
+		if recording_platform.task != task:
+			raise RuntimeError
 
 		# create performance
 		performance = cls(
-			task=recording_platform.task,
+			task=task,
 			load_id=load.load_id,
 			assembly_context="{0}_{1}".format(data["name"], int(time.time())),	# TODO shouldnt be required
 			recording_platform=recording_platform,

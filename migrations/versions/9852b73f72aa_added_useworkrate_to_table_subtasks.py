@@ -1,14 +1,14 @@
 """added useWorkRate to table subtasks
 
 Revision ID: 9852b73f72aa
-Revises: 43396d8ae515
+Revises: 7eeb62d73fe6
 Create Date: 2017-04-03 13:01:27.192557
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '9852b73f72aa'
-down_revision = '43396d8ae515'
+down_revision = '7eeb62d73fe6'
 branch_labels = None
 depends_on = None
 
