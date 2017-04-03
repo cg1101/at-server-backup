@@ -1498,7 +1498,7 @@ class SubTaskSchema(Schema):
 			'allowPageSkip', 'allowEditing', 'allowAbandon', 'allowCheckout',
 			'lookAhead', 'lookBehind',
 			'instructionPage', 'useQaHistory',
-			'isSecondPassQa', 'needDynamicTagSet')
+			'isSecondPassQa', 'needDynamicTagSet', 'useWorkRate')
 		ordered = True
 		# skip_missing = True
 
