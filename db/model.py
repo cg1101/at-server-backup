@@ -2166,6 +2166,10 @@ class SnsMessageRecord(Base):
 class Country(Base):
 	__table__ = t_countries
 
+class CountrySchema(Schema):
+	class Meta:
+		fields = ('countryId', 'name', 'hourlyRate')
+
 # Language
 class Language(Base):
 	__table__ = t_languages
