@@ -135,6 +135,9 @@ def update_sub_task(subTaskId):
 		Field('validators', validators=[
 			validators.is_string,
 		]),
+		Field('useWorkRate', validators=[
+			validators.is_bool,
+		]),
 	).get_data()
 
 	for key in data.keys():

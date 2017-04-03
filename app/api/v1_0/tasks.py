@@ -1340,9 +1340,13 @@ def create_sub_task(taskId):
 		Field('validators', validators=[
 			validators.is_string,
 		]),
+		Field('useWorkRate', validators=[
+			validators.is_bool,
+		]),
 	).get_data()
 
 	subTask = m.SubTask(**data)
+	subTask.useWorkRate = task.taskType in (m.TaskType.TRANSCRIPTION,)
 	SS.add(subTask)
 	SS.flush()
 	workInterval = m.WorkInterval(taskId=subTask.taskId, subTaskId=subTask.subTaskId)
