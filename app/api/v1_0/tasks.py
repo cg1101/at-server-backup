@@ -2004,6 +2004,7 @@ def load_data(task):
 		raise InvalidUsage("data can only be loaded for audio checking and transcription tasks", 400)
 
 	data = decompress_load_data(request.json)
+	data = json.loads(data)
 
 	# create load # TODO shouldnt need to flush load before adding data, should be one transaction
 	user = session["current_user"]
@@ -2026,7 +2027,7 @@ def load_data(task):
 
 	# audio checking
 	elif task.is_type(TaskType.AUDIO_CHECKING):
-		model = task.load_audio_checking_data(json.loads(data), load)
+		model = task.load_audio_checking_data(data, load)
 		db.session.add(model)
 		db.session.commit()
 
