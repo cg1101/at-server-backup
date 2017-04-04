@@ -17,6 +17,7 @@ import audio_files
 import batches
 import batching_modes
 import corpus_codes
+import countries
 import errorclasses
 import errortypes
 import filehandlers

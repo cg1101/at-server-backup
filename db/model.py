@@ -608,7 +608,7 @@ class Batch_BriefSchema(Schema):
 # BathchingMode
 class BatchingMode(Base):
 	__table__ = t_batchingmodes
-	
+
 	# constants
 	NONE = 'None'
 	PERFORMANCE = 'Performance'
@@ -1389,12 +1389,12 @@ class RawPieceSchema(Schema):
 
 		return extra
 
-	
+
 	class Meta:
 		additional = ('rawPieceId', 'taskId', 'rawText', 'assemblyContext', 'allocationContext', 'hypothesis', 'words', "extra")
 		ordered = True
 
-	
+
 
 # SelectionCacheEntry
 class SelectionCacheEntry(Base):
@@ -1784,7 +1784,7 @@ class Task(Base, ModelMixin):
 	@property
 	def displayName(self):
 		return '{0} - {1}'.format(self.taskId, self.name)
-	
+
 	@property
 	def workers(self):
 		return SS.query(User
@@ -1855,9 +1855,9 @@ class Task(Base, ModelMixin):
 	def load_audio_checking_data(self, data, load):
 		"""
 		Loads data into an audio checking task.
-		
+
 		If loading for an existing performance, returns
-		the Performance object, with newly added data. 
+		the Performance object, with newly added data.
 		If loading for a new Performance, returns the
 		Batch object containing the new performance.
 		"""
@@ -1962,10 +1962,11 @@ class TaskWorker(Base):
 	__table__ = t_taskusers
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
+	countryId = association_proxy('user', 'countryId')
 
 class TaskWorkerSchema(Schema):
 	class Meta:
-		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions')
+		fields = ('taskId', 'subTaskId', 'userId', 'userName', 'isNew', 'removed', 'paymentFactor', 'hasReadInstructions', 'countryId')
 		ordered = True
 
 # TrackingEvent
@@ -2165,6 +2166,10 @@ class SnsMessageRecord(Base):
 class Country(Base):
 	__table__ = t_countries
 
+class CountrySchema(Schema):
+	class Meta:
+		fields = ('countryId', 'name', 'hourlyRate')
+
 # Language
 class Language(Base):
 	__table__ = t_languages
@@ -2227,7 +2232,7 @@ class RecordingPlatform(Base, ModelMixin):
 		"""
 		Returns the metadata sources for the recording platform.
 		This is the combination of the metadata sources of the
-		associated loader (if any) and any custom metadata sources 
+		associated loader (if any) and any custom metadata sources
 		defined in the recording platform config.
 		"""
 
@@ -2644,7 +2649,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		Creates a new performance during audio
 		loading.
 		"""
-		
+
 		recording_platform = RecordingPlatform.query.get(data["recordingPlatformId"])
 
 		if recording_platform.task != task:
@@ -3257,10 +3262,10 @@ class Utterance(RawPiece):
 		file_path = self.data["filePath"]
 		start_at = self.data.get("startAt", None)
 		end_at = self.data.get("endAt", None)
-		
+
 		if start_at is not None:
 			start_at = datetime.timedelta(seconds=start_at)
-		
+
 		if end_at is not None:
 			end_at = datetime.timedelta(seconds=end_at)
 
