@@ -6,6 +6,7 @@ import traceback
 from db.db import SS
 import db.model as m
 from app.util.agent import ao
+from app.util import CountryRatioLookupTable
 
 
 log = logging.getLogger(__name__)
@@ -105,6 +106,20 @@ class SubTaskHelper(object):
 					paymentFactor
 				real_amount = self.adjust_by_accuracy(rate, qa['accuracy'], full_amount)
 				totalAmount += real_amount
+
+			# add bonus if configured
+			if self.subTask.bonus != None and self.subTask.bonus > 0:
+				totalAmount *= (1.0 + self.subTask.bonus)
+
+			# adjust amount according to country ratio if required
+			if self.subTask.useWorkRate:
+				user = m.User.query.get(userId)
+				try:
+					ratio = CountryRatioLookupTable.get_ratio(user.countryId)
+				except:
+					# user.countryId is null
+					raise
+				totalAmount *= ratio
 
 			cp = m.CalculatedPayment(payrollId=payrollId,
 				workIntervalId=interval.workIntervalId,
