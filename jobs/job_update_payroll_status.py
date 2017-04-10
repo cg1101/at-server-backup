@@ -6,7 +6,7 @@ import traceback
 from db.db import SS
 import db.model as m
 from app.util.agent import ao
-from app.util import CountryRatioLookupTable
+from app.util.ratio_lookup import CountryRatioLookupTable
 
 
 log = logging.getLogger(__name__)
