@@ -1579,7 +1579,7 @@ class SubTaskRateSchema(Schema):
 		return s.dump(obj._updatedByUser).data
 
 	class Meta:
-		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'standardValue', 'targetAccuracy', 'validFrom', 'multiplier', 'updatedBy', 'updatedAt')
+		fields = ('subTaskRateId', 'subTaskId', 'taskId', 'rateId', 'rateName', 'standardValue', 'targetAccuracy', 'validFrom', 'multiplier', 'bonus', 'updatedBy', 'updatedAt')
 		ordered = True
 
 # TagImage:

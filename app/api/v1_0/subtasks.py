@@ -576,6 +576,10 @@ def create_sub_task_rate_record(subTaskId):
 			validators=[
 				(validators.is_number, (), dict(min_value=0)),
 			]),
+		Field('bonus', default=None,
+			validators=[
+				(validators.is_number, (), dict(ge=0)),
+			]),
 	).get_data()
 
 	me = session['current_user']
