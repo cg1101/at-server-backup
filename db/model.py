@@ -3370,6 +3370,25 @@ class MetadataChangeLogEntrySchema(Schema):
 	class Meta:
 		additional = ("logEntryId", "changedAt")
 
+
+# ApiAccessPair
+class ApiAccessPair(Base, ModelMixin):
+	__table__ = t_api_access_pairs
+
+	# relationships
+	user = relationship("User")
+
+	# synonyms
+	api_access_pair_id = synonym("apiAccessPaidId")
+	user_id = synonym("userId")
+	created_at = synonym("createdAt")
+
+class ApiAccessPairSchema(Schema):
+	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+
+	class Meta:
+		additional = ("apiAccessPairId", "key", "secret", "description", "enabled", "createdAt")
+
 #
 # Define model class and its schema (if needed) above
 #

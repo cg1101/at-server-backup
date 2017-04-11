@@ -11,6 +11,7 @@ def handle_invalid_usage(error):
 	response.status_code = error.status_code
 	return response
 
+import api_access_pairs
 import audio_checking_groups
 import audio_checking_sections
 import audio_files
