@@ -190,7 +190,8 @@ def main(taskId=None):
 	# find all CalculatedPayment entries and send them as package
 	payments = m.CalculatedPayment.query.filter(
 		m.CalculatedPayment.receipt.is_(None)).filter(
-		m.CalculatedPayment.payrollId==payrollId).all()
+		m.CalculatedPayment.payrollId==payrollId).filter(
+		m.CalculatedPayment.unitCount>0).all()
 	# print 'payments to submit: ', len(payments)
 	receipts = ao.send_payments(payments)
 	# print receipts

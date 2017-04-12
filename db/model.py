@@ -1471,6 +1471,9 @@ class SubTask(Base, ModelMixin):
 	def payByUnit(self):
 		return self.taskType in (TaskType.TRANSLATION,\
 			TaskType.TEXT_COLLECTION) and self.workType != WorkType.QA
+	@property
+	def bonus(self):
+		return self.currentRate.bonus if self.currentRate.bonus else None
 
 	@classmethod
 	def for_task(cls, task_id):
