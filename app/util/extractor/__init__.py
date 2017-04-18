@@ -80,7 +80,7 @@ class Extractor(object):
 			elif resultFormat == Extractor.TEXT:
 				htmlDoc = Converter.htmlText2HtmlDoc(entry.result)
 				xmlDoc = Converter.htmlDoc2XmlDoc(htmlDoc)
-				return Converter.xmlDoc2ExtractText(xmlDoc)
+				return Converter.xmlDoc2ExtractText(xmlDoc).rstrip('\r\n')
 			return entry.result
 
 		def formatSource(rawText):
