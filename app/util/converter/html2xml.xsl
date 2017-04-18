@@ -9,10 +9,19 @@
 </xsl:template>
 
 <!-- img element with tagid attribute are event tags -->
-<xsl:template match="img[@tagid]">
+<xsl:template match="img[@tagid and not(@timestamp-value)]">
 <xsl:element name="tag">
 <xsl:attribute name="tagid"><xsl:value-of select="@tagid" /></xsl:attribute>
 <xsl:attribute name="tagtype">Event</xsl:attribute>
+</xsl:element>
+</xsl:template>
+
+<!-- time stamps -->
+<xsl:template match="img[@tagid and @timestamp-value]">
+<xsl:element name="timestamp">
+<xsl:attribute name="tagid"><xsl:value-of select="@tagid" /></xsl:attribute>
+<xsl:attribute name="tagtype">Timestamped</xsl:attribute>
+<xsl:attribute name="value"><xsl:value-of select="@timestamp-value" /></xsl:attribute>
 </xsl:element>
 </xsl:template>
 
