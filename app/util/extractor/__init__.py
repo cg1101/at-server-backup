@@ -2,6 +2,7 @@
 import os
 import cStringIO
 import gzip
+import math
 
 from sqlalchemy import select, join
 from jinja2 import Environment, FileSystemLoader
@@ -12,6 +13,13 @@ from app.util.converter import Converter
 
 
 _dir = os.path.dirname(__file__)
+
+
+def ts_to_interval(f):
+	hour = int(f / 3600)
+	minute = int((f % 3600) / 60)
+	second = f % 60
+	return '%2d:%02d:%09.6f' % (hour, minute, second)
 
 
 class Extractor(object):
@@ -27,10 +35,12 @@ class Extractor(object):
 	EMAIL = 'email'
 	USER_NAME = 'userName'
 	LABELS = 'labels'
+	HYPOTHESIS = 'hypothesis'
+	INTERVAL = 'interval'
 	QA_ERRORS = 'qaErrors'
 
 	MANDATORY_COLUMNS = {ASSEMBLY_CONTEXT, RESULT}
-	OPTIONAL_COLUMNS = {RAW_PIECE_ID, RAW_TEXT, EMAIL, USER_NAME, LABELS, QA_ERRORS}
+	OPTIONAL_COLUMNS = {RAW_PIECE_ID, RAW_TEXT, EMAIL, USER_NAME, LABELS, QA_ERRORS, HYPOTHESIS, INTERVAL}
 	@staticmethod
 	def extract(task, columns=[], fileFormat=EXTRACT, sourceFormat=TEXT,
 			resultFormat=TEXT, groupIds=[], keepLineBreaks=False,
@@ -120,6 +130,19 @@ class Extractor(object):
 				value = ''
 			return value
 
+		def formatInterval(rawPiece, format=None):
+			try:
+				buf = rawPiece.assemblyContext.split('_')
+				start = ts_to_interval(float(buf[-3]))
+				end = ts_to_interval(float(buf[-1]))
+			except:
+				start = end = ''
+			if format == 'start':
+				return start
+			elif format == 'end':
+				return end
+			return start + ' ' + end
+
 		def showColumn(column):
 			return column in columns
 
@@ -130,6 +153,7 @@ class Extractor(object):
 		env.filters['formatLabels'] = formatLabels
 		env.filters['formatQaErrors'] = formatQaErrors
 		env.filters['formatUser'] = formatUser
+		env.filters['formatInterval'] = formatInterval
 
 		if fileFormat == Extractor.EXTRACT:
 			template = env.get_template('extract.template')
