@@ -55,7 +55,7 @@ before_script:
 - "source ./travis-ci/setenv.sh"
 - python manage.py db upgrade
 - "./travis-ci/load_data.sh"
-script: nosetests
+script: nosetests tests/
 after_script:
 - zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
   ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
