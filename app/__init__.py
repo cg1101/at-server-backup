@@ -46,7 +46,6 @@ def create_app(config_name):
 		'/logout',
 		'/authorization_response',
 		'/health-check',
-		"/api/1.0/status",
 	])
 	json_url_patterns = map(re.compile, [
 		'/whoami',
