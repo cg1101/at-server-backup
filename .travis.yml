@@ -4,8 +4,6 @@ python:
 branches:
   only:
   - ci-test
-virtualenv:
-  system_site_packages: true
 env:
   global:
   - secure: Ek3Vtq2jArAbMbRcInOr+dbDJXiUHJGYm27EWlU7gK3rr72ew7IrGrkG6Ilvwft25E/SyIo+Ia+yOGo7KNd8Awdl3LNtyT5FN7VRz95+VZHNbAVGwKBobcQehd0SZ/h3P1AhI1lEty0xd1shr2z3woO9paICsK8OMpIxFG2l7LhY/05t7LQ1ahVmrtOAhmM64qGzfAtpF9G8ceIEmTca+SUlXgo8Xrz+6Vuc6LVgW+ly2G0+J2gNyQo7klEoOLdtzVYOK1Im9+35MARueu5M5P00jGBv2aM8EroUeV6KxlnADhOoXrNyzwmmDLCygSliRt/hHcUblrVg8bsUpN9F0ILt8Duc52ntM8s7TZD0FrjAyUCjqxZN5R+FxG7f8Ib0D0T8BsA2gYqjw0biMRsJlF2EYjMD6PFCxMUiqc9lgvhVDpZTXNyjvOK4RlFOW1RZP6VBNiLPKaWzkWzlH79DM5f+M1Z446Qdc8vv9zy+Dd8KYZbOCbbSOuJ3bsMnGuhUxU2LeFzQyBk9+Td3k1JUB7+wEUL1ByPJf87Q1/pANh0L2stESsAj7T+jE0xOMV6YgmwVeh2Wpg+cRxiiYQ6Zc/aalmHNllD7q0yXDMS1o9gfXdzBdSgarI6PDIE1zlDIsDZOswTP0+oY4wExJWjnURlJ2YtM/q4JRygdpnhfWT8=
@@ -46,7 +44,6 @@ env:
   - secure: cxTzi0stSXHNHsjrAXKsswqS863eZxtM+vlxlv+1+l06DSH1wQeRXdjsDwmnTxhwiTfBYSp2bYrILSjTSGNUbbKRCv9ZIEMpKF1s3wP3HuxCc3qOByyYFoYkZFStPJV2uYDwPKsUQlyAe9YrdHoTt3loUzhIoCIWRw7Lk8oqv+E/jNOqP7qWGvb7b/xeunwtxo51oBJP2hHEUWI+ltVNROtcNm+NmYz6ahCAXkORf3h2UPZB0KsxfFdKotiqb/3r5PegIt50Xo4q6R0qqODLCSB2HeahUQJee9phNTBVElWQ0uzDZh3o1T/GsLZJk8gw1jHSG/q6AexIeUYPkJViG2zQUlV5DnpZHSun9lxxaiJtKuddZjVZI0WJ3sHt9UwGyncvFrAgXNe8WQp4IPXcZc+XM3LG6O+oR8ExOL6lfJEgj7APwLILDb9G/nWHR99BBrDYVKh4AL70R38CifqnmX+krtUWBDg0IXWvr23gd7yJG6nlmTNq7C/dEPIgvfZL69eQD6Gl1ztr89dKIaebI1vGkO81BSz+edal13cgiRn8N14m5+NydZmqEo7pxNUO7DhAZSDgAKPhp1YjGvGLecjJWwoKnXwKm8Yl6k7/2ikotcakB6lUiqRXcoM1fUGQmK8u1WotvxmtPwUGTaeTuwezIrnWlYpKV0FeUImg55o=
 before_install:
 - sudo apt-get -qq update
-- sudo apt-get install python-m2crypto
 install:
 - pip install -r requirements.txt
 addons:
@@ -54,7 +51,6 @@ addons:
 services:
 - postgresql
 before_script:
-- "echo -e \"current directory: $(pwd)\""
 - "./travis-ci/createdb.sh"
 - "source ./travis-ci/setenv.sh"
 - python manage.py db upgrade
