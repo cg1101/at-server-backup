@@ -51,9 +51,9 @@ addons:
 services:
 - postgresql
 before_script:
-- echo "which node"
-- echo "which bower"
-- echo "which grunt"
+- echo "`which node`"
+- echo "`which bower`"
+- echo "`which grunt`"
 - "./travis-ci/createdb.sh"
 - "source ./travis-ci/setenv.sh"
 - python manage.py db upgrade
