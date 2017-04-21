@@ -51,13 +51,14 @@ addons:
 services:
 - postgresql
 before_script:
-- echo "`which node`"
-- echo "`which bower`"
-- echo "`which grunt`"
-- "./travis-ci/createdb.sh"
-- "source ./travis-ci/setenv.sh"
-- python manage.py db upgrade
-- "./travis-ci/load_data.sh"
+  - git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git Appen/appen_next_client
+  - pushd Appen/appen_next_client
+  - npm install
+  - bower install
+  - "./travis-ci/createdb.sh"
+  - "source ./travis-ci/setenv.sh"
+  - python manage.py db upgrade
+  - "./travis-ci/load_data.sh"
 script: nosetests tests/
 after_script:
 - zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
