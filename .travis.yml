@@ -51,10 +51,11 @@ addons:
 services:
 - postgresql
 before_script:
-  - git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git Appen/appen_next_client
-  - pushd Appen/appen_next_client
-  - npm install
-  - bower install
+  # - git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git Appen/appen_next_client
+  # - pushd Appen/appen_next_client
+  # - npm install
+  # - echo "bower install"
+  # - popd
   - "./travis-ci/createdb.sh"
   - "source ./travis-ci/setenv.sh"
   - python manage.py db upgrade
