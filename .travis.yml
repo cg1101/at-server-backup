@@ -53,8 +53,12 @@ services:
 before_script:
   - "./travis-ci/createdb.sh"
 script:
+  - set >/tmp/a
+  - "source ./travis-ci/setenv.sh"
   - python manage.py db upgrade
   - "./travis-ci/load_data.sh"
+  - set >/tmp/b
+  - diff /tmp/{a,b}
   - nosetests tests/
 after_script:
   - echo "$PWD"
