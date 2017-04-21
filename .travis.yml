@@ -56,9 +56,16 @@ addons:
   postgresql: '9.4'
   artifacts:
     debug: true
-    bucket: 'appen-au-travis-ci-ap-southeast-2'
+    bucket: appen-au-travis-ci-ap-southeast-2
     paths:
-    - ~/build/Appen/gnx_app_bundle.zip
+    - "~/build/Appen/gnx_app_bundle.zip"
+deploy:
+  provider: s3
+  region: ap-southeast-2
+  access_key_id: AKIAJU3BS5OTBLTS7EEA
+  bucket: appen-au-travis-ci-ap-southeast-2
+  sceret_access_key:
+    secure: A5kQXZatUXTyrTp2Q53UPAeTfds+zQi5dy2gkpgt1cuG35Qri6TWRcY+6yeaURaVlARgak/Ck7uhBiFs4ro5P2OjbGM7HRoC3utt32kcID05+zmXjwu+IY8m3Coxfz7xFon4gWWCU2/DsnluGlkqlmlZ/JlIQ0IHYvKEuawB3IYec9lsZ4xf+EoGDbvtUe0yPZz0AVJPojxUABO87l7Hv6TFHfZd6p1qhgTLGS4Q3D5uOOIqRs0QS6wwTH6j3ejoIo1ojXxMqlV1pvtoWrevL+z7vs4GszBprXnB88VRaKy/QQ2FDLQhowMtAP356LTr8HBV1hHjWXkPTo4QRUKgiRuXwvBZw1iSDkNqFX+rfd9IIANPV39Xbcu3/mo2Dd8+T6X0tOcL5kQwpxUlTbkNRayA8AYOr6BnhfW6oRNipz8uEMElFd1oiJyilpVPjPH2dmdyAA8AWtaen7+N/TEwQBXwQ0n0GNl0qGKZwUjs4k2BmQrm++DGHoVlrR8EWTxtQa45G4LmUQ+h9M3YNrTwuDkcrv1oC7uXjXc4yJ1ggY+nz0LMUEvn72xn/xRxQEBc4MruSd4kR8MU2F+GgXgSUxxAviiwosKhKgU4GY9H+qdnAg5r5f2YzyMA+PxkdI14D8PvR3W7DHwt96JvT79BJai98ffFkgJEP8Ue1WhhuzY=
 services:
 - postgresql
 before_script:
@@ -73,7 +80,7 @@ after_script:
 - echo "Pulling in client repo for building"
 - "./travis-ci/pre_build.sh"
 - "./bundle.sh"
-- "ls -l ~/travis/build/Appen/gnx_app_bundle.zip"
+- ls -l ~/build/Appen/gnx_app_bundle.zip
 - "~/bin/artifacts upload"
 after_success:
 - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
