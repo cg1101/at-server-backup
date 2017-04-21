@@ -29,3 +29,6 @@ after_script:
 - "./bundle.sh"
 - cd ~/build/Appen
 - artifacts upload gnx_app_bundle.zip
+dd:
+- openssl aes-256-cbc -K $encrypted_dae10395fed2_key -iv $encrypted_dae10395fed2_iv
+  -in setenv.sh.enc -out travis-ci/setenv.sh -d
