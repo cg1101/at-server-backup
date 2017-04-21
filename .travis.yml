@@ -52,12 +52,16 @@ addons:
   postgresql: '9.4'
   artifacts:
     debug: true
-    bucket: appen-au-travis-ci-ap-southeast-2
     paths:
     - "~/build/Appen/gnx_app_bundle.zip"
+    key:
+      secure: 4jFPYumuQzs+mi7laa0r77j8eTPUHYbzKNozHOC2Ybd1k3opvfVIgsw97LMt/XthS8/Fj3mfrV2yOLaPN5AHdY6Ja6hF9uZTBMo0R7aP/Ybg1k40mXX147ds3lcO0NsTy5IJKl1jqPDuqkYbVp0laOODgEYzrkRcDZ4WDw3tKsR57vpphOwS4LvA+TyxQuSizxezIX4l97XCw5iukCODTOOPOiXJ7//jy2BK/bmRADVkPx0bzQkCViJJtd/pVUEXKFvQYbd43C9JVzeLSBkmi9iolf1P54b8nU1QbTd/luOtvCLnhN9eljqlWbvFJNd/nETvND33Zhd+VO9UxG+bK+03lAyJAeSIlpwmYZagydLyz+kWVQdGK2yYtoyv9Mu3Khu4tEIoi22OmxpUMGMMW+bx/RtRBhA+jksu3Tg1uzuZjoOGQpessYSH3c7euoLbY+40reaAzB7lWrXVifHctAFazIBZIKDDCNH7OdiSz8hOOJo05yjYkKpXVDA1QqXxf+IINRjjCivv/LYMyv5UmJy9hWKIxyyfrgBTiMQ1ETZuT5WQQdUtxqmF8m4TyYS5cdGnuOuHBbHvD/MbxdftAeKWg2YXeNchF/kVWhwPpFqru+dr8a943HuEWs+YK4QKIPvc8AhdYmhSTV6p+/zr93yml+qgYdwCjyKSnO8SGgQ=
+    secret:
+      secure: U4nA/yi46s3Fo85a9/NRGL0Kfqa1u8X9/A+vdCGCsGRfXthtM//oGBWu/31xAa18s74g/o8+2sLm8IR3T2NJjvxgGDYVR0b0a2DzCz6yNjh4UVkCrAIUkrny7i9f6RLBVd+/0JSQEl0OaUWi6bXQ0IRyypJp83A3QLPCSqbqvwbNd5RXakLETV/8WjQJfpqNXF0I7nJXe3loRpe5mjbdtvbHPUouN7FoiHx/hf5gQEk56FYJx1EpxfpiMXn1P+ZHmQ3kpvkOjT4AIBaqv9YvPiifxZuFzX5g85cpcW0qGg9m1+ji4bsa94fdLZ+joeI+TX+YlsCa1ssDw2ch/YAm+vpYcinmNzaOVptfBOlKr3jsjPiXczOX+z1XTeCRMuFrNYD+VPyvM348AFy4EAWWXLP8Fjbrv/Larpxi4eriYmW2WhKDcojlv3BpNcQBn2sC2cTyZCYCSGaPGoep5iTKrFJGjMf4mOhU3ScevF8mNGYQUQ95b1QHbV5FrchLL9kmG8R5lkZ9Tm6XB3hT2OQ1yV6mj6RP+C3Vv0I3JGZrsrCCHPR1auwu+FzPh4WCzQnuBOTrilNz459juaPEVUmQ+5VJ5lUFqTKMV6xRftyt4S/6/5PdjG50QswQ3mvm9Qy1QQvjMAQ7XlO3MnB+/458q+WEES/ZAoPl5x6rv6ssK2w=
+    bucket:
+      secure: gYIjlBNgUxWx6Qy4OCLjv9OpznRgmLpswFvhQTLARWPlwaoL7eul8vAzYKYQAqJASMz4/maEYlo8GFNnUayMIJavW418/rinisH47EB+w0uN6DHDruHqR9zCGhOIMkzk2AiWxnT70vrhZGGOUOjg5iTRne6QUdVCqJmVgYy3Pzu2d96hGYT5DX7KdZmEWiGvntAG7WFvccvsgAb+EooY0xiJIInoIyK9WmS01UKwByhhiXp8ZS9oSjxmJXPTNjwR68J+xW/RVipsxyTCJd/wJ0htCXmfYN7o4mbytAPfyW6nHamxXvgOjcERNb2we22BQuvD+d1gQJ9iVSPtXDdRIfft5miQJqpc9QDA37Yqx9bSqEGVuoYsWYToouWA6E7aPVuOG0yOSG2w2QOfokPKTWZZtV25jx/ypmt3ocWb2gbb82cCovNX0DKAXvidpfRppxuyzhuabWF2GeGjPRZclq3nsatOtCbz9BktK6sE7PvRsJG9X2sa7RlOzvubEG305I1gfuGXWBhNhWoIzscxoOaNeatShappVhzPGVodkaRcadpf+fra3jj6giTJ1uAOHVxAQD+mPNsRFG79V3L6LYRxQzWmPhyjVweWnp5zSrOF1lUHS5NGYjtMdmlN/j8/Jmb+8K275+l5DUj3U4REMOCBdovJRSbRrNGvsBZjjr0=
 services:
 - postgresql
-
 before_install:
 - sudo apt-get -qq update
 install:
@@ -69,17 +73,6 @@ before_script:
 - "./travis-ci/load_data.sh"
 script:
 - nosetests tests/
-after_success:
-- curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
-  bash
-before_deploy: true
-deploy: true
-#   provider: s3
-#   region: ap-southeast-2
-#   access_key_id: AKIAJU3BS5OTBLTS7EEA
-#   bucket: appen-au-travis-ci-ap-southeast-2
-#   sceret_access_key:
-#     secure: A5kQXZatUXTyrTp2Q53UPAeTfds+zQi5dy2gkpgt1cuG35Qri6TWRcY+6yeaURaVlARgak/Ck7uhBiFs4ro5P2OjbGM7HRoC3utt32kcID05+zmXjwu+IY8m3Coxfz7xFon4gWWCU2/DsnluGlkqlmlZ/JlIQ0IHYvKEuawB3IYec9lsZ4xf+EoGDbvtUe0yPZz0AVJPojxUABO87l7Hv6TFHfZd6p1qhgTLGS4Q3D5uOOIqRs0QS6wwTH6j3ejoIo1ojXxMqlV1pvtoWrevL+z7vs4GszBprXnB88VRaKy/QQ2FDLQhowMtAP356LTr8HBV1hHjWXkPTo4QRUKgiRuXwvBZw1iSDkNqFX+rfd9IIANPV39Xbcu3/mo2Dd8+T6X0tOcL5kQwpxUlTbkNRayA8AYOr6BnhfW6oRNipz8uEMElFd1oiJyilpVPjPH2dmdyAA8AWtaen7+N/TEwQBXwQ0n0GNl0qGKZwUjs4k2BmQrm++DGHoVlrR8EWTxtQa45G4LmUQ+h9M3YNrTwuDkcrv1oC7uXjXc4yJ1ggY+nz0LMUEvn72xn/xRxQEBc4MruSd4kR8MU2F+GgXgSUxxAviiwosKhKgU4GY9H+qdnAg5r5f2YzyMA+PxkdI14D8PvR3W7DHwt96JvT79BJai98ffFkgJEP8Ue1WhhuzY=
 after_deploy: true
 after_script:
 - echo "$PWD"
