@@ -56,7 +56,7 @@ addons:
   artifacts:
     debug: true
     paths:
-    - "~/travis/build/Appen/gnx_app_bundle.zip"
+    - ~/build/Appen/gnx_app_bundle.zip
 services:
 - postgresql
 before_script:
@@ -71,6 +71,7 @@ after_script:
 - echo "Pulling in client repo for building"
 - "./travis-ci/pre_build.sh"
 - "./bundle.sh"
+- "ls -l ~/travis/build/Appen/gnx_app_bundle.zip"
 - "~/bin/artifacts upload"
 after_success:
 - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
