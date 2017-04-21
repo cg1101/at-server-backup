@@ -7,13 +7,13 @@ CLIENT_DIR=$HOME/build/Appen/appen_next_client
 git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git ${CLIENT_DIR}
 
 pushd ${CLIENT_DIR} >/dev/null
-echo -e "\033[0;32msetting client repo in \033[1;34m$PWD\033[0m"
+echo -e "\033[0;32msetting up client repo in \033[1;34m$PWD\033[0m"
 npm install    >/dev/null 2>&1
 bower install  >/dev/null 2>&1
 
 # create symlinks inside lib
 pushd lib >/dev/null
-echo -ne "\033[0;32mcreate symlinks inside \033[1;34m$PWD\033[0m ... "
+echo -ne "\033[0;32mcreating symlinks inside \033[1;34m$PWD\033[0m ... "
 for i in ../bower_components/*; do
 	ln -sf "$i"
 done
@@ -26,7 +26,7 @@ ls -l $PWD/lib
 echo
 
 # prepare app folder
-echo -e "\033[0;32msetting folders for \033[1;34mapp, build\033[0m"
+echo -e "\033[0;32msetting up folders for \033[1;34mapp, build\033[0m"
 mkdir -p app build/dev/static
 echo "<h1>Index</h1>" > build/dev/index.html
 pushd app >/dev/null
@@ -44,7 +44,7 @@ ls -l $PWD/build
 echo "Content of $PWD"
 ls -l $PWD
 echo
-npm rebulid node-sass
+npm rebuild node-sass
 grunt
 
 popd >/dev/null
