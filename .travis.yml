@@ -52,18 +52,16 @@ services:
   - postgresql
 before_script:
   - "./travis-ci/createdb.sh"
-script:
-  - set >/tmp/a
   - "source ./travis-ci/setenv.sh"
   - python manage.py db upgrade
   - "./travis-ci/load_data.sh"
-  - set >/tmp/b
-  - diff /tmp/{a,b}
+script:
   - nosetests tests/
 after_script:
   - echo "$PWD"
   - echo "Pulling in client repo for building"
   - ./travis-ci/pre_build.sh
+  - ./bundle.sh
   - zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
     ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
   - "~/bin/artifacts upload"
