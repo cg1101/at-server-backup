@@ -53,7 +53,7 @@ addons:
   artifacts:
     debug: true
     paths:
-    - "~/build/Appen/gnx_app_bundle.zip"
+    - "../gnx_app_bundle.zip"
     key:
       secure: 4jFPYumuQzs+mi7laa0r77j8eTPUHYbzKNozHOC2Ybd1k3opvfVIgsw97LMt/XthS8/Fj3mfrV2yOLaPN5AHdY6Ja6hF9uZTBMo0R7aP/Ybg1k40mXX147ds3lcO0NsTy5IJKl1jqPDuqkYbVp0laOODgEYzrkRcDZ4WDw3tKsR57vpphOwS4LvA+TyxQuSizxezIX4l97XCw5iukCODTOOPOiXJ7//jy2BK/bmRADVkPx0bzQkCViJJtd/pVUEXKFvQYbd43C9JVzeLSBkmi9iolf1P54b8nU1QbTd/luOtvCLnhN9eljqlWbvFJNd/nETvND33Zhd+VO9UxG+bK+03lAyJAeSIlpwmYZagydLyz+kWVQdGK2yYtoyv9Mu3Khu4tEIoi22OmxpUMGMMW+bx/RtRBhA+jksu3Tg1uzuZjoOGQpessYSH3c7euoLbY+40reaAzB7lWrXVifHctAFazIBZIKDDCNH7OdiSz8hOOJo05yjYkKpXVDA1QqXxf+IINRjjCivv/LYMyv5UmJy9hWKIxyyfrgBTiMQ1ETZuT5WQQdUtxqmF8m4TyYS5cdGnuOuHBbHvD/MbxdftAeKWg2YXeNchF/kVWhwPpFqru+dr8a943HuEWs+YK4QKIPvc8AhdYmhSTV6p+/zr93yml+qgYdwCjyKSnO8SGgQ=
     secret:
@@ -75,9 +75,6 @@ script:
 - nosetests tests/
 after_deploy: true
 after_script:
-- echo "$PWD"
-- echo "Pulling in client repo for building"
 - "./travis-ci/pre_build.sh"
 - "./bundle.sh"
-- ls -l ~/build/Appen/gnx_app_bundle.zip
 - "~/bin/artifacts upload"
