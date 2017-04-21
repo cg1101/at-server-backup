@@ -93,7 +93,7 @@ if [ "${BUILD_TYPE}" = "prod" ]; then
 		exit "$result"
 	fi
 fi
-
+echo "Bundle is ready at -> $BUNDLE"
 echo "Checking eb environment ... "
 
 envs=$(eb list)
