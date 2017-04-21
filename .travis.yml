@@ -1,6 +1,6 @@
 language: python
 python:
-  - '2.7'
+- '2.7'
 branches:
   only:
   - ci-test
@@ -42,28 +42,36 @@ env:
   - secure: Le+aPYrguz1qPbuiO1I+Pwe/OUeKKE44oEJmwADUMKY8kQB+Bqx2JK2QyndETVjUYChim5jIQL3dpGlNWdTf5+Vwi8tot0ES1TQM/y64wF6Lj1eT3AnKKKqoUzwhdEHJXPrk9Ti/HICVzY0qtDXqZb4SYFUPFHUWVQBvg2c0Ck1kt8ZtCOsjVLA4kEBeHLJ3Rej1VzEGc8fKBREsXgeuDB1zAFe220e9ZzEXOMJpByjjoSILOvZnc2AvtsjNhc4ei6xDnjHhESAI7cB1p+r35L4It7VSXHaPY9+zY2oTTMYyZSoncWvg/3eM7uu73l+BLowVrMKULjI4Ptmjl0TDqHM/QACb7+3q3EHmXJ4MjOcu0SpBQSMrkmJgPqx8KqMyzuf4mlS8DRUtlN7y/+Jp1/zNB/Ts7ScjlPJrEyfVuPGaWuEvPYLlAqyqhCUfC/pXq7A0ilXbGshEinwGWgzxmx680eK36gcCjvDmD3rwZbx/+x9jvtxqA2A/9N0nEB0lcHsS1KOIc1RR0+UI+b8AxdUebk+NZpd8Q/GcSHX4DlXUJIc8V1IzPJr+CW9+jx0Y1D3KreGJ+tQXKi/bBjD7fXzfhusa+xKubMYE8K3+45m0MsXzmrW1qit7Rs7lvcpA0YA0pi/WJCqxK3UqS4H6tKH8S0NUCii6okGjRfdVB9k=
   - secure: h7Wa3xZkpK4myF/w6LQTjX6GDwyJifLmkL+ThVuM+ze/r8rMJnTvPSQ70n8lGUvGZol0AFV1SijC8RiKR8Tvb2BC8OadcaZP5HuHvoE/njo/rWhgM2Xjzkja91Kx6sct4GOTbi57VJB4W9h4B/CpbMz2PyTl+V2X7s2IZx+bF4hmEBohtaQb7uX95Xlj4SQ0j44CtA5h2UMgyUVIezdjXJvrTLnhRH2kyd+nh8qZPUaDbdPSVAoMDKAqAqw239qengSeYcdMV/kI6n6cn3iC1o7XgP3rCDElTr3kKinZKaIWCWJE9x66rdBxoMxXroTRu2bKD/wMHZOXbMfuBP/rQ/taE25T0m7maYfc7hw2ylk1xW2Mj8LGuzTR7VDFiowfe3nMn6iIcqDAle8AwMBOe8qYgbuYJt+/0Rg8/IwdFNXdc46TDfSh0aXwBZjysg2/b23HgvrIrvmVJMN539eW13ygffY45cObaqf8Tpn3BqCuHDh8Q6aa6yW9X1u3YqOl6lQHk05GnOp/KPNEBNCk/LmZXFNhWiWLn55TcUUnHCscxN1oNfgIQ1c/3S8oHldPfy4qjx/v1WZnOYL+gVXKD8657dD09q7jpeJSXOUelPFYlkCRQydnMpFU2/Ic3c9dj81nRrnJsL47jEKG/mLLXGRD2tiy+E4aW7eN6UuF5jA=
   - secure: cxTzi0stSXHNHsjrAXKsswqS863eZxtM+vlxlv+1+l06DSH1wQeRXdjsDwmnTxhwiTfBYSp2bYrILSjTSGNUbbKRCv9ZIEMpKF1s3wP3HuxCc3qOByyYFoYkZFStPJV2uYDwPKsUQlyAe9YrdHoTt3loUzhIoCIWRw7Lk8oqv+E/jNOqP7qWGvb7b/xeunwtxo51oBJP2hHEUWI+ltVNROtcNm+NmYz6ahCAXkORf3h2UPZB0KsxfFdKotiqb/3r5PegIt50Xo4q6R0qqODLCSB2HeahUQJee9phNTBVElWQ0uzDZh3o1T/GsLZJk8gw1jHSG/q6AexIeUYPkJViG2zQUlV5DnpZHSun9lxxaiJtKuddZjVZI0WJ3sHt9UwGyncvFrAgXNe8WQp4IPXcZc+XM3LG6O+oR8ExOL6lfJEgj7APwLILDb9G/nWHR99BBrDYVKh4AL70R38CifqnmX+krtUWBDg0IXWvr23gd7yJG6nlmTNq7C/dEPIgvfZL69eQD6Gl1ztr89dKIaebI1vGkO81BSz+edal13cgiRn8N14m5+NydZmqEo7pxNUO7DhAZSDgAKPhp1YjGvGLecjJWwoKnXwKm8Yl6k7/2ikotcakB6lUiqRXcoM1fUGQmK8u1WotvxmtPwUGTaeTuwezIrnWlYpKV0FeUImg55o=
+  - secure: uz7AsJ4Ecr8s/mVXeyDMQd/+20l5M+50kUmiJKApsbMmsBskxV3JgvLSVKYNFKDSyqMRIhi+6TolQ91oOZVIxZkvwzRZpJChs898fOKRgSd5YePi6eIZACoY8jDXNAkqwqFebXndlXAHtLdcBFu+Bo6FRDQolPF53YWvDd/XaymWn2pwAVnG89hoiJRuDGIfF8rKLP/MqNoGRO8psUhk8pujNKRHOWrgfzv4LXBPlyExd50dLxxIO9BPznYUIW/i0H8M6iCw3rphpeAE/5pUbTpjdRsAAxjwv8CZ0Dlpg/4Az/EC93/0jl7l54F+U3wJ8nbXve51xAHiSmWx5DR6XkLowhxBjuv5sWhF2evUCaXth9vxuy4OsyjcEV9JKPqCj7Dak0ozlRkeaheyle96pufylDXT4udrWRk+6ZFMW0kYKxxBib3Ha3gi/gQ0bpoQaLdoq07BeCRl1eMWEU5yYuJELw0wvENSv27jVtTZQ0zwlHaZyC7dWR4VYBGz9QNg4rsFfCQBvbFoSSrp2uvxNJWTrMalbFdDSGqu3080hLwY/pdpgRDZ8CrBeshnMetD7YgFjzCO04E099A7BKD5tGecvsZI4l8Z35Px6bFG5I3FJdqH4hcmroTbrynO3mAtOLvvZxtPiMJzWUFdGcqufOFExEEpGZcpu5w9EZBY+qQ=
+  - secure: bNnsLc3u7NfLKzBwKgE31YeVsh/QqrNn00Nk2pysgucvXx7AS8SRHM0abFxU62CpuH82M/FZspHy9TjQMc5x1GB14Aw7moUg17MfDpVZH2FFGYmqOnfPa+scWqgF+1322TlcSlCK9IEjvLtcw+/GH7gGcf2kOuAqoqsI2Ec68P138581k+HVVGqGocQBYIjYvXZdFJ3rvbS+GVx1YDazM8UEFVCAXXy6e49IZEr5StJft9qcDZ70U//8JLAl5UkpP2rzfU+cqdRRlYvaRDb2Ev0BtO1u/j9tVEHgvW+vSRtLB5ZJ73ewG7uzOnGZmzFvGw2oLC0VCDOdXF4MFudSjjc0UVUOX7GY05oT4DUSmlL711j4YpC8tR9D6xr/4I78dnmkQmcFRW7rITfJfg01CS0JH4keIvd4AGHZmE9kaqcgXvSNkSrIust9M23gf16WOek9RBZo16+bKwb/NPjqMiLr0Ug5MdZXMcUJxWjYcU+PlDZv1mesXxp3IrGobYBRAF23aylJErGyZggsq8QqX4/JfyjEMGWiI3quzLfgurFvFHScWmAMl1tLav8Erq/DQK+6b2uRNuf864nTyBB275YrSCqOKFsFqH43+s6QXzDRH3pU9VoWWtT+a5N4PkvjVUQhZ5Bl/3zf4/3F3GsK+AEmBLinLdH12TyKJimZuXw=
+  - secure: tkwMFqaKWsj32/nCLUdppnk2uXvC3QtpIbkF3CxQwUdgYkw45yl8Yr4n38P3j9cKiySy8PGyD9SuKxg+ZUL3qySccKDSvPO8AYvV47ENIzlpqLopaF56GG+mxZb0tmSWzomUI497XYwfV5YKCAouQHsRPxbC9Q/EsF7aSWfb1xnea/bgqbNeMN1WLJIE2I2zOJqYPV/EF4S6oHbvZVohqc0iftm6J6ZhjgwF+WEvI1rVGP/x+AUKwKU0BGwNk/+CqRWTsaWLIDAJ5yd5JRhKY0ILSIVI3DKa4kmR8yUXEBUzjx2iypIrrlOmNojPY2OIYtSoFSYLToq5ZV3viQVn1Sin0heR8mEVng+A+IvLICh+lC66gICm2xuve4TsyJtGy+h2UF4fKFzScg7rs6co9lD+yplUgOoWP7tlhtO6qPhGSKLT/sTjtCtUBRYcGMWB9Nmf4IMjEnP4aCbkNhjaSq7QPPzYeM0ScnIFxCoG4sD11HnnDSqEBsMveOK2KJvjTb4rllnfaESWvLOrCmCNyC10YYKxWVK/DPy5To7Nh29G8dwBVl7+UVq4Njw2uZTIIzEhV7qXMmnUP7rnqgQFseZLRDy7MAL7EXJEqj8RXfKcbqvv26pYJfsBqWWPUEAKjw+KjCFrYUx1pfO0W0qfH9pWlw6VkCrDcyCdHavCKDY=
+  - secure: x8467UkLiUQ6Y1CQ606FK9ReM95ylSTb3sUSx8s8+tMZatZ+sycKCewwy8lm9GFwT4MksiJbuVAeFcZl8wL00DBg0YJvrIelL2vmQZ5b0heKJuooPwSHmcNRkcNjdxSa1HPHv55EOgREUFVanZRVT3PtaY9P6yowauybzIQToONTEWBHw/SZr4x7P/8ZsisfByr1xTVH08SYWn17L0DK0hZOTDJTZq4mSq+Aox0sz2eb7X2MUMpMIGGldJhpxevfZhsQv7K4QgwLCsCFLZ9YIJ9zjZv8OKM9YL3e+/V8zHfT4hSEEcBynYt1TeTdzqxJTz4y82/TM+CTtbTMnLY/X0Jj4/tLkpRFe+FBqpc9tqMMPxV1X5u3MkKIC7R7RBg4/Pfpk/bF+mSYMPLzRqCAvmGwrd20xqZlqZZUVnc7JM0BT23/qbLUJwygmvtNfld1qYKwy+NQFHQFo8iXxm0jg3D/6eJBs3/wq3MTlet8LxPJWpYzTRpApg2IJp4ZpYNUdQYMBW2SDqNldCUy7gIdmRZQ+CiIXVAfxRV5mWZLGo8OYae0gxw2NBoI4nI6rjYvOWV1Jh+L71A1H2Ht0Ch+crwML8KQln5RmDz2DW+ZgCI3ahlgFRGiPEIcMVMx4yYVeoEnE+jGKsX0H4meQYYAXocm530w/ZBTZP72IscoQvg=
 before_install:
-  - sudo apt-get -qq update
+- sudo apt-get -qq update
 install:
-  - pip install -r requirements.txt
+- pip install -r requirements.txt
 addons:
   postgresql: '9.4'
+  artifacts:
+    paths:
+    - "~/travis/build/Appen/gnx_app_bundle.zip"
 services:
-  - postgresql
+- postgresql
 before_script:
-  - "./travis-ci/createdb.sh"
-  - "source ./travis-ci/setenv.sh"
-  - python manage.py db upgrade
-  - "./travis-ci/load_data.sh"
+- "./travis-ci/createdb.sh"
+- source ./travis-ci/setenv.sh
+- python manage.py db upgrade
+- "./travis-ci/load_data.sh"
 script:
-  - nosetests tests/
+- nosetests tests/
 after_script:
-  - echo "$PWD"
-  - echo "Pulling in client repo for building"
-  - ./travis-ci/pre_build.sh
-  - ./bundle.sh
-  - zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
-    ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
-  - "~/bin/artifacts upload"
+- echo "$PWD"
+- echo "Pulling in client repo for building"
+- "./travis-ci/pre_build.sh"
+- "./bundle.sh"
+- zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
+  ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
+- "~/bin/artifacts upload"
 after_success:
-  - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install | bash
+- curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
+  bash
