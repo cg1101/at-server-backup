@@ -1,6 +1,6 @@
 language: python
 python:
-- '2.7'
+  - '2.7'
 branches:
   only:
   - ci-test
@@ -43,13 +43,13 @@ env:
   - secure: h7Wa3xZkpK4myF/w6LQTjX6GDwyJifLmkL+ThVuM+ze/r8rMJnTvPSQ70n8lGUvGZol0AFV1SijC8RiKR8Tvb2BC8OadcaZP5HuHvoE/njo/rWhgM2Xjzkja91Kx6sct4GOTbi57VJB4W9h4B/CpbMz2PyTl+V2X7s2IZx+bF4hmEBohtaQb7uX95Xlj4SQ0j44CtA5h2UMgyUVIezdjXJvrTLnhRH2kyd+nh8qZPUaDbdPSVAoMDKAqAqw239qengSeYcdMV/kI6n6cn3iC1o7XgP3rCDElTr3kKinZKaIWCWJE9x66rdBxoMxXroTRu2bKD/wMHZOXbMfuBP/rQ/taE25T0m7maYfc7hw2ylk1xW2Mj8LGuzTR7VDFiowfe3nMn6iIcqDAle8AwMBOe8qYgbuYJt+/0Rg8/IwdFNXdc46TDfSh0aXwBZjysg2/b23HgvrIrvmVJMN539eW13ygffY45cObaqf8Tpn3BqCuHDh8Q6aa6yW9X1u3YqOl6lQHk05GnOp/KPNEBNCk/LmZXFNhWiWLn55TcUUnHCscxN1oNfgIQ1c/3S8oHldPfy4qjx/v1WZnOYL+gVXKD8657dD09q7jpeJSXOUelPFYlkCRQydnMpFU2/Ic3c9dj81nRrnJsL47jEKG/mLLXGRD2tiy+E4aW7eN6UuF5jA=
   - secure: cxTzi0stSXHNHsjrAXKsswqS863eZxtM+vlxlv+1+l06DSH1wQeRXdjsDwmnTxhwiTfBYSp2bYrILSjTSGNUbbKRCv9ZIEMpKF1s3wP3HuxCc3qOByyYFoYkZFStPJV2uYDwPKsUQlyAe9YrdHoTt3loUzhIoCIWRw7Lk8oqv+E/jNOqP7qWGvb7b/xeunwtxo51oBJP2hHEUWI+ltVNROtcNm+NmYz6ahCAXkORf3h2UPZB0KsxfFdKotiqb/3r5PegIt50Xo4q6R0qqODLCSB2HeahUQJee9phNTBVElWQ0uzDZh3o1T/GsLZJk8gw1jHSG/q6AexIeUYPkJViG2zQUlV5DnpZHSun9lxxaiJtKuddZjVZI0WJ3sHt9UwGyncvFrAgXNe8WQp4IPXcZc+XM3LG6O+oR8ExOL6lfJEgj7APwLILDb9G/nWHR99BBrDYVKh4AL70R38CifqnmX+krtUWBDg0IXWvr23gd7yJG6nlmTNq7C/dEPIgvfZL69eQD6Gl1ztr89dKIaebI1vGkO81BSz+edal13cgiRn8N14m5+NydZmqEo7pxNUO7DhAZSDgAKPhp1YjGvGLecjJWwoKnXwKm8Yl6k7/2ikotcakB6lUiqRXcoM1fUGQmK8u1WotvxmtPwUGTaeTuwezIrnWlYpKV0FeUImg55o=
 before_install:
-- sudo apt-get -qq update
+  - sudo apt-get -qq update
 install:
-- pip install -r requirements.txt
+  - pip install -r requirements.txt
 addons:
   postgresql: '9.4'
 services:
-- postgresql
+  - postgresql
 before_script:
   # - git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git Appen/appen_next_client
   # - pushd Appen/appen_next_client
@@ -62,9 +62,11 @@ before_script:
   - "./travis-ci/load_data.sh"
 script: nosetests tests/
 after_script:
-- zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
-  ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
-- "~/bin/artifacts upload"
+  - echo "$PWD"
+  - echo "Pulling in client repo for building"
+  - ./travis-ci/pre_build.sh
+  - zip -r ${APP_BUNDLE} requirements.txt application.py config.py app db -x venv\*
+    ./.\* ./db/\*.sql \*__pycache__\* \*.pyc
+  - "~/bin/artifacts upload"
 after_success:
-- curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
-  bash
+  - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install | bash
