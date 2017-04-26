@@ -168,7 +168,7 @@ def create_app(config_name):
 				current_app.logger.debug(\
 					'user {} not found, get it from edm'.format(globalId))
 				try:
-					user = edm.make_new_user(globalId)
+					user = util.edm.make_new_user(globalId)
 					SS.add(user)
 					SS.flush()
 					SS.commit()
