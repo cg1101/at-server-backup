@@ -50,7 +50,7 @@ ls -l $PWD
 echo
 gem install sass
 echo "sass has been installed as `which sass`"
-npm rebuild node-sass
+#npm rebuild node-sass
 grunt
 
 popd >/dev/null
