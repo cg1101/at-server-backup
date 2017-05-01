@@ -71,7 +71,7 @@ class SubTaskHelper(object):
 				yield (interval, userId, events)
 	def get_units(self, rawPieceId, workEntryId):
 		if rawPieceId is None:
-			rawPieceId = m.WorkEntry.query(workEntryId).rawPieceId
+			rawPieceId = m.WorkEntry.query.get(workEntryId).rawPieceId
 		return m.RawPiece.query.get(rawPieceId).words
 	def get_qa_result(self, interval, userId):
 		return {
