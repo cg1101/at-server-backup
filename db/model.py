@@ -1469,7 +1469,7 @@ class SubTask(Base, ModelMixin):
 			).first()
 	@property
 	def payByUnit(self):
-		if task.taskType == TaskType.TRANSLATION:
+		if self.task.taskType == TaskType.TRANSLATION:
 			return True
 		return False
 	@property
