@@ -69,7 +69,9 @@ class SubTaskHelper(object):
 				continue
 			for userId, events in events_by_user_id.iteritems():
 				yield (interval, userId, events)
-	def get_units(self, rawPieceId):
+	def get_units(self, rawPieceId, workEntryId):
+		if rawPieceId is None:
+			rawPieceId = m.WorkEntry.query(workEntryId).rawPieceId
 		return m.RawPiece.query.get(rawPieceId).words
 	def get_qa_result(self, interval, userId):
 		return {
@@ -99,7 +101,7 @@ class SubTaskHelper(object):
 				rate = self.get_pay_rate(event.created)
 				if not rate:
 					continue
-				units = self.get_units(event.rawPieceId)
+				units = self.get_units(event.rawPieceId, event.workEntryId)
 				unitCount += units
 				full_amount = (units if self.subTask.payByUnit else 1) *\
 					rate.multiplier *\
