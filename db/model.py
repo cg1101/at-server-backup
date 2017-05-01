@@ -1469,8 +1469,9 @@ class SubTask(Base, ModelMixin):
 			).first()
 	@property
 	def payByUnit(self):
-		return self.taskType in (TaskType.TRANSLATION,\
-			TaskType.TEXT_COLLECTION) and self.workType != WorkType.QA
+		if task.taskType == TaskType.TRANSLATION:
+			return True
+		return False
 	@property
 	def bonus(self):
 		return self.currentRate.bonus if self.currentRate.bonus else None

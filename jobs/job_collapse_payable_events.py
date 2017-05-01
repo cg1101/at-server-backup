@@ -13,21 +13,20 @@ log = logging.getLogger(__name__)
 
 
 def collapse_payable_events(task=None):
-	q_keys = SS.query(m.PayableEvent.rawPieceId,\
-			m.PayableEvent.workEntryId, m.PayableEvent.batchId,\
-			m.PayableEvent.pageId).\
-		group_by(m.PayableEvent.rawPieceId,\
-			m.PayableEvent.workEntryId, m.PayableEvent.batchId,\
-			m.PayableEvent.pageId).\
-		having(func.count('*') > 1)
+	q_keys = SS.query(m.PayableEvent.rawPieceId,
+			m.PayableEvent.workEntryId, m.PayableEvent.batchId,
+			m.PayableEvent.pageId
+		).group_by(m.PayableEvent.rawPieceId,
+			m.PayableEvent.workEntryId, m.PayableEvent.batchId,
+			m.PayableEvent.pageId
+		).having(func.count('*') > 1)
 	for rawPieceId, workEntryId, batchId, pageId in q_keys.all():
-		events = m.PayableEvent.query.\
-			filter(m.PayableEvent.rawPieceId==rawPieceId).\
-			filter(m.PayableEvent.workEntryId==rawPieceId).\
-			filter(m.PayableEvent.batchId==batchId).\
-			filter(m.PayableEvent.pageId==pageId).\
-			order_by(m.PayableEvent.creted).\
-			all()
+		events = m.PayableEvent.query.filter(m.PayableEvent.rawPieceId==rawPieceId
+			).filter(m.PayableEvent.workEntryId==workEntryId
+			).filter(m.PayableEvent.batchId==batchId
+			).filter(m.PayableEvent.pageId==pageId
+			).order_by(m.PayableEvent.created
+			).all()
 		while events:
 			ev = events.pop(0)
 			# delete event if it is neither paid nor the latest
