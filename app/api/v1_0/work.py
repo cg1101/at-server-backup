@@ -390,6 +390,7 @@ def save_work_entry(batchId):
 				errorTypeId=e.errorTypeId, severity=e.severity))
 
 	# add payable event
+	is_qa = subTask.workType == m.WorkType.QA
 	event = m.PayableEvent(**{
 		# 'eventId': None, # TBD
 		'userId': me.userId,
@@ -398,8 +399,8 @@ def save_work_entry(batchId):
 		# 'created': None, # auto-fill
 		'batchId': batchId,
 		'pageId': common_data['pageId'],
-		'rawPieceId': rawPieceId,
-		'workEntryId': newEntry.entryId,
+		'rawPieceId': None if is_qa else rawPieceId,
+		'workEntryId': qaedEntryId,
 		'calculatedPaymentId': None, # explicitly set to NULL
 		'localConnection': is_local_address(ipAddress),
 		'ipAddress': ipAddress,
