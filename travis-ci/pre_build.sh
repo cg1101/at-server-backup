@@ -29,6 +29,10 @@ echo
 echo -e "\033[0;32msetting up folders for \033[1;34mapp, build\033[0m"
 mkdir -p app build/dev/static
 echo "<h1>Index</h1>" > build/dev/index.html
+pushd build/dev/static >/dev/null
+ln -sf ../../../lib
+ln -sf ../../../src/img
+popd >/dev/null
 pushd app >/dev/null
 echo -ne "\033[0;32msetting up symlinks in \033[1;34m$PWD\033[0m ... "
 ln -sf ../build/dev/index.html

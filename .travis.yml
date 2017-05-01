@@ -26,5 +26,5 @@ script:
 - nosetests tests/
 after_script:
 - "./travis-ci/pre_build.sh"
-- "./bundle.sh"
+- "./bundle.sh dev"
 - cd ~/build/Appen && artifacts upload
