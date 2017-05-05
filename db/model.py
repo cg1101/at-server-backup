@@ -1110,6 +1110,7 @@ class ReworkTypePageMember(PageMember):
 class ReworkTypePageMemberSchema(PageMemberSchema):
 	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words', "extra"])
 	saved = fields.Method('get_saved')
+	qa = fields.Method('get_qa')
 	latestEdition = fields.Method('get_latest_edition')
 	def get_saved(self, obj):
 		if obj.saved == None:
