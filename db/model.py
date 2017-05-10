@@ -1071,7 +1071,7 @@ class ReworkTypePageMember(PageMember):
 	rawPiece = relationship('RawPiece')
 	def _get_latest_edition(self):
 		rs = object_session(self).query(WorkEntry
-			).filter((WorkEntry.rawPieceId==self.rawPieceId) & WorkEntry.modifiesTranscription &(WorkEntry.batchId!=self.batchId)
+			).filter((WorkEntry.rawPieceId==self.rawPieceId) & WorkEntry.modifiesTranscription & (WorkEntry.batchId!=self.batchId)
 			).order_by(WorkEntry.rawPieceId).order_by(WorkEntry.created.desc()
 			).distinct(WorkEntry.rawPieceId).all()
 		if len(rs) == 0:
@@ -1091,12 +1091,26 @@ class ReworkTypePageMember(PageMember):
 		elif len(rs) == 1:
 			return rs[0]
 		return None
+	def _get_qa(self):
+		if self.latestEdition is None:
+			return None
+		rs = object_session(self).query(WorkEntry
+			).filter(WorkEntry.qaedEntryId==self.latestEdition.entryId
+			).order_by(WorkEntry.qaedEntryId, WorkEntry.created.desc()
+			).distinct(WorkEntry.qaedEntryId).all()
+		if len(rs) == 0:
+			return None
+		elif len(rs) == 1:
+			return rs[0]
+		return None
 	latestEdition = property(_get_latest_edition)
 	saved = property(_get_saved)
+	qa = property(_get_qa)
 
 class ReworkTypePageMemberSchema(PageMemberSchema):
 	rawPiece = fields.Nested('RawPieceSchema', only=['rawPieceId', 'rawText', 'hypothesis', 'words', "extra"])
 	saved = fields.Method('get_saved')
+	qa = fields.Method('get_qa')
 	latestEdition = fields.Method('get_latest_edition')
 	def get_saved(self, obj):
 		if obj.saved == None:
@@ -1119,8 +1133,18 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 		}
 		s = _sd[obj.latestEdition.workType]
 		return s.dump(obj.latestEdition).data
+	def get_qa(self, obj):
+		if obj.qa == None:
+			return None
+		_sd = {
+			WorkType.WORK: WorkTypeEntrySchema(exclude=['taskId', 'subTaskId', 'workTypeId', 'workType', 'notes']),
+			WorkType.QA: QaTypeEntrySchema(),
+			WorkType.REWORK: ReworkTypeEntrySchema(exclude=['taskId', 'subTaskId', 'workTypeId', 'workType', 'notes']),
+		}
+		s = _sd[obj.qa.workType]
+		return s.dump(obj.qa).data
 	class Meta:
-		additional = ('rawPiece', 'latestEdition', 'saved')
+		additional = ('rawPiece', 'latestEdition', 'saved', 'qa')
 		ordered = True
 		# skip_missing = True
 

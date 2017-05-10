@@ -46,12 +46,23 @@ def load_qa_failed(task):
 				continue
 			# else check qa score
 			cfg = rec[qaedEntry.subTaskId]
-			if entry.qaScore < cfg.accuracyThreshold:
-				group_plan.setdefault(cfg.dest, []).append(qaedEntry.rawPieceId)
+			if entry.qaScore < cfg['accuracyThreshold']:
+				group_plan.setdefault(cfg['dest'], {}
+					).setdefault(qaedEntry.userId, []
+					).append(qaedEntry)
 	#print 'group_plan', group_plan
-	for reworkSubTask, rawPieceIds in group_plan.iteritems():
-		batches = Batcher.batch(reworkSubTask, rawPieceIds)
-		for batch in batches:
+	for reworkSubTask, workEntriesByUserId in group_plan.iteritems():
+		for userId, entries in workEntriesByUserId.iteritems():
+			batch = m.Batch(taskId=task.taskId,
+				subTaskId=reworkSubTask.subTaskId,
+				name='qa_failed_of_user#%s' % userId,
+				priority=5)
+			p = m.Page(pageIndex=0)
+			batch.pages.append(p)
+			for memberIndex, qaedEntry in enumerate(entries):
+				memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
+				memberEntry.rawPieceId = qaedEntry.rawPieceId
+				p.memberEntries.append(memberEntry)
 			SS.add(batch)
 
 
