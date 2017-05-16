@@ -1116,10 +1116,11 @@ def populate_task_utterance_selection(taskId, selectionId):
 	for entry in entries:
 		SS.delete(entry)
 
+	if selection.action != m.UtteranceSelection.ACTION_RECURRING:
+		selection.subTaskId = None
 	selection.processed = now
 	selection.action = None
 	selection.name = None
-	selection.subTaskId = None
 
 	return jsonify(resp)
 
