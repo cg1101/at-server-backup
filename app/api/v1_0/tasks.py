@@ -890,7 +890,7 @@ def normalize_utterance_selection_value_input(data, key, value):
 		else:
 			data['name'] = value
 			data['subTaskId'] = None
-	elif action == m.UtteranceSelection.ACTION_BATCH:
+	elif action in (m.UtteranceSelection.ACTION_BATCH, m.UtteranceSelection.ACTION_RECURRING):
 		try:
 			subTaskId = int(value)
 		except:
@@ -975,7 +975,8 @@ def create_task_utterance_selection(taskId):
 		Field('action', is_mandatory=True, validators=[
 			# NOTE: action 'pp' is not supported
 			(validators.enum, (m.UtteranceSelection.ACTION_CUSTOM,
-				m.UtteranceSelection.ACTION_BATCH)),
+				m.UtteranceSelection.ACTION_BATCH,
+				m.UtteranceSelection.ACTION_RECURRING)),
 		]),
 		Field('value', is_mandatory=True,
 			normalizer=normalize_utterance_selection_value_input),
@@ -993,7 +994,8 @@ def create_task_utterance_selection(taskId):
 	me = session['current_user']
 	selection = m.UtteranceSelection(taskId=taskId, userId=me.userId,
 		limit=data['limit'], action=data['action'], name=data['name'],
-		subTaskId=data['subTaskId'], random=data['random'])
+		subTaskId=data['subTaskId'], random=data['random'],
+		recurring=data['action']==m.UtteranceSelection.ACTION_RECURRING)
 	for x in data['filters']:
 		pieces = x.pop('pieces')
 		selectionFilter = m.SelectionFilter(**x)
@@ -1002,11 +1004,14 @@ def create_task_utterance_selection(taskId):
 			selectionFilter.pieces.append(piece)
 		selection.filters.append(selectionFilter)
 
-	# TODO: run query, if no result found, notify user, otherwise save in cache
 	rs = Selector.select(selection)
-	if not rs:
-		# raise InvalidUsage(_('no result found'))
-		return jsonify(message=_('no result found'))
+	if selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		rs = []
+	else:
+		# TODO: run query, if no result found, notify user, otherwise save in cache
+		if not rs:
+			# raise InvalidUsage(_('no result found'))
+			return jsonify(message=_('no result found'))
 
 	SS.add(selection)
 	SS.flush()
@@ -1020,7 +1025,8 @@ def create_task_utterance_selection(taskId):
 		number=len(rs),
 		timestamp=selection.selected,
 		action=selection.action,
-		value=selection.subTaskId if selection.action == 'batch' else selection.name,
+		value=selection.subTaskId if selection.action in (m.UtteranceSelection.ACTION_BATCH,
+				m.UtteranceSelection.ACTION_RECURRING) else selection.name,
 		user=m.User.dump(selection.user),
 		link='???'
 	)
@@ -1049,10 +1055,13 @@ def populate_task_utterance_selection(taskId, selectionId):
 		raise InvalidUsage(_('utterance selection {0} does not belong to user {1}'
 			).format(selectionId, me.userId))
 
-	entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
-	if not entries:
-		raise InvalidUsage(_('utterance selection {0} is corrupted: selection is empty'
-			).format(selectionId))
+	if selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		entries = []
+	else:
+		entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
+		if not entries:
+			raise InvalidUsage(_('utterance selection {0} is corrupted: selection is empty'
+				).format(selectionId))
 	rawPieceIds = [entry.rawPieceId for entry in entries]
 	itemCount = len(rawPieceIds)
 
@@ -1098,6 +1107,9 @@ def populate_task_utterance_selection(taskId, selectionId):
 
 		resp = dict(message=_('created custom utterance group \'{0}\' (#{1}) with {2} items'
 			).format(group.name, group.groupId, itemCount))
+	elif selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		# do nothing
+		resp = dict(message=_('recurring utterance selection saved').format())
 	else:
 		raise InvalidUsage(_('unsupported action {0}').format(selection.action))
 

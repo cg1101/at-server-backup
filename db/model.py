@@ -2044,6 +2044,7 @@ class UtteranceSelection(Base):
 	ACTION_BATCH = 'batch'
 	ACTION_CUSTOM = 'custom'
 	ACTION_PP = 'pp'
+	ACTION_RECURRING = 'recurring'
 	__table__ = t_utteranceselections
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
