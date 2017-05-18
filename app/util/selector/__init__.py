@@ -759,7 +759,7 @@ class Selector(object):
 				).filter(m.RawPiece.taskId==taskId)])
 		for f in filters[True]:
 			result = MyFilter.run(f, task)
-			rs |= result
+			rs &= result
 		for f in filters[False]:
 			result = MyFilter.run(f, task)
 			rs -= result

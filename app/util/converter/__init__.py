@@ -80,6 +80,9 @@ class Converter(object):
 			if element.tag.lower() == 'br':
 				return '\n' + (element.tail or '')
 
+			if element.tag.lower() == 'timestamp':
+				return ('[%.3f]' % float(element.attrib['value'])) + (element.tail or '')
+
 			extractStart = ''
 			extractEnd = ''
 

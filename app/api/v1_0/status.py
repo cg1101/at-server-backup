@@ -4,7 +4,7 @@ from . import api_1_0 as bp
 from app.api import api
 
 
-@bp.route("status")
+@bp.route("status", methods=["GET"])
 @api
-def api_status():
+def get_status():
 	return jsonify(success=True)

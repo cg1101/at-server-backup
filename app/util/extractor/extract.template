@@ -3,6 +3,12 @@
 RAW_PIECE_ID: {{rawPiece.rawPieceId}}
 {% endif %}
 FILE: {{rawPiece.assemblyContext}}
+{% if showColumn('hypothesis') %}
+HYPOTHESIS: {{rawPiece.hypothesis}}
+{% endif %}
+{% if showColumn('interval') %}
+INTERVAL: {{rawPiece | formatInterval()}}
+{% endif %}
 TRANSCRIPTION: {{entry | formatResult}}
 {% if showColumn('rawText') %}
 SOURCE: {{rawPiece.rawText | formatSource}}
@@ -11,10 +17,10 @@ SOURCE: {{rawPiece.rawText | formatSource}}
 LABELS: {{entry | formatLabels }}
 {% endif %}
 {% if showColumn('email') %}
-USER: {{entry | formatUser('emailAddress') }}
+EMAIL: {{entry | formatUser('emailAddress') }}
 {% endif %}
 {% if showColumn('userName') %}
-USERNAME: {{entry | formatUser('userName') }}
+USER: {{entry | formatUser('userName') }}
 {% endif %}
 {% if showColumn('qaErrors') %}
 QAERRORS: {{entry | formatQaErrors }}

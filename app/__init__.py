@@ -46,7 +46,7 @@ def create_app(config_name):
 		'/logout',
 		'/authorization_response',
 		'/health-check',
-		"/api/1.0/status",
+		"/api/1.0/status"
 	])
 	json_url_patterns = map(re.compile, [
 		'/whoami',
@@ -169,7 +169,7 @@ def create_app(config_name):
 				current_app.logger.debug(\
 					'user {} not found, get it from edm'.format(globalId))
 				try:
-					user = edm.make_new_user(globalId)
+					user = util.edm.make_new_user(globalId)
 					SS.add(user)
 					SS.flush()
 					SS.commit()

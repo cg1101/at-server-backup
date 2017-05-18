@@ -58,6 +58,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
 	TESTING = True
 	ENV = "test"
+	AUDIO_SERVER_API_CLS = AudioServerDevApi
 
 
 class AwsConfig(Config):

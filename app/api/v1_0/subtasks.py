@@ -463,6 +463,24 @@ def get_sub_task_qa_settings(subTaskId):
 	})
 
 
+def check_rework_sub_task_id(data, key, subTaskId, **kwargs):
+	if data['populateRework']:
+		if subTaskId is None:
+			raise ValueError(_('rework sub task id must be provided'))
+		subTask = m.SubTask.query.get(subTaskId)
+		if not subTask:
+			raise ValueError(_('sub task {0} not found').format(subTaskId))
+		if not subTask or subTask.workType not in m.WorkType.REWORK:
+			raise ValueError(_('sub task {0} must be of type {1}'
+				).format(subTaskId, m.WorkType.REWORK))
+		if subTask.taskId != kwargs['taskId']:
+			raise ValueError(_('sub task {0} must be of task {1}'
+				).format(subTaskId, kwargs['taskId']))
+	else:
+		if subTaskId != None:
+			raise ValueError(_('rework sub task id must be None'))
+
+
 @bp.route(_name + '/<int:subTaskId>/qasettings/', methods=['PUT'])
 @api
 @caps()
@@ -501,13 +519,15 @@ def update_sub_task_qa_settings(subTaskId):
 		]),
 		# TODO: add in conditional check based on value of populateRework
 		Field('populateRework', validators=[validators.is_bool]),
-		Field('reworkSubTaskId', validators=[
-			check_sub_task_existence,
-			(check_sub_task_attribute, (), dict(taskId=subTask.taskId)),
-			(check_sub_task_type_in, (m.WorkType.REWORK,)),
+		Field('reworkSubTaskId', normalizer=lambda data, key, value:\
+				int(value) if data['populateRework'] else None,
+			validators=[
+				(check_rework_sub_task_id, (), dict(taskId=subTask.taskId)),
 		]),
-		Field('accuracyThreshold', validators=[
-			(validators.is_number, (), dict(gt=0, lt=1)),
+		Field('accuracyThreshold', normalizer=lambda data, key, value:\
+				float(value) if data['populateRework'] else None,
+			validators=[
+				(validators.is_number, (), dict(gt=0, lt=1)),
 		]),
 	).get_data(with_view_args=False)
 
@@ -575,6 +595,10 @@ def create_sub_task_rate_record(subTaskId):
 			normalizer=lambda data, key, value: float(value),
 			validators=[
 				(validators.is_number, (), dict(min_value=0)),
+			]),
+		Field('bonus', default=None,
+			validators=[
+				(validators.is_number, (), dict(ge=0)),
 			]),
 	).get_data()
 

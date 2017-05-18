@@ -1,1 +1,1 @@
-# appenText server code
+# GNX backend

@@ -82,7 +82,7 @@ if [ "${BUILD_TYPE}" = "prod" ]; then
 		mkdir -p app/static
 		cp prod/index.html app
 		cp -r prod/css prod/js app/static
-		cp -r ../bower_components/font-awesome/fonts app/static
+		cp -r ../bower_components/font-awesome*/fonts app/static
 		zip -d "$BUNDLE" app/index.html app/static/css/\* app/static/js/\* app/static/fonts/\* >/dev/null
 		zip -r "$BUNDLE" app >/dev/null
 	fi
@@ -93,7 +93,7 @@ if [ "${BUILD_TYPE}" = "prod" ]; then
 		exit "$result"
 	fi
 fi
-
+echo "Bundle is ready at -> $BUNDLE"
 echo "Checking eb environment ... "
 
 envs=$(eb list)

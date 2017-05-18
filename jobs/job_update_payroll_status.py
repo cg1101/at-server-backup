@@ -6,6 +6,7 @@ import traceback
 from db.db import SS
 import db.model as m
 from app.util.agent import ao
+from app.util.ratio_lookup import CountryRatioLookupTable
 
 
 log = logging.getLogger(__name__)
@@ -68,7 +69,9 @@ class SubTaskHelper(object):
 				continue
 			for userId, events in events_by_user_id.iteritems():
 				yield (interval, userId, events)
-	def get_units(self, rawPieceId):
+	def get_units(self, rawPieceId, workEntryId):
+		if rawPieceId is None:
+			rawPieceId = m.WorkEntry.query.get(workEntryId).rawPieceId
 		return m.RawPiece.query.get(rawPieceId).words
 	def get_qa_result(self, interval, userId):
 		return {
@@ -98,13 +101,27 @@ class SubTaskHelper(object):
 				rate = self.get_pay_rate(event.created)
 				if not rate:
 					continue
-				units = self.get_units(event.rawPieceId)
+				units = self.get_units(event.rawPieceId, event.workEntryId)
 				unitCount += units
 				full_amount = (units if self.subTask.payByUnit else 1) *\
 					rate.multiplier *\
 					paymentFactor
 				real_amount = self.adjust_by_accuracy(rate, qa['accuracy'], full_amount)
 				totalAmount += real_amount
+
+			# add bonus if configured
+			if self.subTask.bonus != None and self.subTask.bonus > 0:
+				totalAmount *= (1.0 + self.subTask.bonus)
+
+			# adjust amount according to country ratio if required
+			if self.subTask.useWorkRate:
+				user = m.User.query.get(userId)
+				try:
+					ratio = CountryRatioLookupTable.get_ratio(user.countryId)
+				except:
+					# user.countryId is null
+					raise
+				totalAmount *= ratio
 
 			cp = m.CalculatedPayment(payrollId=payrollId,
 				workIntervalId=interval.workIntervalId,
@@ -175,7 +192,8 @@ def main(taskId=None):
 	# find all CalculatedPayment entries and send them as package
 	payments = m.CalculatedPayment.query.filter(
 		m.CalculatedPayment.receipt.is_(None)).filter(
-		m.CalculatedPayment.payrollId==payrollId).all()
+		m.CalculatedPayment.payrollId==payrollId).filter(
+		m.CalculatedPayment.unitCount>0).all()
 	# print 'payments to submit: ', len(payments)
 	receipts = ao.send_payments(payments)
 	# print receipts

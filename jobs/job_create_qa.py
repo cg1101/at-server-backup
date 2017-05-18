@@ -38,17 +38,6 @@ class QaGenerator(object):
 		except ZeroDevisionError:
 			samples = 0
 		return int(samples)
-
-	def iter_sub_tasks(self, taskId):
-		q = m.SubTask.query.\
-			filter(m.SubTask.taskId==taskId).\
-			filter(m.SubTask.workTypeId.in_(
-				SS.query(m.WorkType.workTypeId).\
-				filter(m.WorkType.name.in_(
-					[m.WorkType.WORK, m.WorkType.REWORK]))
-				))
-		for subTask in q.all():
-			yield subTask
 	def iter_intervals(self, subTaskId):
 		q_target_intervals = m.WorkInterval.query.\
 			filter(m.WorkInterval.subTaskId==subTaskId).\
@@ -136,7 +125,7 @@ class QaGenerator(object):
 		if task.status in (m.Task.STATUS_ARCHIVED, m.Task.STATUS_CLOSED):
 			# TODO: add checks for lastStatusChange
 			return
-		for subTask in self.iter_sub_tasks(taskId):
+		for subTask in task.subTasks:
 			for interval in self.iter_intervals(subTask.subTaskId):
 				if subTask.qaConfig:
 					print 'scanning interval {}'.format(interval.workIntervalId)

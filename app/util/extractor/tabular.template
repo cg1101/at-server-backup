@@ -1,8 +1,11 @@
 {% if showColumn('rawPieceId') %}RAW_PIECE_ID{{'\t'}}{% endif %}
 FILE{{'\t'}}TRANSCRIPTION
 {%- if showColumn('rawText') %}{{'\t'}}SOURCE{% endif %}
+{% if showColumn('hypothesis') %}{{'\t'}}HYPOTHESIS{% endif %}
+{% if showColumn('interval') %}{{'\t'}}START{% endif %}
+{% if showColumn('interval') %}{{'\t'}}END{% endif %}
 {% if showColumn('labels') %}{{'\t'}}LABELS{% endif %}
-{% if showColumn('email') %}{{'\t'}}USER{% endif %}
+{% if showColumn('email') %}{{'\t'}}EMAIL{% endif %}
 {% if showColumn('userName') %}{{'\t'}}USERNAME{% endif %}
 {% if showColumn('qaErrors') %}{{'\t'}}QAERRORS{% endif %}
 
@@ -10,6 +13,9 @@ FILE{{'\t'}}TRANSCRIPTION
 {% if showColumn('rawPieceId') %}{{ rawPiece.rawPieceId }}{{'\t'}}{% endif %}
 {{rawPiece.assemblyContext}}{{'\t'}}{{entry | formatResult}}
 {%- if showColumn('rawText') %}{{'\t'}}{{rawPiece.rawText | formatSource}}{% endif %}
+{% if showColumn('hypothesis') %}{{'\t'}}{{rawPiece.hypothesis | formatSource}}{% endif %}
+{% if showColumn('interval') %}{{'\t'}}{{rawPiece | formatInterval('start')}}{% endif %}
+{% if showColumn('interval') %}{{'\t'}}{{rawPiece | formatInterval('end')}}{% endif %}
 {% if showColumn('labels') %}{{'\t'}}{{entry | formatLabels }}{% endif %}
 {% if showColumn('email') %}{{'\t'}}{{entry | formatUser('emailAddress') }}{% endif %}
 {% if showColumn('userName') %}{{'\t'}}{{entry | formatUser('userName') }}{% endif %}
