@@ -38,6 +38,9 @@ def get_token():
 	if api_access_pair.user.email_address != data["emailAddress"]:
 		raise InvalidUsage("incorrect email address for access pair: {0}".format(data["emailAddress"]), 401)
 
+	if not api_access_pair.enabled:
+		raise InvalidUsage("access pair is disabled", 401)
+
 	access_token, expires_at = create_access_token(api_access_pair.user.appen_id)
 	
 	current_app.logger.info("access token created for user {0}: {1}".format(
