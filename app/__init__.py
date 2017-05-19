@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import logging
 import re
 
@@ -46,7 +47,8 @@ def create_app(config_name):
 		'/logout',
 		'/authorization_response',
 		'/health-check',
-		"/api/1.0/status"
+		"/api/1.0/status",
+		"/api/1.0/get-token",
 	])
 	json_url_patterns = map(re.compile, [
 		'/whoami',
@@ -429,6 +431,42 @@ def check_appen_auth(header="authorization"):
 	update_session(user, payload["caps"], payload["userType"], payload["roles"])
 
 	return user
+
+
+def get_user_info(appen_id):
+	"""
+	Retrieves user info from AppenGlobal.
+	Returns a tuple of (user_type, roles, caps).
+	"""
+	result = util.tiger.get_user_roles(appen_id)
+	user_type = result["user"]["role"]
+	roles = result["project_user_roles"]
+	caps = util.tiger.role2caps(user_type)
+	return (user_type, roles, caps)
+
+
+def create_access_token(appen_id, expires_after=datetime.timedelta(hours=2)):
+	"""
+	Returns an access token.
+	"""
+
+	user_type, roles, caps = get_user_info(appen_id)
+	expires_at = datetime.datetime.utcnow() + expires_after
+
+	# TODO standardise on snake case for payload keys
+	# for consistency with cookie
+	payload = {
+		"appenId": appen_id,
+		"userType": user_type,
+		"roles": roles,
+		"caps": caps,
+	}
+
+	payload.update({"exp" : expires_at})
+
+	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm="HS256")
+	return token.decode(), expires_at
+
 
 def update_session(user, caps, user_type, roles):
 	session["current_user"] = user

@@ -18,6 +18,7 @@ from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
 import pytz
 
+from LRUtilities.Misc import random_key_string
 from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
@@ -2014,6 +2015,7 @@ class User(Base):
 	user_id = synonym("userId")
 	global_id = synonym("globalId")
 	appen_id = synonym("globalId")
+	email_address = synonym("emailAddress")
 
 	@hybrid_property
 	def userName(self):
@@ -3411,6 +3413,38 @@ class ApiAccessPair(Base, ModelMixin):
 	api_access_pair_id = synonym("apiAccessPaidId")
 	user_id = synonym("userId")
 	created_at = synonym("createdAt")
+
+	@classmethod
+	def is_unique(cls, key, secret):
+		"""
+		Checks if the key/secret combination
+		is unique.
+		"""
+		query = cls.query.filter_by(key=key, secret=secret)
+		return not bool(query.count())
+
+	@classmethod
+	def create(cls, user_id, description):
+		"""
+		Creates a new, unique, access pair.
+		"""
+
+		key = None
+		secret = None
+
+		# get unique pair
+		while True:
+			key = random_key_string(30)
+			secret = random_key_string(30)
+			if cls.is_unique(key, secret):
+				break
+
+		return cls(
+			key=key,
+			secret=secret,
+			description=description,
+			user_id=user_id,
+		)
 
 class ApiAccessPairSchema(Schema):
 	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
