@@ -1985,31 +1985,6 @@ def create_transition(task):
 	return jsonify(transition=Transition.dump(transition))
 
 
-@bp.route("tasks/<int:task_id>/config", methods=['PUT'])
-@api
-@get_model(Task)
-def update_task(task):
-
-	data = MyForm(
-		Field("config", normalizer=normalizers.to_json, validators=[
-			simple_validators.is_dict(),
-		]),
-		Field("loaderId", validators=[
-			simple_validators.is_number(),
-			m.Loader.check_exists,
-		])
-	).get_data()
-
-	if "config" in data:
-		task.config = data["config"]
-
-	if "loaderId" in data:
-		task.loaderId = data["loaderId"]
-
-	db.session.flush()
-	return jsonify(task=Task.dump(task))
-
-
 @bp.route("tasks/<int:task_id>/load-data", methods=["POST"])
 @api
 @get_model(Task)
@@ -2156,4 +2131,44 @@ def save_audio_upload(task):
 
 	flag_modified(task, 'audioUploads')
 	db.session.commit()
+	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/loader", methods=["GET"])
+@api
+@get_model(Task)
+def get_task_loader(task):
+	data = (task.config or {}).get("loader", {})
+
+	if task.loader:
+		data.update({"name": task.loader.name})
+
+	return jsonify(loader=data)
+
+
+@bp.route("tasks/<int:task_id>/loader", methods=["PUT"])
+@api
+@get_model(Task)
+def update_task_loader(task):
+
+	loader_config = request.json
+	name = loader_config.get("name")
+
+	# check loader name
+	if name is None:
+		raise InvalidUsage("Loader name not provided")
+
+	# check valid loader
+	if not m.Loader.is_valid(task.task_type, name):
+		raise InvalidUsage("Loader {0} is not valid for {1} tasks".format(name, task.task_type))
+
+	# update loader
+	loader = m.Loader.query.filter_by(name=name).one()
+	task.loader = loader
+
+	# update loader config
+	del loader_config["name"]
+	task.update_config({"loader":loader_config})
+	db.session.commit()
+	
 	return jsonify(success=True)

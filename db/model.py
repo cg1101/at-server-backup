@@ -13,6 +13,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import case, text, func
 from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
@@ -1922,6 +1923,15 @@ class Task(Base, ModelMixin):
 			assert len(batches) == 1
 			return batches[0]
 
+	def update_config(self, updates):
+		"""
+		Updates the task config field.
+		"""
+		config = self.config or {}
+		config.update(updates)
+		self.config = config
+		flag_modified(self, "config")
+
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -3225,6 +3235,16 @@ class Loader(Base, ModelMixin):
 
 		# return loaders
 		return [cls.query.filter_by(name=name).one() for name in names]
+
+	@classmethod
+	def is_valid(cls, task_type, loader_name):
+		"""
+		Checks if the loader is valid for the
+		task type.
+		"""
+		valid_loaders = cls.get_valid_loaders(task_type)
+		names = set([loader.name for loader in valid_loaders])
+		return loader_name in names
 
 
 class LoaderSchema(Schema):
