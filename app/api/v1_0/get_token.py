@@ -51,4 +51,5 @@ def get_token():
 	return jsonify({
 		"accessToken": access_token,
 		"expiresAt": to_timestamp(expires_at),
+		"appenId": api_access_pair.user.appen_id,
 	})
