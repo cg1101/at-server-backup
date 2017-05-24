@@ -970,6 +970,8 @@ def normalize_utterance_selection_filters(data, key, value):
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
+@api
+@caps()
 def create_task_utterance_selection(taskId):
 	data = MyForm(
 		Field('action', is_mandatory=True, validators=[
@@ -1039,6 +1041,8 @@ def create_task_utterance_selection(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
+@api
+@caps()
 def populate_task_utterance_selection(taskId, selectionId):
 	selection = m.UtteranceSelection.query.get(selectionId)
 	if not selection:
@@ -1126,6 +1130,8 @@ def populate_task_utterance_selection(taskId, selectionId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
+@api
+@caps()
 def delete_task_utterance_selection(taskId, selectionId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1153,6 +1159,8 @@ def check_task_status_transition(data, key, newStatus, currentStatus):
 
 
 @bp.route(_name + '/<int:taskId>/status', methods=['PUT'])
+@api
+@caps()
 def update_task_status(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -2195,5 +2203,5 @@ def update_task_loader(task):
 	del loader_config["name"]
 	task.update_config({"loader":loader_config})
 	db.session.commit()
-	
+
 	return jsonify(success=True)

@@ -435,8 +435,7 @@ def filter_label(task, labelId):
 	sub_q = inner.subquery('sub_q')
 	q = sub_q.join(m.AppliedLabel, sub_q.c.entryId==m.AppliedLabel.entryId)
 	if labelId != None:
-		q = q.where(m.AppliedLabel==labelId)
-
+		q = select([sub_q]).select_from(sub_q).where(m.AppliedLabel.labelId==labelId).alias('blah')
 	sel_stmt = select(q.c, distinct=True, from_obj=q)
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
 
