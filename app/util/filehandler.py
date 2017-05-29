@@ -171,6 +171,8 @@ def load_json_file(file, auto_gen_allocation_context=True,
 	for dd in todo:
 		for v in validators:
 			v(dd)
+		if auto_gen_words:
+			dd['words'] = 1
 		itemDicts.append(dd)
 	return itemDicts
 

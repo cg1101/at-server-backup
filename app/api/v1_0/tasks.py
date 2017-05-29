@@ -632,7 +632,7 @@ def get_task_load_stats(taskId, loadId):
 def create_task_label_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	labelSet = m.LabelSet()
 	task.labelSet = labelSet
 	SS.flush()
@@ -647,7 +647,7 @@ def create_task_label_set(taskId):
 def share_task_label_set(taskId, labelSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	labelSet = m.LabelSet.query.get(labelSetId)
 	if not labelSet:
 		raise InvalidUsage(_('label set {0} not found').format(labelSetId))
@@ -674,7 +674,7 @@ def normalize_file_handler_options(data, key, value):
 def create_task_load(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	data = MyForm(
 		Field('handlerId', is_mandatory=True, default=task.handlerId,
 			validators=[
@@ -1075,7 +1075,7 @@ def populate_task_utterance_selection(taskId, selectionId):
 		subTask = m.SubTask.query.get(selection.subTaskId)
 		if not subTask:
 			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} not found'
-				).format(selectionId, selection.subTaskId))
+				).format(selectionId, selection.subTaskId), 404)
 		if subTask.workType != m.WorkType.REWORK:
 			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} is not a {2} sub task'
 				).format(selectionId, selection.subTaskId, m.WorkType.REWORK))
@@ -1493,7 +1493,7 @@ def remove_task_supervisor(taskId, userId):
 def create_task_tag_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	tagSet = m.TagSet()
 	task.tagSet = tagSet
 	SS.flush()
@@ -1508,7 +1508,7 @@ def create_task_tag_set(taskId):
 def copy_task_tag_set(taskId, tagSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	srcTagSet = m.TagSet.query.get(tagSetId)
 	if not srcTagSet:
 		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
@@ -1531,7 +1531,7 @@ def copy_task_tag_set(taskId, tagSetId):
 def share_task_tag_set(taskId, tagSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
 		raise InvalidUsage(_('tagSet {0} not found').format(tagSetId))
@@ -1560,7 +1560,7 @@ def get_task_custom_utterance_groups(taskId):
 def delete_custom_utterance_group(taskId, groupId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	if task.status == m.Task.STATUS_ARCHIVED:
 		raise InvalidUsage(_('can\'t delete utterance groups from archived task'))
 	group = m.CustomUtteranceGroup.query.get(groupId)
