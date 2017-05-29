@@ -1,6 +1,7 @@
 
 import datetime
 import random
+import operator
 
 from sqlalchemy import and_, select, func
 
@@ -746,22 +747,21 @@ class Selector(object):
 			raise ValueError(_('must specify taskId'))
 
 		filters = {
-			True: [],  # inclusive
-			False: [], # exclusive
+			True: {},  # inclusive
+			False: {}, # exclusive
 		}
 		for f in selection.filters:
-			filters[f.isInclusive].append(f)
-		if len(filters[True]):
-			rs = set()
-		else:
-			rs = set([r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
+			filters[f.isInclusive].setdefault(f.filterType, []).append(f)
+
+		rs = set([r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
 				).filter(m.RawPiece.taskId==taskId)])
-		for f in filters[True]:
-			result = MyFilter.run(f, task)
+		for filter_type, fs in filters[True].iteritems():
+			result = reduce(operator.or_, [MyFilter.run(f, task) for r in fs])
 			rs &= result
-		for f in filters[False]:
-			result = MyFilter.run(f, task)
+		for filter_type, fs in filters[False].iteritems():
+			result = reduce(operator.or_, [MyFilter.run(f, task) for r in fs])
 			rs -= result
+
 		rs = sorted(rs)
 		if selection.limit != None:
 			limit = min(selection.limit, len(rs))
