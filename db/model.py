@@ -585,7 +585,7 @@ class BatchSchema(Schema):
 
 	def get_info(self, obj):
 		info = {}
-		
+
 		if obj.task.is_type(TaskType.AUDIO_CHECKING):
 			page_member = obj.pages[0].members[0]
 			performance = Performance.query.get(page_member.raw_piece_id)
@@ -596,7 +596,7 @@ class BatchSchema(Schema):
 			})
 
 		return info
-	
+
 	info = fields.Method("get_info")
 
 	class Meta:
