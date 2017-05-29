@@ -137,11 +137,50 @@ def load_utt_file(file):
 	return itemDicts
 
 
-FileHandler.register_handler('plaintext', load_generic_text_file)
-FileHandler.register_handler('tdf', load_tdf_file)
-FileHandler.register_handler('utts', load_utt_file)
+@smart
+def load_json_file(file, auto_gen_allocation_context=True,
+		auto_gen_assembly_context=True, auto_gen_words=True,
+		validate_meta=True, escape=True, **kwargs):
+	todo = json.load(file)
+
+	def validate_data_dict(data_dict):
+		assert isinstance(data_dict, dict)
+
+	def validate_assembly_context(data_dict):
+		assert (data_dict.has_key['assemblyContext'] and
+			isinstance(data_dict['assemblyContext'], basestring) and
+			data_dict['assemblyContext'].strip())
+	def validate_allocation_context(data_dict):
+		assert (data_dict.has_key['allocationContext'] and
+			isinstance(data_data['allocationContext'], basestring) and
+			data_dict['allocationContext'].strip())
+	def validate_meta(data_dict):
+		literal = data_dict.get('meta', None)
+		if literal != None:
+			meta = json.loads(literal)
+
+	validators = []
+	validators.append(validate_data_dict)
+	if not auto_gen_allocation_context:
+		validators.append(validate_allocation_context)
+	if not auto_gen_assembly_context:
+		validators.append(validate_assembly_context)
+	if validate_meta:
+		validators.append(validate_meta)
+	itemDicts = []
+	for dd in todo:
+		for v in validators:
+			v(dd)
+		itemDicts.append(dd)
+	return itemDicts
 
 
 def get_handler(name):
 	return FileHandler.get_handler(name)
+
+
+FileHandler.register_handler('plaintext', load_generic_text_file)
+FileHandler.register_handler('tdf', load_tdf_file)
+FileHandler.register_handler('utts', load_utt_file)
+FileHandler.register_handler('json', load_json_file)
 
