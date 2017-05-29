@@ -582,12 +582,29 @@ class BatchSchema(Schema):
 	qaedInterval = fields.Nested('WorkIntervalSchema')
 	def get_work_type(self, obj):
 		return obj.subTask.workType
+
+	def get_info(self, obj):
+		info = {}
+		
+		if obj.task.is_type(TaskType.AUDIO_CHECKING):
+			page_member = obj.pages[0].members[0]
+			performance = Performance.query.get(page_member.raw_piece_id)
+			performance_name = performance.name or "Performance {0}".format(page_member.raw_piece_id)
+			info.update({
+				"rawPieceId": page_member.raw_piece_id,
+				"performanceName": performance_name,
+			})
+
+		return info
+	
+	info = fields.Method("get_info")
+
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName',
 			'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires',
 			'notUserId', 'qaedUserName', 'workIntervalId',
 			'qaedInterval', 'checkedOut', 'name', 'itemCount',
-			'unitCount')
+			'unitCount', "info")
 		# ordered = True
 
 class Batch_FullSchema(BatchSchema):
