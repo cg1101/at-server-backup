@@ -210,21 +210,19 @@ class SnsMessage(object):
 
 @bp.route('/process', methods=['POST'])
 def edm_callback():
-	current_app.logger.debug('received incoming message {}'.format(request.data));
+	current_app.logger.debug('received incoming message {}'.format(request.data))
 	try:
-		return SnsMessage.processMessage(request,\
+		return SnsMessage.processMessage(request,
 			topics=current_app.config['EDM_TOPICS'])
 	except MessageError, e:
 		return make_response('%s' % e, 400)
 	except Exception, e:
 		out = cStringIO.StringIO()
 		traceback.print_exc(file=out)
-		current_app.logger.error(
-			'ERROR caught inside api:\n%s\n' %
+		current_app.logger.error('ERROR caught inside api:\n%s\n' %
 			out.getvalue())
 		# TODO: hide debug information for production deployment
-		return make_response(_('internal server error: {}'
-			).format(e), 500)
+		return make_response(_('internal server error: {}').format(e), 500)
 
 
 @SnsMessage.message_handler(Type='SubscriptionConfirmation')
@@ -259,6 +257,7 @@ def create_person(self):
 		current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
 	return
 
+
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
 def update_person(self):
 	desc = json.loads(self.Message)
@@ -288,6 +287,7 @@ def update_person(self):
 		current_app.logger.info('user {} is added locally'.format(globalId))
 	return
 
+
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Create')
 def create_country(self):
 	desc = json.loads(self.Message)
@@ -314,6 +314,7 @@ def create_country(self):
 		SS.flush()
 		SS.commit()
 	return
+
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Update')
 def update_country(self):
@@ -353,6 +354,7 @@ def update_country(self):
 		current_app.logger.info('country {} is added locally'.format(country.name))
 	return
 
+
 @SnsMessage.message_handler(Type='Notification', Subject='Language_Create')
 def create_language(self):
 	desc = json.loads(self.Message)
@@ -378,6 +380,7 @@ def create_language(self):
 		SS.add(lang)
 		SS.flush()
 		SS.commit()
+
 
 @SnsMessage.message_handler(Type='Notification', Subject='Language_Update')
 def update_language(self):
@@ -414,3 +417,4 @@ def update_language(self):
 		SS.commit()
 		current_app.logger.info('language {} is added locally'.format(lang.name))
 	return
+

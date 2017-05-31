@@ -121,7 +121,7 @@ class EdmAgent(AppAgent):
 			# 'mobile_phone_phone_number': None,
 			# 'street_address_address1': None,
 			# 'street_address_country': None,
-			# 'nationality_country_id': None,
+			'nationality_country_id': 'countryId',
 			# 'salutation': None,
 			# 'street_address_city': None,
 		},
