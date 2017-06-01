@@ -432,6 +432,7 @@ class Batch(Base):
 	subTask = relationship('SubTask', backref="batches")
 
 	# synonyms
+	batch_id = synonym("batchId")
 	sub_task = synonym("subTask")
 	sub_task_id = synonym("subTaskId")
 
@@ -2767,6 +2768,10 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
 	task_id = fields.Integer(dump_to="taskId")
+	batch_id = fields.Method("get_batch_id", dump_to="batchId")
+
+	def get_batch_id(self, obj):
+		return obj.batch.batch_id
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "loadedAt")
