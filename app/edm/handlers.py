@@ -238,6 +238,24 @@ def create_person(self):
 	desc = json.loads(self.Message)
 	globalId = desc['global_id']
 	data = util.edm.decode_changes('Person', desc['changes'])
+	iso3 = data.pop('_countryIso3', None)
+	if iso3:
+		try:
+			country = m.Country.query.get(iso3)
+		except sqlalchemy.orm.exc.NoResultFound:
+			result = util.edm.get_country(iso3)
+			country_data = dict(
+				name=result['name_eng'],
+				iso2=result['iso2'],
+				iso3=iso3,
+				isoNum=result['iso_num'],
+				internet=result['internet'],
+				active=result['active'],
+			)
+			country = m.Country(**country_data)
+			SS.add(country)
+			SS.flush()
+		data['countryId'] = country.countryId
 	try:
 		user = m.User.query.filter_by(emailAddress=data['emailAddress']).one()
 		for k, v in data.items():
@@ -262,9 +280,27 @@ def create_person(self):
 def update_person(self):
 	desc = json.loads(self.Message)
 	globalId = desc['global_id']
+	data = util.edm.decode_changes('Person', desc['changes'])
+	iso3 = data.pop('_countryIso3', None)
+	if iso3:
+		try:
+			country = m.Country.query.get(iso3)
+		except sqlalchemy.orm.exc.NoResultFound:
+			result = util.edm.get_country(iso3)
+			country_data = dict(
+				name=result['name_eng'],
+				iso2=result['iso2'],
+				iso3=iso3,
+				isoNum=result['iso_num'],
+				internet=result['internet'],
+				active=result['active'],
+			)
+			country = m.Country(**country_data)
+			SS.add(country)
+			SS.flush()
+		data['countryId'] = country.countryId
 	try:
 		user = m.User.query.filter(m.User.globalId==globalId).one()
-		data = util.edm.decode_changes('Person', desc['changes'])
 		current_app.logger.info('found user {}, applying changes {}'.format(globalId, data))
 		changes = {}
 		for k, v in data.items():
