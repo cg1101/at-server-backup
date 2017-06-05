@@ -241,7 +241,7 @@ def create_person(self):
 	iso3 = data.pop('_countryIso3', None)
 	if iso3:
 		try:
-			country = m.Country.query.get(iso3)
+			country = m.Country.query.filter(m.Country.iso3==iso3).one()
 		except sqlalchemy.orm.exc.NoResultFound:
 			result = util.edm.get_country(iso3)
 			country_data = dict(
@@ -284,7 +284,7 @@ def update_person(self):
 	iso3 = data.pop('_countryIso3', None)
 	if iso3:
 		try:
-			country = m.Country.query.get(iso3)
+			country = m.Country.query.filter(m.Country.iso3==iso3).one()
 		except sqlalchemy.orm.exc.NoResultFound:
 			result = util.edm.get_country(iso3)
 			country_data = dict(
