@@ -2679,6 +2679,13 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		return self.batch.sub_task
 
 	@property
+	def current_feedback(self):
+		if self.feedback_entries:
+			return self.feedback_entries[-1]	# TODO check ordering
+
+		return None
+
+	@property
 	def incomplete(self):
 		"""
 		Placeholder for audio loading. To be
@@ -2783,6 +2790,7 @@ class PerformanceSchema(Schema):
 
 class Performance_FullSchema(PerformanceSchema):
 	meta_values = fields.Method("get_meta_values", dump_to="metaValues")
+	current_feedback = fields.Nested("PerformanceFeedbackEntrySchema", dump_to="currentFeedback")
 
 	def get_meta_values(self, obj):
 		values = {}
