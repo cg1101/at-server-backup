@@ -1,4 +1,4 @@
-
+import os
 import random
 from collections import OrderedDict
 
@@ -47,6 +47,11 @@ class _batcher(object):
 		# custom
 		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:
 			raise NotImplementedError #TODO
+
+		# folder
+		elif subTask.batchingMode == BatchingMode.FOLDER:
+			key_gen = lambda index, raw_piece: os.path.dirname(raw_piece.data["filePath"])
+			order_by = lambda raw_piece: (raw_piece.data["filePath"], raw_piece.data.get("startAt"))
 
 		# unknown
 		else:

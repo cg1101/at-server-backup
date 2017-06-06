@@ -636,6 +636,7 @@ class BatchingMode(Base):
 	FILE = 'File'
 	CUSTOM_CONTEXT = 'Custom Context'
 	ALLOCATION_CONTEXT = 'Allocation Context'
+	FOLDER = "Folder"
 
 	# synonyms
 	requires_context = synonym("requiresContext")
