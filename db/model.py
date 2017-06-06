@@ -2730,7 +2730,8 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 			recording_platform=recording_platform,
 			name=data["name"],
 			script_id=data["scriptId"],
-			loaded_at=utcnow()
+			loaded_at=utcnow(),
+			words=1,
 		)
 
 		# add metadata
@@ -3331,7 +3332,8 @@ class Utterance(RawPiece):
 			load_id=load.load_id,
 			assembly_context="_".join(assembly_context_parts),
 			data=stored_data,
-			hypothesis=data.get("hypothesis")
+			hypothesis=data.get("hypothesis"),
+			words=1,
 		)
 
 		return utt
