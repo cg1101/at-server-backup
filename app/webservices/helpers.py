@@ -91,21 +91,6 @@ class UserSearchAction(object):
 		raise RuntimeError('UserSearchAction cannot be instantiated '
 			'directly, use add_action() instead.')
 
-UserSearchAction.add_at_action('assign_task_workers',
-	name=_('Assign Task Workers'),
-	button=_('Assign'),
-	func=action_assign_task_workers,
-	data=[dict(value=t.taskId, display=t.displayName)
-		for t in m.Task.query.filter(m.Task.status.in_([m.Task.STATUS_ACTIVE,
-			m.Task.STATUS_DISABLED])).order_by(m.Task.taskId)])
-UserSearchAction.add_at_action('assign_task_supervisor',
-	name=_('Assign Task Supervisor'),
-	button=_('Assign'),
-	func=action_assign_task_supervisor,
-	data=[dict(value=t.taskId, display=t.displayName)
-		for t in m.Task.query.filter(m.Task.status.in_([m.Task.STATUS_ACTIVE,
-			m.Task.STATUS_DISABLED])).order_by(m.Task.taskId)])
-
 
 def filter_assigned_task(taskId):
 	return SS.query(m.TaskWorker.userId.distinct()
@@ -188,64 +173,6 @@ class UserSearchFilter(object):
 		raise RuntimeError('UserSearchFilter cannot be instantiated '
 			'directly, use add_filter() instead.')
 
-UserSearchFilter.add_at_filter('assigned_task',
-	name=_('Task'),
-	text=_('Users who are currently assigned to'),
-	complement=_('Users who are not currently assigned to'),
-	func=filter_assigned_task,
-	pieces=[
-	{
-		'type': UserSearchFilter.PIECE_TYPE_SELECT,
-		'data': [dict(value=t.displayName,
-			key=t.taskId) for t in m.Task.query.filter(
-			m.Task.status.notin_([m.Task.STATUS_ARCHIVED])
-			).order_by(m.Task.taskId)]
-	}],)
-UserSearchFilter.add_at_filter('unused',
-	name=_('Unused'),
-	text=_('Users who are assigned to a current translation task'),
-	complement=_('Users who are not assigned to a current translation task'),
-	func=filter_unused,
-	pieces=[],)
-UserSearchFilter.add_at_filter('attempted_qualification_test',
-	name=_('Attempted Qualification Test'),
-	text=_('Users who have attempted the'),
-	complement=_('Users who have not attempted the'),
-	func=filter_qualification_test,
-	pieces=[
-	{
-		'type': UserSearchFilter.PIECE_TYPE_SELECT,
-		'data': [dict(value=t.name, key=t.testId) for t
-			in m.Test.query.order_by(m.Test.testId)]
-	}],)
-UserSearchFilter.add_at_filter('qualification_test_result',
-	name=_('Qualification Test Result'),
-	text=_('passed'),
-	complement=_('failed'),
-	func=filter_qualification_test_result,
-	pieces=[
-	{
-		'type': UserSearchFilter.PIECE_TYPE_SELECT,
-		'data': [dict(value=t.name, key=t.testId) for t
-			in m.Test.query.order_by(m.Test.testId)]
-	}],)
-UserSearchFilter.add_at_filter('qualification_test_score',
-	name=_('Qualification Test Score'),
-	text=_('at least'),
-	complement=_('less than'),
-	func=filter_qualification_test_score,
-	pieces=[
-	{
-		'type': UserSearchFilter.PIECE_TYPE_SELECT,
-		'data': [dict(value=('%.1f%% on' % i), key=i) for i
-			in range(0, 95, 5)],
-	},
-	{
-		'type': UserSearchFilter.PIECE_TYPE_SELECT,
-		'data': [dict(value=t.name, key=t.testId) for t
-			in m.Test.query.order_by(m.Test.testId)]
-	}],)
-
 
 def calculate_task_payment_record(taskId, payrollId):
 	cutOffTime = SS.query(func.max(m.WorkInterval.endTime
@@ -273,4 +200,80 @@ def calculate_task_payment_record(taskId, payrollId):
 	return m.TaskPaymentRecord(taskId=taskId, payrollId=payrollId,
 		itemCount=itemCount, unitCount=unitCount, cutOffTime=cutOffTime,
 		paymentSubtotal=calculatedSubtotal+otherSubtotal)
+
+
+def init_data():
+	UserSearchAction.add_at_action('assign_task_workers',
+		name=_('Assign Task Workers'),
+		button=_('Assign'),
+		func=action_assign_task_workers,
+		data=[dict(value=t.taskId, display=t.displayName)
+			for t in m.Task.query.filter(m.Task.status.in_([m.Task.STATUS_ACTIVE,
+				m.Task.STATUS_DISABLED])).order_by(m.Task.taskId)])
+	UserSearchAction.add_at_action('assign_task_supervisor',
+		name=_('Assign Task Supervisor'),
+		button=_('Assign'),
+		func=action_assign_task_supervisor,
+		data=[dict(value=t.taskId, display=t.displayName)
+			for t in m.Task.query.filter(m.Task.status.in_([m.Task.STATUS_ACTIVE,
+				m.Task.STATUS_DISABLED])).order_by(m.Task.taskId)])
+
+
+	UserSearchFilter.add_at_filter('assigned_task',
+		name=_('Task'),
+		text=_('Users who are currently assigned to'),
+		complement=_('Users who are not currently assigned to'),
+		func=filter_assigned_task,
+		pieces=[
+		{
+			'type': UserSearchFilter.PIECE_TYPE_SELECT,
+			'data': [dict(value=t.displayName,
+				key=t.taskId) for t in m.Task.query.filter(
+				m.Task.status.notin_([m.Task.STATUS_ARCHIVED])
+				).order_by(m.Task.taskId)]
+		}],)
+	UserSearchFilter.add_at_filter('unused',
+		name=_('Unused'),
+		text=_('Users who are assigned to a current translation task'),
+		complement=_('Users who are not assigned to a current translation task'),
+		func=filter_unused,
+		pieces=[],)
+	UserSearchFilter.add_at_filter('attempted_qualification_test',
+		name=_('Attempted Qualification Test'),
+		text=_('Users who have attempted the'),
+		complement=_('Users who have not attempted the'),
+		func=filter_qualification_test,
+		pieces=[
+		{
+			'type': UserSearchFilter.PIECE_TYPE_SELECT,
+			'data': [dict(value=t.name, key=t.testId) for t
+				in m.Test.query.order_by(m.Test.testId)]
+		}],)
+	UserSearchFilter.add_at_filter('qualification_test_result',
+		name=_('Qualification Test Result'),
+		text=_('passed'),
+		complement=_('failed'),
+		func=filter_qualification_test_result,
+		pieces=[
+		{
+			'type': UserSearchFilter.PIECE_TYPE_SELECT,
+			'data': [dict(value=t.name, key=t.testId) for t
+				in m.Test.query.order_by(m.Test.testId)]
+		}],)
+	UserSearchFilter.add_at_filter('qualification_test_score',
+		name=_('Qualification Test Score'),
+		text=_('at least'),
+		complement=_('less than'),
+		func=filter_qualification_test_score,
+		pieces=[
+		{
+			'type': UserSearchFilter.PIECE_TYPE_SELECT,
+			'data': [dict(value=('%.1f%% on' % i), key=i) for i
+				in range(0, 95, 5)],
+		},
+		{
+			'type': UserSearchFilter.PIECE_TYPE_SELECT,
+			'data': [dict(value=t.name, key=t.testId) for t
+				in m.Test.query.order_by(m.Test.testId)]
+		}],)
 

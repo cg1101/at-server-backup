@@ -2,7 +2,7 @@
 import re
 from collections import OrderedDict
 
-from flask import render_template, url_for, make_response
+from flask import render_template, url_for, make_response, request
 from sqlalchemy import func
 from lxml import etree
 
@@ -216,8 +216,7 @@ def webservices_apply_user_search_filters():
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_qualifications():
-	# TODO: get userId from incoming request
-	userId = 699
+	userId = int(requests.form['userID'])
 	languageIds = [1, 2, 3, 4]
 
 	user = m.User.query.get(userId)
@@ -238,8 +237,7 @@ def webservices_available_qualifications():
 @bp.route('/available_work', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_work():
-	# TODO: get userId from incoming request
-	userId = 699
+	userId = int(request.values['userID'])
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
 		raise RuntimeError
@@ -317,8 +315,7 @@ def webservices_get_user_details_js():
 @bp.route('/recent_work', methods=['GET', 'POST'])
 @ws('recent_work.xml')
 def webservices_recent_work():
-	# TODO: get userId from incoming request
-	userId = 699
+	userId = int(request.values['userID'])
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
 		raise RuntimeError
@@ -354,10 +351,11 @@ def webservices_recent_work():
 		#
 		while events:
 			event = events.pop(0)
-			if event.created > receivingInterval.endTime:
-				if intervals:
-					# move to next if available
-					receivingInterval = intervals.pop(0)
+			if not receivingInterval.endTime is None:
+				if event.created > receivingInterval.endTime:
+					if intervals:
+						# move to next if available
+						receivingInterval = intervals.pop(0)
 			eventsByWorkInterval.setdefault(
 				receivingInterval, []).append(event)
 
@@ -481,8 +479,7 @@ def webservices_update_payments():
 @bp.route('/user_details', methods=['GET', 'POST'])
 @ws('user_details.xml')
 def webservices_user_details():
-	# TODO: get userId from incoming request
-	userId = 699
+	userId = int(request.values['userID'])
 	test_records = SS.query(m.Test, m.Sheet
 			).filter(m.Sheet.userId==userId
 			).filter(m.Sheet.testId==m.Test.testId

@@ -58,13 +58,17 @@ def create_app(config_name):
 	from app.api import api_1_0
 	from app.edm import edm
 	from app.tagimages import tagimages
-	# from app.webservices import webservices
+	from app.webservices import webservices
 	from app.views import views
 	app.register_blueprint(api_1_0, url_prefix='/api/1.0/')
 	app.register_blueprint(edm, url_prefix='/edm')
 	app.register_blueprint(tagimages, url_prefix='/tagimages')
-	# app.register_blueprint(webservices, url_prefix='/webservices')
+	app.register_blueprint(webservices, url_prefix='/webservices')
 	app.register_blueprint(views, url_prefix='')
+
+	with app.app_context():
+		from app.webservices.helpers import init_data
+		init_data()
 
 	oauth = OAuth()
 	soteria = oauth.remote_app('soteria',
