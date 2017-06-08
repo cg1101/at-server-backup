@@ -30,11 +30,11 @@ from db.model import (
 	Task,
 	TaskType
 )
-from app import audio_server
+from app import audio_server, pdb
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, logistics
 from lib.audio_load import AudioCheckingLoadConfigSchema, TranscriptionLoadConfigSchema, decompress_load_data
 
 
@@ -97,15 +97,15 @@ def migrate_task(taskId):
 		)
 
 	if current_app.config['USE_PDB_API']:
-		pdb_task = pdb.get_task(taskId)
+		pdb_task = pdb.api.get_task(taskId)
 		if not pdb_task:
-			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+			raise InvalidUsage(_('task {0} not foundt').format(taskId), 404)
 		data = pdb_task
 		class data_holder(object): pass
 		pdb_task = data_holder()
 		for k, v in data.iteritems():
 			setattr(pdb_task, k, v)
-		data = pdb.get_project(pdb_task.projectId)
+		data = pdb.api.get_project(pdb_task.projectId)
 		pdb_project = data_holder()
 		for k, v in data.iteritems():
 			setattr(pdb_project, k, v)

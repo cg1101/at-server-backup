@@ -21,12 +21,14 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
-from LRUtilities.FlaskPlugins import AudioServer
+from LRUtilities.FlaskPlugins import AudioServer, GnxPdb
+from LRUtilities.Misc import since_epoch
 
 
 class AuthError(Exception): pass
 
 audio_server = AudioServer()
+pdb = GnxPdb()
 
 
 def create_app(config_name):
@@ -35,6 +37,7 @@ def create_app(config_name):
 	config[config_name].init_app(app)
 	db.init_app(app)
 	audio_server.init_app(app)
+	pdb.init_app(app, lambda: create_access_token(app.config["ADMIN_APPEN_ID"]))
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
 	logging.basicConfig(level=app.config["LOG_LEVEL"])
@@ -469,7 +472,8 @@ def create_access_token(appen_id, expires_after=datetime.timedelta(hours=2)):
 	payload.update({"exp" : expires_at})
 
 	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm="HS256")
-	return token.decode(), expires_at
+
+	return token.decode(), since_epoch(expires_at)
 
 
 def update_session(user, caps, user_type, roles):

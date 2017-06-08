@@ -6,7 +6,6 @@ from . import api_1_0 as bp
 from app import create_access_token
 from app.api import Field, InvalidUsage, MyForm, api, validators
 from db.model import ApiAccessPair
-from utils import to_timestamp
 
 
 @bp.route("get-token", methods=["POST"])
@@ -50,6 +49,6 @@ def get_token():
 
 	return jsonify({
 		"accessToken": access_token,
-		"expiresAt": to_timestamp(expires_at),
+		"expiresAt": expires_at,
 		"appenId": api_access_pair.user.appen_id,
 	})
