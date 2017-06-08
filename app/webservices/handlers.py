@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 
 from flask import render_template, url_for, make_response, request
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from lxml import etree
 
 import db.model as m
@@ -275,7 +275,8 @@ def webservices_available_work():
 		if not m.Batch.query.filter_by(subTaskId=subTask.subTaskId
 				).filter(m.Batch.userId==None
 				).filter(m.Batch.onHold==False
-				).filter(m.Batch.notUserId!=userId
+				).filter(or_(m.Batch.notUserId.is_(None),
+					m.Batch.notUserId!=userId)
 				).order_by(m.Batch.priority.desc()
 				).first():
 			continue
