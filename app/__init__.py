@@ -37,7 +37,7 @@ def create_app(config_name):
 	config[config_name].init_app(app)
 	db.init_app(app)
 	audio_server.init_app(app)
-	pdb.init_app(app, lambda: create_access_token(app.config["ADMIN_APPEN_ID"]))
+	pdb.init_app(app, lambda: create_access_token(int(app.config["ADMIN_APPEN_ID"])))
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
 	logging.basicConfig(level=app.config["LOG_LEVEL"])
