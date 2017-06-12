@@ -272,6 +272,9 @@ def create_app(config_name):
 	@app.route('/whoami')
 	def who_am_i():
 		me = session['current_user']
+		ao_url = util.tiger.get_url_root().replace('global', 'online')
+		if ao_url.endswith('online.appen.com'):
+			ao_url = ao_url.replace('/online.appen.com', '/appenonline.appen.com.au')
 		resp = jsonify(
 			user=m.User.dump(me, use='full'),
 			caps=session['current_user_caps'],
@@ -281,6 +284,7 @@ def create_app(config_name):
 				'tiger': util.tiger.get_url_root(),
 				'edm': util.edm.get_url_root(),
 				'go': util.go.get_url_root(),
+				'ao': ao_url,
 			}
 		)
 		resp.headers['Cache-Control'] = 'max-age=0, must-revalidate'
