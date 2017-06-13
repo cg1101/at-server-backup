@@ -1,7 +1,7 @@
 <root>
 	{%- for entry in entries %}
 	<entry>
-		{%- if entry.weekending %}
+		{%- if entry.weekending and false %}
 		<weekending>{{entry.weekending}}</weekending>
 		{%- endif %}
 		<task>{{entry.task}}</task>
