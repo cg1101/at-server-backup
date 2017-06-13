@@ -2,7 +2,14 @@
 import logging
 import os
 
-from LRUtilities.Api import AudioServerApi, AudioServerStageApi, AudioServerDevApi
+from LRUtilities.Api import (
+	AudioServerApi,
+	AudioServerStageApi,
+	AudioServerDevApi,
+	ProjectDbApi,
+	ProjectDbStageApi,
+	ProjectDbDevApi
+)
 
 
 class Config:
@@ -41,6 +48,7 @@ class Config:
 	LOG_LEVEL = logging.INFO
 	AUDIO_SERVER_API_SECRET = None
 	AUDIO_SERVER_API_CLS = None
+	ADMIN_APPEN_ID = os.environ.get("ADMIN_APPEN_ID")
 
 	@staticmethod
 	def init_app(app):
@@ -53,12 +61,14 @@ class DevelopmentConfig(Config):
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_SECRET = "secret"
 	AUDIO_SERVER_API_CLS = AudioServerDevApi
+	PDB_API_CLS = ProjectDbDevApi
 
 
 class TestingConfig(Config):
 	TESTING = True
 	ENV = "test"
 	AUDIO_SERVER_API_CLS = AudioServerDevApi
+	PDB_API_CLS = ProjectDbDevApi
 
 
 class AwsConfig(Config):
@@ -70,6 +80,7 @@ class QaConfig(AwsConfig):
 	ENV = "qa"
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_CLS = AudioServerStageApi
+	PDB_API_CLS = ProjectDbStageApi
 
 
 class StageConfig(AwsConfig):
@@ -77,12 +88,14 @@ class StageConfig(AwsConfig):
 	ENV = "stage"
 	LOG_LEVEL = logging.DEBUG
 	AUDIO_SERVER_API_CLS = AudioServerStageApi
+	PDB_API_CLS = ProjectDbStageApi
 
 
 class ProductionConfig(AwsConfig):
 	ENV = "prod"
 	SQLALCHEMY_TRACK_MODIFICATIONS = False
 	AUDIO_SERVER_API_CLS = AudioServerApi
+	PDB_API_CLS = ProjectDbApi
 
 
 config = {

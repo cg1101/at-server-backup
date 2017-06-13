@@ -23,6 +23,7 @@ models = [
 	BatchingMode(name=BatchingMode.FILE, requires_context=True),
 	BatchingMode(name=BatchingMode.CUSTOM_CONTEXT, requires_context=True),
 	BatchingMode(name=BatchingMode.ALLOCATION_CONTEXT, requires_context=False),
+	BatchingMode(name=BatchingMode.FOLDER, requires_context=True),
 
 	# loaders
 	Loader(name=Loader.STORAGE),

@@ -182,7 +182,7 @@ def create_new_batches(subTaskId):
 				).filter_by(taskId=subTask.taskId
 				).filter(m.PageMember.rawPieceId!=None
 				).distinct())
-		).all()
+		).order_by(m.RawPiece.rawPieceId).all()
 	batches = Batcher.batch(subTask, rawPieces)
 	for batch in batches:
 		SS.add(batch)

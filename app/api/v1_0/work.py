@@ -335,6 +335,11 @@ def save_work_entry(batchId):
 		db.session.add(newEntry)
 		db.session.flush()
 
+		# no QA done
+		qaedEntryId = None
+		qaedEntry = None
+		qaedUserId = None
+
 	else:
 
 		# other task types

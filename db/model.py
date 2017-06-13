@@ -13,11 +13,13 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import case, text, func
 from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
 import pytz
 
+from LRUtilities.Misc import random_key_string
 from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
@@ -430,6 +432,8 @@ class Batch(Base):
 	subTask = relationship('SubTask', backref="batches")
 
 	# synonyms
+	batch_id = synonym("batchId")
+	user_id = synonym("userId")
 	sub_task = synonym("subTask")
 	sub_task_id = synonym("subTaskId")
 
@@ -580,12 +584,29 @@ class BatchSchema(Schema):
 	qaedInterval = fields.Nested('WorkIntervalSchema')
 	def get_work_type(self, obj):
 		return obj.subTask.workType
+
+	def get_info(self, obj):
+		info = {}
+
+		if obj.task.is_type(TaskType.AUDIO_CHECKING):
+			page_member = obj.pages[0].members[0]
+			performance = Performance.query.get(page_member.raw_piece_id)
+			performance_name = performance.name or "Performance {0}".format(page_member.raw_piece_id)
+			info.update({
+				"rawPieceId": page_member.raw_piece_id,
+				"performanceName": performance_name,
+			})
+
+		return info
+
+	info = fields.Method("get_info")
+
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName',
 			'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires',
 			'notUserId', 'qaedUserName', 'workIntervalId',
 			'qaedInterval', 'checkedOut', 'name', 'itemCount',
-			'unitCount')
+			'unitCount', "info")
 		# ordered = True
 
 class Batch_FullSchema(BatchSchema):
@@ -615,6 +636,7 @@ class BatchingMode(Base):
 	FILE = 'File'
 	CUSTOM_CONTEXT = 'Custom Context'
 	ALLOCATION_CONTEXT = 'Allocation Context'
+	FOLDER = "Folder"
 
 	# synonyms
 	requires_context = synonym("requiresContext")
@@ -1921,6 +1943,15 @@ class Task(Base, ModelMixin):
 			assert len(batches) == 1
 			return batches[0]
 
+	def update_config(self, updates):
+		"""
+		Updates the task config field.
+		"""
+		config = self.config or {}
+		config.update(updates)
+		self.config = config
+		flag_modified(self, "config")
+
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -2014,6 +2045,7 @@ class User(Base):
 	user_id = synonym("userId")
 	global_id = synonym("globalId")
 	appen_id = synonym("globalId")
+	email_address = synonym("emailAddress")
 
 	@hybrid_property
 	def userName(self):
@@ -2044,6 +2076,7 @@ class UtteranceSelection(Base):
 	ACTION_BATCH = 'batch'
 	ACTION_CUSTOM = 'custom'
 	ACTION_PP = 'pp'
+	ACTION_RECURRING = 'recurring'
 	__table__ = t_utteranceselections
 	user = relationship('User')
 	userName = association_proxy('user', 'userName')
@@ -2647,6 +2680,13 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		return self.batch.sub_task
 
 	@property
+	def current_feedback(self):
+		if self.feedback_entries:
+			return self.feedback_entries[-1]	# TODO check ordering
+
+		return None
+
+	@property
 	def incomplete(self):
 		"""
 		Placeholder for audio loading. To be
@@ -2691,7 +2731,8 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 			recording_platform=recording_platform,
 			name=data["name"],
 			script_id=data["scriptId"],
-			loaded_at=utcnow()
+			loaded_at=utcnow(),
+			words=1,
 		)
 
 		# add metadata
@@ -2737,6 +2778,13 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
 	task_id = fields.Integer(dump_to="taskId")
+	batch = fields.Method("get_batch")
+
+	def get_batch(self, obj):
+		return {
+			"batchId": obj.batch.batch_id,
+			"assigned": bool(obj.batch.user_id),
+		}
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "loadedAt")
@@ -2744,6 +2792,7 @@ class PerformanceSchema(Schema):
 
 class Performance_FullSchema(PerformanceSchema):
 	meta_values = fields.Method("get_meta_values", dump_to="metaValues")
+	current_feedback = fields.Nested("PerformanceFeedbackEntrySchema", dump_to="currentFeedback")
 
 	def get_meta_values(self, obj):
 		values = {}
@@ -3223,6 +3272,16 @@ class Loader(Base, ModelMixin):
 		# return loaders
 		return [cls.query.filter_by(name=name).one() for name in names]
 
+	@classmethod
+	def is_valid(cls, task_type, loader_name):
+		"""
+		Checks if the loader is valid for the
+		task type.
+		"""
+		valid_loaders = cls.get_valid_loaders(task_type)
+		names = set([loader.name for loader in valid_loaders])
+		return loader_name in names
+
 
 class LoaderSchema(Schema):
 	class Meta:
@@ -3274,7 +3333,8 @@ class Utterance(RawPiece):
 			load_id=load.load_id,
 			assembly_context="_".join(assembly_context_parts),
 			data=stored_data,
-			hypothesis=data.get("hypothesis")
+			hypothesis=data.get("hypothesis"),
+			words=1,
 		)
 
 		return utt
@@ -3397,6 +3457,57 @@ class MetadataChangeLogEntrySchema(Schema):
 
 	class Meta:
 		additional = ("logEntryId", "changedAt")
+
+
+# ApiAccessPair
+class ApiAccessPair(Base, ModelMixin):
+	__table__ = t_api_access_pairs
+
+	# relationships
+	user = relationship("User")
+
+	# synonyms
+	api_access_pair_id = synonym("apiAccessPaidId")
+	user_id = synonym("userId")
+	created_at = synonym("createdAt")
+
+	@classmethod
+	def is_unique(cls, key, secret):
+		"""
+		Checks if the key/secret combination
+		is unique.
+		"""
+		query = cls.query.filter_by(key=key, secret=secret)
+		return not bool(query.count())
+
+	@classmethod
+	def create(cls, user_id, description):
+		"""
+		Creates a new, unique, access pair.
+		"""
+
+		key = None
+		secret = None
+
+		# get unique pair
+		while True:
+			key = random_key_string(30)
+			secret = random_key_string(30)
+			if cls.is_unique(key, secret):
+				break
+
+		return cls(
+			key=key,
+			secret=secret,
+			description=description,
+			user_id=user_id,
+		)
+
+class ApiAccessPairSchema(Schema):
+	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+
+	class Meta:
+		additional = ("apiAccessPairId", "key", "secret", "description", "enabled", "createdAt")
 
 #
 # Define model class and its schema (if needed) above

@@ -46,7 +46,7 @@ def load_qa_failed(task):
 				continue
 			# else check qa score
 			cfg = rec[qaedEntry.subTaskId]
-			if entry.qaScore < cfg['accuracyThreshold']:
+			if entry.qaScore < cfg['threshold']:
 				group_plan.setdefault(cfg['dest'], {}
 					).setdefault(qaedEntry.userId, []
 					).append(qaedEntry)

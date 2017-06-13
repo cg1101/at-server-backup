@@ -3,9 +3,7 @@ import glob
 import datetime
 import re
 import json
-import jwt
 import subprocess
-import requests
 
 from flask import request, session, jsonify, make_response, url_for, current_app
 from sqlalchemy import or_
@@ -14,6 +12,8 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 import pytz
+import jwt
+import requests
 # from sqlalchemy import and_
 
 import db.model as m
@@ -30,11 +30,11 @@ from db.model import (
 	Task,
 	TaskType
 )
-from app import audio_server
+from app import audio_server, pdb
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
-from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, pdb, logistics
+from app.util import Batcher, Loader, Selector, Extractor, Warnings, tiger, edm, logistics
 from lib.audio_load import AudioCheckingLoadConfigSchema, TranscriptionLoadConfigSchema, decompress_load_data
 
 
@@ -97,15 +97,15 @@ def migrate_task(taskId):
 		)
 
 	if current_app.config['USE_PDB_API']:
-		pdb_task = pdb.get_task(taskId)
+		pdb_task = pdb.api.get_task(taskId)
 		if not pdb_task:
-			raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+			raise InvalidUsage(_('task {0} not foundt').format(taskId), 404)
 		data = pdb_task
 		class data_holder(object): pass
 		pdb_task = data_holder()
 		for k, v in data.iteritems():
 			setattr(pdb_task, k, v)
-		data = pdb.get_project(pdb_task.projectId)
+		data = pdb.api.get_project(pdb_task.projectId)
 		pdb_project = data_holder()
 		for k, v in data.iteritems():
 			setattr(pdb_project, k, v)
@@ -632,7 +632,7 @@ def get_task_load_stats(taskId, loadId):
 def create_task_label_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	labelSet = m.LabelSet()
 	task.labelSet = labelSet
 	SS.flush()
@@ -647,7 +647,7 @@ def create_task_label_set(taskId):
 def share_task_label_set(taskId, labelSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	labelSet = m.LabelSet.query.get(labelSetId)
 	if not labelSet:
 		raise InvalidUsage(_('label set {0} not found').format(labelSetId))
@@ -674,7 +674,7 @@ def normalize_file_handler_options(data, key, value):
 def create_task_load(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	data = MyForm(
 		Field('handlerId', is_mandatory=True, default=task.handlerId,
 			validators=[
@@ -890,7 +890,7 @@ def normalize_utterance_selection_value_input(data, key, value):
 		else:
 			data['name'] = value
 			data['subTaskId'] = None
-	elif action == m.UtteranceSelection.ACTION_BATCH:
+	elif action in (m.UtteranceSelection.ACTION_BATCH, m.UtteranceSelection.ACTION_RECURRING):
 		try:
 			subTaskId = int(value)
 		except:
@@ -970,12 +970,15 @@ def normalize_utterance_selection_filters(data, key, value):
 
 
 @bp.route(_name + '/<int:taskId>/selections/', methods=['POST'])
+@api
+@caps()
 def create_task_utterance_selection(taskId):
 	data = MyForm(
 		Field('action', is_mandatory=True, validators=[
 			# NOTE: action 'pp' is not supported
 			(validators.enum, (m.UtteranceSelection.ACTION_CUSTOM,
-				m.UtteranceSelection.ACTION_BATCH)),
+				m.UtteranceSelection.ACTION_BATCH,
+				m.UtteranceSelection.ACTION_RECURRING)),
 		]),
 		Field('value', is_mandatory=True,
 			normalizer=normalize_utterance_selection_value_input),
@@ -993,7 +996,8 @@ def create_task_utterance_selection(taskId):
 	me = session['current_user']
 	selection = m.UtteranceSelection(taskId=taskId, userId=me.userId,
 		limit=data['limit'], action=data['action'], name=data['name'],
-		subTaskId=data['subTaskId'], random=data['random'])
+		subTaskId=data['subTaskId'], random=data['random'],
+		recurring=data['action']==m.UtteranceSelection.ACTION_RECURRING)
 	for x in data['filters']:
 		pieces = x.pop('pieces')
 		selectionFilter = m.SelectionFilter(**x)
@@ -1002,11 +1006,14 @@ def create_task_utterance_selection(taskId):
 			selectionFilter.pieces.append(piece)
 		selection.filters.append(selectionFilter)
 
-	# TODO: run query, if no result found, notify user, otherwise save in cache
 	rs = Selector.select(selection)
-	if not rs:
-		# raise InvalidUsage(_('no result found'))
-		return jsonify(message=_('no result found'))
+	if selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		rs = []
+	else:
+		# TODO: run query, if no result found, notify user, otherwise save in cache
+		if not rs:
+			# raise InvalidUsage(_('no result found'))
+			return jsonify(message=_('no result found'))
 
 	SS.add(selection)
 	SS.flush()
@@ -1020,7 +1027,8 @@ def create_task_utterance_selection(taskId):
 		number=len(rs),
 		timestamp=selection.selected,
 		action=selection.action,
-		value=selection.subTaskId if selection.action == 'batch' else selection.name,
+		value=selection.subTaskId if selection.action in (m.UtteranceSelection.ACTION_BATCH,
+				m.UtteranceSelection.ACTION_RECURRING) else selection.name,
 		user=m.User.dump(selection.user),
 		link='???'
 	)
@@ -1033,6 +1041,8 @@ def create_task_utterance_selection(taskId):
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['POST'])
+@api
+@caps()
 def populate_task_utterance_selection(taskId, selectionId):
 	selection = m.UtteranceSelection.query.get(selectionId)
 	if not selection:
@@ -1049,10 +1059,13 @@ def populate_task_utterance_selection(taskId, selectionId):
 		raise InvalidUsage(_('utterance selection {0} does not belong to user {1}'
 			).format(selectionId, me.userId))
 
-	entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
-	if not entries:
-		raise InvalidUsage(_('utterance selection {0} is corrupted: selection is empty'
-			).format(selectionId))
+	if selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		entries = []
+	else:
+		entries = m.SelectionCacheEntry.query.filter_by(selectionId=selectionId).all()
+		if not entries:
+			raise InvalidUsage(_('utterance selection {0} is corrupted: selection is empty'
+				).format(selectionId))
 	rawPieceIds = [entry.rawPieceId for entry in entries]
 	itemCount = len(rawPieceIds)
 
@@ -1062,7 +1075,7 @@ def populate_task_utterance_selection(taskId, selectionId):
 		subTask = m.SubTask.query.get(selection.subTaskId)
 		if not subTask:
 			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} not found'
-				).format(selectionId, selection.subTaskId))
+				).format(selectionId, selection.subTaskId), 404)
 		if subTask.workType != m.WorkType.REWORK:
 			raise InvalidUsage(_('utterance selection {0} is corrupted: sub task {1} is not a {2} sub task'
 				).format(selectionId, selection.subTaskId, m.WorkType.REWORK))
@@ -1098,21 +1111,27 @@ def populate_task_utterance_selection(taskId, selectionId):
 
 		resp = dict(message=_('created custom utterance group \'{0}\' (#{1}) with {2} items'
 			).format(group.name, group.groupId, itemCount))
+	elif selection.action == m.UtteranceSelection.ACTION_RECURRING:
+		# do nothing
+		resp = dict(message=_('recurring utterance selection saved').format())
 	else:
 		raise InvalidUsage(_('unsupported action {0}').format(selection.action))
 
 	for entry in entries:
 		SS.delete(entry)
 
+	if selection.action != m.UtteranceSelection.ACTION_RECURRING:
+		selection.subTaskId = None
 	selection.processed = now
 	selection.action = None
 	selection.name = None
-	selection.subTaskId = None
 
 	return jsonify(resp)
 
 
 @bp.route(_name + '/<int:taskId>/selections/<int:selectionId>', methods=['DELETE'])
+@api
+@caps()
 def delete_task_utterance_selection(taskId, selectionId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1140,6 +1159,8 @@ def check_task_status_transition(data, key, newStatus, currentStatus):
 
 
 @bp.route(_name + '/<int:taskId>/status', methods=['PUT'])
+@api
+@caps()
 def update_task_status(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
@@ -1472,7 +1493,7 @@ def remove_task_supervisor(taskId, userId):
 def create_task_tag_set(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	tagSet = m.TagSet()
 	task.tagSet = tagSet
 	SS.flush()
@@ -1487,7 +1508,7 @@ def create_task_tag_set(taskId):
 def copy_task_tag_set(taskId, tagSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	srcTagSet = m.TagSet.query.get(tagSetId)
 	if not srcTagSet:
 		raise InvalidUsage(_('tag set {0} not found').format(tagSetId))
@@ -1510,7 +1531,7 @@ def copy_task_tag_set(taskId, tagSetId):
 def share_task_tag_set(taskId, tagSetId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	tagSet = m.TagSet.query.get(tagSetId)
 	if not tagSet:
 		raise InvalidUsage(_('tagSet {0} not found').format(tagSetId))
@@ -1539,7 +1560,7 @@ def get_task_custom_utterance_groups(taskId):
 def delete_custom_utterance_group(taskId, groupId):
 	task = m.Task.query.get(taskId)
 	if not task:
-		raise InvalidUsage(_('task {0} not found').format(taskId))
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
 	if task.status == m.Task.STATUS_ARCHIVED:
 		raise InvalidUsage(_('can\'t delete utterance groups from archived task'))
 	group = m.CustomUtteranceGroup.query.get(groupId)
@@ -1972,31 +1993,6 @@ def create_transition(task):
 	return jsonify(transition=Transition.dump(transition))
 
 
-@bp.route("tasks/<int:task_id>/config", methods=['PUT'])
-@api
-@get_model(Task)
-def update_task(task):
-
-	data = MyForm(
-		Field("config", normalizer=normalizers.to_json, validators=[
-			simple_validators.is_dict(),
-		]),
-		Field("loaderId", validators=[
-			simple_validators.is_number(),
-			m.Loader.check_exists,
-		])
-	).get_data()
-
-	if "config" in data:
-		task.config = data["config"]
-
-	if "loaderId" in data:
-		task.loaderId = data["loaderId"]
-
-	db.session.flush()
-	return jsonify(task=Task.dump(task))
-
-
 @bp.route("tasks/<int:task_id>/load-data", methods=["POST"])
 @api
 @get_model(Task)
@@ -2055,14 +2051,13 @@ def get_utt_duration_report(task):
 	raise InvalidUsage("report not available", 400)
 
 
-# TODO change to /audio-uploads/current
-@bp.route("tasks/<int:task_id>/upload-audio", methods=["POST"])
+@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["POST"])
 @api
 @get_model(Task)
 def start_audio_upload(task):
 
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
+		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
 
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
@@ -2083,14 +2078,13 @@ def start_audio_upload(task):
 	return jsonify(pid=data["pid"])
 
 
-# TODO change to /audio-uploads/current
-@bp.route("tasks/<int:task_id>/upload-audio", methods=["GET"])
+@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["GET"])
 @api
 @get_model(Task)
 def get_current_audio_upload(task):
 
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
+		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
 
 	# TODO add to Api cls
 	payload = {"appen_id": session["current_user"].appen_id}
@@ -2114,6 +2108,33 @@ def get_current_audio_upload(task):
 		return jsonify({"loadManager": None})
 
 	raise InvalidUsage("unable to retrieve load manager", 500)
+
+
+@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["DELETE"])
+@api
+@get_model(Task)
+def stop_audio_upload(task):
+
+	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
+		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
+
+	# TODO add to Api cls
+	payload = {"appen_id": session["current_user"].appen_id}
+	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
+	headers = {"X-Appen-Auth": token}
+
+	params = {
+		"gnxEnv": current_app.config["ENV"],
+	}
+	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
+
+	response = requests.delete(url, headers=headers, params=params)
+
+	if response.status_code != 200:
+		raise InvalidUsage("unable to stop audio load", 500)
+
+	data = response.json()
+	return jsonify(data)
 
 
 @bp.route("tasks/<int:task_id>/audio-uploads", methods=["GET"])
@@ -2143,4 +2164,44 @@ def save_audio_upload(task):
 
 	flag_modified(task, 'audioUploads')
 	db.session.commit()
+	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/loader", methods=["GET"])
+@api
+@get_model(Task)
+def get_task_loader(task):
+	data = (task.config or {}).get("loader", {})
+
+	if task.loader:
+		data.update({"name": task.loader.name})
+
+	return jsonify(loader=data)
+
+
+@bp.route("tasks/<int:task_id>/loader", methods=["PUT"])
+@api
+@get_model(Task)
+def update_task_loader(task):
+
+	loader_config = request.json
+	name = loader_config.get("name")
+
+	# check loader name
+	if name is None:
+		raise InvalidUsage("Loader name not provided")
+
+	# check valid loader
+	if not m.Loader.is_valid(task.task_type, name):
+		raise InvalidUsage("Loader {0} is not valid for {1} tasks".format(name, task.task_type))
+
+	# update loader
+	loader = m.Loader.query.filter_by(name=name).one()
+	task.loader = loader
+
+	# update loader config
+	del loader_config["name"]
+	task.update_config({"loader":loader_config})
+	db.session.commit()
+
 	return jsonify(success=True)

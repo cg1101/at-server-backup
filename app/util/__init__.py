@@ -1,4 +1,4 @@
-
+import os
 import random
 from collections import OrderedDict
 
@@ -12,7 +12,7 @@ from .converter import Converter
 from .extractor import Extractor
 from .selector  import Selector
 from .filehandler import get_handler
-from .agent import tiger, go, edm, pdb
+from .agent import tiger, go, edm
 from .logistics import logistics
 
 def split_by_size(seq, size):
@@ -47,6 +47,11 @@ class _batcher(object):
 		# custom
 		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:
 			raise NotImplementedError #TODO
+
+		# folder
+		elif subTask.batchingMode == BatchingMode.FOLDER:
+			key_gen = lambda index, raw_piece: os.path.dirname(raw_piece.data["filePath"])
+			order_by = lambda raw_piece: (raw_piece.data["filePath"], raw_piece.data.get("startAt"))
 
 		# unknown
 		else:

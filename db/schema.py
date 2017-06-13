@@ -638,6 +638,8 @@ t_utteranceselections =  Table('utteranceselections', metadata,
 	Column(u'name', TEXT, key=u'name', doc=''),
 	Column(u'processed', TIMESTAMP(timezone=True), key=u'processed', doc=''),
 	Column(u'random', BOOLEAN, server_default=text(u'false'), key=u'random', doc=''),
+	Column(u'recurring', BOOLEAN, server_default=text(u'false'), key='recurring', doc=''),
+	Column(u'enabled', BOOLEAN, server_default=text(u'true'), key='enabled', doc=''),
 	ForeignKeyConstraint([u'userId'], [u'users.userId']),
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 	ForeignKeyConstraint([u'subTaskId'], [u'subtasks.subTaskId']),
@@ -1585,6 +1587,18 @@ t_performance_transition_log = Table("performance_transition_log", metadata,
 	ForeignKeyConstraint(["changeMethodId"], ["audio_checking_change_methods.changeMethodId"]),
 )
 Index("performance_transition_log_by_rawpieceid", t_performance_transition_log.c.rawPieceId, unique=False)
+
+t_api_access_pairs = Table("api_access_pairs", metadata,
+	Column("api_access_pair_id", Integer, primary_key=True, key="apiAccessPairId"),
+	Column("key", String(30), nullable=False),
+	Column("secret", String(30), nullable=False),
+	Column("description", Text, nullable=False),
+	Column("userid", INTEGER, key="userId", doc=""),
+	Column("enabled", BOOLEAN, nullable=False, default=True),
+	Column("created_at", DateTime, nullable=False, server_default=text("now()"), key="createdAt"),
+	UniqueConstraint("key", "secret"),
+	ForeignKeyConstraint(["userId"], ["users.userId"]),
+)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(

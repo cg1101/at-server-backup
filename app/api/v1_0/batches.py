@@ -67,8 +67,8 @@ def assign_batch_to_user(batchId, userId):
 					).format(userId, batch.subTaskId))
 
 	# TODO: change time from naive to timezone aware
-	#batch.leaseGranted = datetime.utcnow().replace(tzinfo=pytz.utc)
-	batch.leaseGranted = datetime.now()
+	batch.leaseGranted = datetime.utcnow().replace(tzinfo=pytz.utc)
+	# batch.leaseGranted = datetime.now()
 	batch.leaseExpires = batch.leaseGranted + batch.subTask.defaultLeaseLife
 	batch.user = user
 	SS.flush()
