@@ -1959,6 +1959,15 @@ class Task(Base, ModelMixin):
 		self.config = config
 		flag_modified(self, "config")
 
+	def update_stats(self, updates):
+		"""
+		Updates the task stats field.
+		"""
+		stats = self.stats or {}
+		stats.update(updates)
+		self.stats = stats
+		flag_modified(self, "stats")
+
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')

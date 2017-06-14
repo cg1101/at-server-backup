@@ -103,11 +103,14 @@ class ReportWorker(object):
 		Returns the utterance duration stats
 		for a transcription task.
 		"""
+		log.info("generating utt duration stats for: {0}".format(self.task.task_id))
+
 		data = {}
 		overall_durations = []
 		transcribed_durations = []
 		untranscribed_durations = []
 
+		log.debug("# raw pieces: {0}".format(len(self.task.raw_pieces)))
 		for utt in self.task.raw_pieces:
 			start_at = utt.data.get("startAt")
 			end_at = utt.data.get("endAt")
@@ -137,6 +140,10 @@ class ReportWorker(object):
 			else:
 				transcribed_durations.append(duration)
 
+		log.debug("# overall: {0}".format(len(overall_durations)))
+		log.debug("# untranscribed: {0}".format(len(untranscribed_durations)))
+		log.debug("# transcribed: {0}".format(len(transcribed_durations)))
+		
 		# order durations for analysis
 		overall_durations.sort()
 		untranscribed_durations.sort()
@@ -151,6 +158,7 @@ class ReportWorker(object):
 
 		# calculate stats for each section
 		for key, durations in sections:
+			log.info("calculating stats for {0}".format(key))
 			section_data = {}
 
 			section_data["count"] = len(durations)
@@ -164,7 +172,8 @@ class ReportWorker(object):
 				section_data["distribution"] = self.get_utt_duration_distribution(durations)
 
 			data[key] = section_data
-
+		
+		log.debug("report data: {0}".format(data))
 		return data
 
 	def get_utt_duration_distribution(self, durations):
@@ -216,7 +225,7 @@ class ReportWorker(object):
 		# utt duration stats
 		if self.task.is_type(TaskType.TRANSCRIPTION):
 			utt_duration_stats = self.get_utt_duration_stats()
-			self.add_task_stats("uttDurationReport", utt_duration_stats)
+			self.task.update_stats({"uttDurationReport": utt_duration_stats})
 
 		if not self.per_user:
 			return
