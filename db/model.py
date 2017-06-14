@@ -519,6 +519,7 @@ class Batch(Base):
 		self.leaseGranted = None
 		self.leaseExpires = None
 		self.checkedOut = False
+		self.set_progress(None)
 
 	def increase_priority(self, increase_by=1):
 		self.priority += increase_by
@@ -569,6 +570,11 @@ class Batch(Base):
 			db.session.delete(p)
 		db.session.delete(self)
 
+	def set_progress(self, progress):
+		self.progress = progress
+		flag_modified(self, "progress")
+
+
 class BatchSchema(Schema):
 	user = fields.Method('get_user')
 	def get_user(self, obj):
@@ -606,7 +612,7 @@ class BatchSchema(Schema):
 			'user', 'priority', 'onHold', 'leaseGranted', 'leaseExpires',
 			'notUserId', 'qaedUserName', 'workIntervalId',
 			'qaedInterval', 'checkedOut', 'name', 'itemCount',
-			'unitCount', "info")
+			'unitCount', "info", "progress")
 		# ordered = True
 
 class Batch_FullSchema(BatchSchema):
@@ -616,7 +622,8 @@ class Batch_FullSchema(BatchSchema):
 	class Meta:
 		fields = ('batchId', 'taskId', 'subTaskId', 'userId', 'userName', 'user',
 			'priority', 'onHold', 'leaseGranted', 'leaseExpires', 'notUserId',
-			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount', 'pages')
+			'workIntervalId', 'checkedOut', 'name', 'itemCount', 'unitCount', 'pages',
+			"info", "progress")
 
 class Batch_BriefSchema(Schema):
 	priority = fields.Integer()

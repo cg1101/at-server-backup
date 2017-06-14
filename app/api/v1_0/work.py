@@ -11,6 +11,7 @@ from db.model import (
 	AudioCheckingChangeMethod,
 	AudioCheckingGroup,
 	AudioCheckingSection,
+	Batch,
 	CorpusCode,
 	Performance,
 	PerformanceMetaCategory,
@@ -24,7 +25,7 @@ from db.model import (
 from db.schema import t_batchhistory
 from db.db import SS
 from db import database as db
-from app.api import api, caps, MyForm, Field, simple_validators, validators
+from app.api import api, caps, get_model, MyForm, Field, simple_validators, validators
 from app.i18n import get_text as _
 from lib import utcnow
 from lib.metadata_validation import process_received_metadata, resolve_new_metadata
@@ -159,7 +160,6 @@ def load_batch_context(batchId):
 		batch_context.update({
 			"audioCheckingGroups": AudioCheckingGroup.dump(performance.recording_platform.audio_checking_groups),
 			"audioCheckingSections": AudioCheckingSection.dump(performance.recording_platform.audio_checking_sections),
-			"included": CorpusCode.dump([corpus_code for corpus_code in performance.recording_platform.spontaneous_corpus_codes if corpus_code.included]),
 			"metaCategories": PerformanceMetaCategory.dump(performance.recording_platform.performance_meta_categories),
 			"metaValues": PerformanceMetaValue.dump(performance.meta_values),
 			"performance": Performance.dump(performance),
@@ -488,3 +488,20 @@ def start_or_resume_test(testId):
 
 	return jsonify(sheetId=sheet.sheetId)
 
+
+@bp.route("work/do/<int:batch_id>/progress", methods=["POST"])
+@api
+@get_model(Batch)
+def save_batch_progress(batch):
+
+	me = session["current_user"]
+	
+	if batch.user_id != me.user_id:
+		raise InvalidUsage("You are not the owner of this batch")
+	
+	if batch.isExpired:
+		raise InvalidUsage("This batch has expired")
+	
+	batch.set_progress(request.json)
+	db.session.flush()
+	return jsonify(success=True)
