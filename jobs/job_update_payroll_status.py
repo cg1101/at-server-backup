@@ -123,6 +123,11 @@ class SubTaskHelper(object):
 					raise
 				totalAmount *= ratio
 
+			user = m.User.query.get(userId)
+			if user.paymentType in (#m.User.PAYMENT_TYPE_CLIENT,
+					m.User.PAYMENT_TYPE_INTERVAL,):
+				totalAmount = 0
+
 			cp = m.CalculatedPayment(payrollId=payrollId,
 				workIntervalId=interval.workIntervalId,
 				userId=userId,

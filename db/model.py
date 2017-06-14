@@ -2038,6 +2038,11 @@ class TrackingEventSchema(Schema):
 
 # User
 class User(Base):
+	PAYMENT_TYPE_INDEPENDENT_CONTRACTOR = 0
+	PAYMENT_TYPE_W2_WORKER = 1
+	PAYMENT_TYPE_CLIENT = 2
+	PAYMENT_TYPE_INTERNAL = 3
+
 	__table__ = t_users
 
 	# synonyms
