@@ -308,6 +308,7 @@ t_users =  Table('users', metadata,
 	Column('familyname', TEXT, key=u'familyName', doc=''),
 	Column('givenname', TEXT, key=u'givenName', doc=''),
 	Column('countryid', INTEGER, nullable=True, key=u'countryId', doc=''), # TODO: change nullable to FALSE
+	Column('workerpaymenttype', INTEGER, nullable=False, server_default=text('0'), key=u'paymentType', doc=''),
 	UniqueConstraint(u'emailAddress'),
 	ForeignKeyConstraint([u'countryId'], [u'countries.countryId']),
 )
