@@ -1,14 +1,14 @@
 """added batch progress
 
 Revision ID: 808403cc111d
-Revises: 922592ec6793
+Revises: 47413d4bbeae
 Create Date: 2017-06-13 15:08:53.452472
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '808403cc111d'
-down_revision = '922592ec6793'
+down_revision = '47413d4bbeae'
 branch_labels = None
 depends_on = None
 
