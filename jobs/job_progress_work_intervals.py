@@ -20,9 +20,9 @@ def progress_work_intervals(task=None):
 	if task is not None:
 		q = q.filter(m.WorkInterval.taskId==task.taskId)
 	for wi in q.all():
-		if SS.query(m.Batch.batchId).\
-				filter(m.Batch.workIntervalId==wi.workIntervalId).\
-				count() == 0:
+		if SS.query(m.Batch.batchId
+				).filter(m.Batch.workIntervalId==wi.workIntervalId
+				).count() == 0:
 			wi.status = m.WorkInterval.STATUS_FINISHED
 
 

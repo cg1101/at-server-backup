@@ -21,31 +21,33 @@ class SubTaskHelper(object):
 		self.worker_by_id = {}
 		for i in m.TaskWorker.query.filter(m.TaskWorker.subTaskId==subTaskId).all():
 			self.worker_by_id[i.userId] = i
-		self.pay_rate_history = m.SubTaskRate.query.\
-			filter(m.SubTaskRate.subTaskId==subTaskId).\
-			order_by(m.SubTaskRate.validFrom.desc()).all()
+		self.pay_rate_history = m.SubTaskRate.query.filter(
+			m.SubTaskRate.subTaskId==subTaskId
+			).order_by(m.SubTaskRate.validFrom.desc()
+			).all()
 	def load_unpaid_events(self):
 		# TODO: load words in this query
 		subTaskId = self.subTask.subTaskId
-		unpaid_events = m.PayableEvent.query.\
-			filter(m.PayableEvent.subTaskId==subTaskId).\
-			filter(m.PayableEvent.calculatedPaymentId==None).\
-			filter(m.PayableEvent.batchId.notin_(
-				SS.query(m.Batch.batchId).\
-				filter(m.Batch.subTaskId==subTaskId))).\
-			all()
+		unpaid_events = m.PayableEvent.query.filter(
+			m.PayableEvent.subTaskId==subTaskId
+			).filter(m.PayableEvent.calculatedPaymentId==None
+			).filter(m.PayableEvent.batchId.notin_(
+				SS.query(m.Batch.batchId
+					).filter(m.Batch.subTaskId==subTaskId))
+			).all()
 		return unpaid_events
 	def get_interval(self, moment):
 		intervals = self.subTask.workIntervals
 		if not len(intervals):
-			raise RuntimeError('work interals not found for sub task {0}'.\
-					format(self.subTask.subTaskId))
+			raise RuntimeError(
+					'work interals not found for sub task {0}'.format(
+						self.subTask.subTaskId))
 		if moment < intervals[0].startTime:
 			raise RuntimeError('earlier than the first work interval')
 		for next_interval in intervals:
-			if moment >= next_interval.startTime and\
-				(next_interval.endTime is None or\
-					moment < next_interval.endTime):
+			if (moment >= next_interval.startTime and
+					(next_interval.endTime is None or
+					moment < next_interval.endTime)):
 				return next_interval
 		raise RuntimeError('later than the last work interval')
 	def iter_unpaid_events_by_interval(self):
@@ -103,9 +105,9 @@ class SubTaskHelper(object):
 					continue
 				units = self.get_units(event.rawPieceId, event.workEntryId)
 				unitCount += units
-				full_amount = (units if self.subTask.payByUnit else 1) *\
-					rate.multiplier *\
-					paymentFactor
+				full_amount = ((units if self.subTask.payByUnit else 1) *
+					rate.multiplier *
+					paymentFactor)
 				real_amount = self.adjust_by_accuracy(rate, qa['accuracy'], full_amount)
 				totalAmount += real_amount
 

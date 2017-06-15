@@ -47,12 +47,12 @@ class RegularCounter(object):
 		self.abnormalTagUsage = {}
 	@property
 	def workRate(self):
-		return self.itemCount * 4 / len(self.timeSlots)\
-			if self.itemCount else None
+		return (self.itemCount * 4 / len(self.timeSlots)
+			if self.itemCount else None)
 	@property
 	def accuracy(self):
-		return self.totalQaScore / self.qaedItemCount\
-			if self.qaedItemCount != 0 else None
+		return (self.totalQaScore / self.qaedItemCount
+			if self.qaedItemCount != 0 else None)
 	def __str__(self):
 		return repr(dict(itemCount=self.itemCount,
 			unitCount=self.unitCount,
@@ -63,48 +63,51 @@ class RegularCounter(object):
 			usedTags=self.usedTags,
 			usedLabels=self.usedLabels,
 			timeSlots=self.timeSlots))
-	def __call__(self, time_slot_key, units, tags, labels, is_qaed, qa_score, errors):
+	def __call__(self, time_slot_key, units, tags, labels, is_qaed,
+			qa_score, errors):
 		# use separate parameters to make testing easier
 		self.itemCount += 1
 		self.unitCount += units
-		self.timeSlots[time_slot_key] =\
-			self.timeSlots.setdefault(time_slot_key, 0) + 1
+		self.timeSlots[time_slot_key] = self.timeSlots.setdefault(
+				time_slot_key, 0) + 1
 		if is_qaed:
 			self.qaedItemCount += 1
 			self.qaedUnitCount += units
 			self.totalQaScore += qa_score
 			for errorTypeId in errors:
-				self.flaggedErrors[errorTypeId] =\
-					self.flaggedErrors.setdefault(errorTypeId, 0) + 1
+				self.flaggedErrors[errorTypeId] = (
+					self.flaggedErrors.setdefault(errorTypeId, 0) + 1)
 		for tagId in tags:
-			self.usedTags[tagId] =\
-				self.usedTags.setdefault(tagId, 0) + 1
+			self.usedTags[tagId] = (
+				self.usedTags.setdefault(tagId, 0) + 1)
 		for labelId in labels:
-			self.usedLabels[labelId] =\
-				self.usedLabels.setdefault(labelId, 0) + 1
+			self.usedLabels[labelId] = (
+				self.usedLabels.setdefault(labelId, 0) + 1)
 	def get_tag_rate(self, tagId):
-		return self.usedTags.get(tagId, 0) / self.itemCount\
-			if self.itemCount else None
+		return (self.usedTags.get(tagId, 0) / self.itemCount
+			if self.itemCount else None)
 	def get_label_rate(self, labelId):
-		return self.usedLabels.get(labelId, 0) / self.itemCount\
-			if self.itemCount else None
+		return (self.usedLabels.get(labelId, 0) / self.itemCount
+			if self.itemCount else None)
 	def check_abnormal_usage(self, refTagUsage, refLabelUsage):
 		self.abnormalLabelUsage.clear()
 		self.abnormalTagUsage.clear()
 		for tagId, stat in refTagUsage.iteritems():
 			value = self.get_tag_rate(tagId)
-			degree = round((value - stat['mean']) / stat['std'])\
-				if stat['std'] else 0
+			degree = (round((value - stat['mean']) / stat['std'])
+				if stat['std'] else 0)
 			if abs(degree) > self.THRESHOLD:
-				degree = self.THRESHOLD if value > stat['mean'] else -self.THRESHOLD
+				degree = (self.THRESHOLD if value > stat['mean']
+					else -self.THRESHOLD)
 			if degree:
 				self.abnormalTagUsage[tagId] = degree
 		for labelId, stat in refLabelUsage.iteritems():
 			value = self.get_label_rate(labelId)
-			degree = round((value - stat['mean']) / stat['std'])\
-				if stat['std'] else 0
+			degree = (round((value - stat['mean']) / stat['std'])
+				if stat['std'] else 0)
 			if abs(degree) > self.THRESHOLD:
-				degree = self.THRESHOLD if value > stat['mean'] else -self.THRESHOLD
+				degree = (self.THRESHOLD if value > stat['mean']
+					else -self.THRESHOLD)
 			if degree:
 				self.abnormalLabelUsage[labelId] = degree
 
@@ -176,8 +179,9 @@ class SubTaskStatistician(object):
 		self.task = subTask.task
 		self.workIntervals = subTask.workIntervals
 		if not len(self.workIntervals):
-			raise RuntimeError('no work interals found for sub task {0}'.\
-					format(self.subTaskId))
+			raise RuntimeError(
+					'no work interals found for sub task {0}'.format(
+					self.subTaskId))
 		self.per_user_per_day = {}
 		self.per_user_per_interval = {}
 		self.per_user = {}
@@ -186,26 +190,26 @@ class SubTaskStatistician(object):
 		if moment < self.workIntervals[0].startTime:
 			raise RuntimeError('earlier than first work interval')
 		for next_interval in self.workIntervals:
-			if moment >= next_interval.startTime and\
-				(next_interval.endTime is None or\
-					moment < next_interval.endTime):
+			if (moment >= next_interval.startTime and
+					(next_interval.endTime is None or
+					moment < next_interval.endTime)):
 				return next_interval
 		raise RuntimeError('later than last work interval')
 	def iter_work_entries(self):
-		entries = m.WorkEntry.query.\
-				filter(m.WorkEntry.subTaskId==self.subTask.subTaskId).\
-				distinct(m.WorkEntry.batchId, m.WorkEntry.pageId,\
-					m.WorkEntry.rawPieceId).\
-				order_by(m.WorkEntry.batchId, m.WorkEntry.pageId,\
-					m.WorkEntry.rawPieceId,\
-					m.WorkEntry.created.desc()).\
-				all()
+		entries = m.WorkEntry.query.filter(
+			m.WorkEntry.subTaskId==self.subTask.subTaskId
+			).distinct(m.WorkEntry.batchId, m.WorkEntry.pageId,
+					m.WorkEntry.rawPieceId
+			).order_by(m.WorkEntry.batchId, m.WorkEntry.pageId,
+					m.WorkEntry.rawPieceId,
+					m.WorkEntry.created.desc()
+			).all()
 		for entry in entries:
 			if entry.workType in (m.WorkType.WORK, m.WorkType.REWORK):
-				qa_record = m.QaTypeEntry.query.\
-					filter(m.QaTypeEntry.qaedEntryId==entry.entryId).\
-					order_by(m.QaTypeEntry.created.desc()).\
-					first()
+				qa_record = m.QaTypeEntry.query.filter(
+					m.QaTypeEntry.qaedEntryId==entry.entryId
+					).order_by(m.QaTypeEntry.created.desc()
+					).first()
 			else:
 				qa_record = None
 			yield (entry, qa_record)
@@ -248,12 +252,11 @@ class SubTaskStatistician(object):
  			#
 			self.per_user_per_interval.setdefault(
 				(None, userId, workInterval.workIntervalId),
-				RegularCounter())\
-			(time_slot_key, units, tags, labels, is_qaed, qa_score, errors)
+				RegularCounter()
+				)(time_slot_key, units, tags, labels, is_qaed, qa_score, errors)
 	def generate_subtotals(self):
 		by_user = {}
-		for (_, userId, workIntervalId), counter in\
-				self.per_user_per_interval.iteritems():
+		for (_, userId, workIntervalId), counter in self.per_user_per_interval.iteritems():
 			by_user.setdefault((self.subTask.subTaskId, userId, None),
 				[]).append(counter)
 
@@ -266,10 +269,9 @@ class SubTaskStatistician(object):
 		self.sub_task_stats = SubtotalCounter(user_subtotals)
 	def save_stats(self):
 		# update dailysubtasktotals
-		SS.bind.execute(m.DailySubtotal.__table__.\
-				delete(m.DailySubtotal.subTaskId==self.subTask.subTaskId))
-		for (subTaskId, userId, workDate), c in\
-				self.per_user_per_day.iteritems():
+		SS.bind.execute(m.DailySubtotal.__table__.delete(
+			m.DailySubtotal.subTaskId==self.subTask.subTaskId))
+		for (subTaskId, userId, workDate), c in self.per_user_per_day.iteritems():
 			entry = m.DailySubtotal(subTaskId=subTaskId, userId=userId,
 				totalDate=workDate, amount=c.itemCount, words=c.unitCount)
 			SS.add(entry)
