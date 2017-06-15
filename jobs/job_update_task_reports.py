@@ -143,7 +143,7 @@ class ReportWorker(object):
 		log.debug("# overall: {0}".format(len(overall_durations)))
 		log.debug("# untranscribed: {0}".format(len(untranscribed_durations)))
 		log.debug("# transcribed: {0}".format(len(transcribed_durations)))
-		
+
 		# order durations for analysis
 		overall_durations.sort()
 		untranscribed_durations.sort()
@@ -172,7 +172,7 @@ class ReportWorker(object):
 				section_data["distribution"] = self.get_utt_duration_distribution(durations)
 
 			data[key] = section_data
-		
+
 		log.debug("report data: {0}".format(data))
 		return data
 

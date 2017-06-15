@@ -495,13 +495,13 @@ def start_or_resume_test(testId):
 def save_batch_progress(batch):
 
 	me = session["current_user"]
-	
+
 	if batch.user_id != me.user_id:
 		raise InvalidUsage("You are not the owner of this batch")
-	
+
 	if batch.isExpired:
 		raise InvalidUsage("This batch has expired")
-	
+
 	batch.set_progress(request.json)
 	db.session.flush()
 	return jsonify(success=True)
