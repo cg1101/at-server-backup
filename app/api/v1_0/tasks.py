@@ -2059,23 +2059,8 @@ def start_audio_upload(task):
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
 
-	# TODO add to Api cls
-	payload = {"appen_id": session["current_user"].appen_id}
-	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
-	headers = {"X-Appen-Auth": token}
-
-	data = {
-		"gnxEnv": current_app.config["ENV"],
-	}
-	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-
-	response = requests.post(url, headers=headers, json=data)
-
-	if response.status_code != 200:
-		raise InvalidUsage("unable to start audio load", 500)
-
-	data = response.json()
-	return jsonify(pid=data["pid"])
+	pid = audio_server.api.start_load(task.task_id, current_app.config["ENV"])
+	return jsonify(pid=pid)
 
 
 @bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["GET"])
@@ -2086,28 +2071,18 @@ def get_current_audio_upload(task):
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
 
-	# TODO add to Api cls
-	payload = {"appen_id": session["current_user"].appen_id}
-	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
-	headers = {"X-Appen-Auth": token}
+	try:
+		load_manager = audio_server.api.get_load(task.task_id, current_app.config["ENV"])
 
-	params = {
-		"gnxEnv": current_app.config["ENV"],
-	}
-	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
+	except requests.exceptions.HTTPError, e:
 
-	response = requests.get(url, params=params, headers=headers)
+		# this means that no load has been made for the task yet
+		if e.response.status_code != 404:
+			raise
 
-	if response.status_code == 200:
-		data = response.json()
-		return jsonify({
-			"loadManager": data["loadManager"]
-		})
-
-	if response.status_code == 404:
-		return jsonify({"loadManager": None})
-
-	raise InvalidUsage("unable to retrieve load manager", 500)
+		load_manager = None
+	
+	return jsonify({"loadManager": load_manager})
 
 
 @bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["DELETE"])
@@ -2118,23 +2093,8 @@ def stop_audio_upload(task):
 	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
 		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
 
-	# TODO add to Api cls
-	payload = {"appen_id": session["current_user"].appen_id}
-	token = jwt.encode(payload, current_app.config["APPEN_API_SECRET_KEY"], algorithm='HS256')
-	headers = {"X-Appen-Auth": token}
-
-	params = {
-		"gnxEnv": current_app.config["ENV"],
-	}
-	url = os.path.join(audio_server.api.API_BASE_URL, "gnx/load/{0}".format(task.task_id))
-
-	response = requests.delete(url, headers=headers, params=params)
-
-	if response.status_code != 200:
-		raise InvalidUsage("unable to stop audio load", 500)
-
-	data = response.json()
-	return jsonify(data)
+	load_manager = audio_server.api.stop_load(task.task_id, current_app.config["ENV"])
+	return jsonify({"loadManager": load_manager})
 
 
 @bp.route("tasks/<int:task_id>/audio-uploads", methods=["GET"])

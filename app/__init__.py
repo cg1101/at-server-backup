@@ -21,13 +21,13 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
-from LRUtilities.FlaskPlugins import AudioServer, GnxPdb
+from LRUtilities.FlaskPlugins import GnxAudioServer, GnxPdb
 from LRUtilities.Misc import since_epoch
 
 
 class AuthError(Exception): pass
 
-audio_server = AudioServer()
+audio_server = GnxAudioServer()
 pdb = GnxPdb()
 
 
@@ -36,7 +36,7 @@ def create_app(config_name):
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
 	db.init_app(app)
-	audio_server.init_app(app)
+	audio_server.init_app(app, lambda: create_access_token(int(app.config["ADMIN_APPEN_ID"])))
 	pdb.init_app(app, lambda: create_access_token(int(app.config["ADMIN_APPEN_ID"])))
 	CORS(app, resources={'/api/1.0/*': {'origins': '*'}})
 
