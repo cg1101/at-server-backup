@@ -27,29 +27,52 @@ def load_qa_failed(task):
 				'dest': reworkSubTask,
 				'threshold': s.qaConfig.accuracyThreshold
 			}
-	#
-	# for each QA sub task referenced in work_plan, check its content
-	# if a qaedEntry is done in source sub task, and fails qa, then
-	# group its raw piece into target rework sub task
-	#
-	#print 'work_plan', work_plan
+
+	subTaskIds = [s.subTaskId for s in SS.query(m.SubTask.subTaskId
+		).join(m.WorkType, m.SubTask.workTypeId==m.WorkType.workTypeId
+		).filter(m.WorkType.modifiesTranscription
+		).filter(m.Task.taskId==task.taskId)]
+
+	q_latest = m.WorkEntry.query.filter(m.WorkEntry.taskId==task.taskId
+		).filter(m.WorkEntry.subTaskId.in_(subTaskIds)
+		).distinct(m.WorkEntry.rawPieceId
+		).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
+
+	currently_batched = {}
+	for r in m.PageMember.query.filter(
+			m.PageMember.taskId==task.taskId).filter(m.PageMember.workType==m.WorkType.REWORK
+			).all():
+		currently_batched.setdefault(r.subTaskId, set()).add(r.rawPieceId)
+
 	group_plan = {}
-	for qaSubTaskId, rec in work_plan.iteritems():
-		q = m.QaTypeEntry.query.filter(m.QaTypeEntry.subTaskId==qaSubTaskId
-			).distinct(m.QaTypeEntry.batchId, m.QaTypeEntry.qaedEntryId
-			).order_by(m.QaTypeEntry.batchId, m.QaTypeEntry.qaedEntryId,
-				m.QaTypeEntry.created.desc())
-		for entry in q.all():
-			qaedEntry = m.WorkEntry.query.get(entry.qaedEntryId)
-			# if qaedEntry was done in other sub tasks, do nothing
-			if qaedEntry.subTaskId not in rec:
-				continue
-			# else check qa score
-			cfg = rec[qaedEntry.subTaskId]
-			if entry.qaScore < cfg['threshold']:
-				group_plan.setdefault(cfg['dest'], {}
-					).setdefault(qaedEntry.userId, []
-					).append(qaedEntry)
+	for entry in q_latest.all():
+		log.debug('checking raw piece {}, entry {}'.format(entry.rawPieceId, entry.entryId))
+		qa_record = m.QaTypeEntry.query.filter(m.QaTypeEntry.qaedEntryId==entry.entryId
+			).distinct(m.QaTypeEntry.qaedEntryId
+			).order_by(m.QaTypeEntry.qaedEntryId, m.QaTypeEntry.created.desc()
+			).all()
+		if qa_record:
+			qa_record = qa_record[0]
+		else:
+			log.debug('entry {} not qaed'.format(entry.entryId))
+			continue
+		rec = work_plan.get(qa_record.subTaskId, None)
+		if not rec:
+			log.debug('no auto-population configure for qa sub task {}'.format(qa_record.subTaskId))
+			continue
+		if entry.subTaskId not in rec:
+			log.debug('sub task not configured for auto-population: {}'.format(entry.subTaskId))
+			continue
+		cfg = rec[entry.subTaskId]
+		if qa_record.qaScore >= cfg['threshold']:
+			log.debug('qa score passed')
+			continue
+		reworkSubTask = cfg['dest']
+		if entry.rawPieceId in currently_batched[reworkSubTask.subTaskId]:
+			log.debug('already batched in sub task {}'.format(reworkSubTask.subTaskId))
+			continue
+		group_plan.setdefault(cfg['dest'], {}).setdefault(entry.userId, []).append(entry)
+
 	#print 'group_plan', group_plan
 	for reworkSubTask, workEntriesByUserId in group_plan.iteritems():
 		for userId, entries in workEntriesByUserId.iteritems():
