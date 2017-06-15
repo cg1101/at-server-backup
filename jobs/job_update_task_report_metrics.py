@@ -84,10 +84,10 @@ class RegularCounter(object):
 			self.usedLabels[labelId] = (
 				self.usedLabels.setdefault(labelId, 0) + 1)
 	def get_tag_rate(self, tagId):
-		return (self.usedTags.get(tagId, 0) / self.itemCount
+		return (float(self.usedTags.get(tagId, 0)) / self.itemCount
 			if self.itemCount else None)
 	def get_label_rate(self, labelId):
-		return (self.usedLabels.get(labelId, 0) / self.itemCount
+		return (float(self.usedLabels.get(labelId, 0)) / self.itemCount
 			if self.itemCount else None)
 	def check_abnormal_usage(self, refTagUsage, refLabelUsage):
 		self.abnormalLabelUsage.clear()
