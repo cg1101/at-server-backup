@@ -49,3 +49,4 @@ import users
 
 # workflow control apis
 import work
+import workentries

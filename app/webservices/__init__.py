@@ -1,9 +1,14 @@
 
+import logging
+import cStringIO
+import traceback
 from functools import wraps
 
 from flask import Blueprint, render_template, make_response
 
 from app.api import InvalidUsage
+
+log = logging.getLogger(__name__)
 
 
 webservices = Blueprint('webservices', __name__, template_folder='./xml')
@@ -22,6 +27,9 @@ def ws(template_xml):
 				template = 'error.xml'
 				status_code = 400
 			except Exception, e:
+				out = cStringIO.StringIO()
+				traceback.print_exc(file=out)
+				log.error(out.getvalue())
 				result = dict(error=str(e))
 				template = 'error.xml'
 				status_code = 500

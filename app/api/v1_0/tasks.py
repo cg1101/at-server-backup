@@ -2081,7 +2081,7 @@ def get_current_audio_upload(task):
 			raise
 
 		load_manager = None
-	
+
 	return jsonify({"loadManager": load_manager})
 
 

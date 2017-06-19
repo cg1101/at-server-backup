@@ -39,23 +39,23 @@ class QaGenerator(object):
 			samples = 0
 		return int(samples)
 	def iter_intervals(self, subTaskId):
-		q_target_intervals = m.WorkInterval.query.\
-			filter(m.WorkInterval.subTaskId==subTaskId).\
-			filter(m.WorkInterval.status.in_([
+		q_target_intervals = m.WorkInterval.query.filter(
+			m.WorkInterval.subTaskId==subTaskId
+			).filter(m.WorkInterval.status.in_([
 				m.WorkInterval.STATUS_CURRENT,
 				m.WorkInterval.STATUS_ADDING_FINAL_CHECKS]))
 		for interval in q_target_intervals.all():
 			print 'find interval {}'.format(interval.workIntervalId)
 			yield interval
 	def iter_user_work_pool(self, subTask, interval):
-		q_entries = SS.query(m.WorkEntry.entryId, m.WorkEntry.userId).\
-			filter(m.WorkEntry.subTaskId==subTask.subTaskId).\
-			filter(m.WorkEntry.batchId.notin_(
+		q_entries = SS.query(m.WorkEntry.entryId, m.WorkEntry.userId
+			).filter(m.WorkEntry.subTaskId==subTask.subTaskId
+			).filter(m.WorkEntry.batchId.notin_(
 				SS.query(m.Batch.batchId).filter(
-					m.Batch.subTaskId==subTask.subTaskId))).\
-			filter(m.WorkEntry.created>=interval.startTime).\
-			distinct(m.WorkEntry.userId, m.WorkEntry.rawPieceId).\
-			order_by(m.WorkEntry.userId, m.WorkEntry.rawPieceId,\
+					m.Batch.subTaskId==subTask.subTaskId))
+			).filter(m.WorkEntry.created>=interval.startTime
+			).distinct(m.WorkEntry.userId, m.WorkEntry.rawPieceId
+			).order_by(m.WorkEntry.userId, m.WorkEntry.rawPieceId,
 					m.WorkEntry.created.desc())
 		if interval.endTime:
 			q_entries = q_entries.filter(m.WorkEntry.created<=interval.endTime)
@@ -70,7 +70,7 @@ class QaGenerator(object):
 		sampling_error = subTask.qaConfig.samplingError
 		estimated_accuracy = subTask.qaConfig.defaultExpectedAccuracy
 		confidence_interval = subTask.qaConfig.confidenceInterval
-		samples_needed = self.get_sample_set_size(population,\
+		samples_needed = self.get_sample_set_size(population,
  			sampling_error, estimated_accuracy, confidence_interval)
 
 		# entries which QA has been planned
@@ -80,9 +80,9 @@ class QaGenerator(object):
 			).distinct(m.PageMember.workEntryId)
 
 		# entries that have been QA already
-		q_qaed = SS.query(m.WorkEntry.qaedEntryId).\
-			filter(m.WorkEntry.taskId==subTask.taskId).\
-			distinct(m.WorkEntry.qaedEntryId)
+		q_qaed = SS.query(m.WorkEntry.qaedEntryId
+			).filter(m.WorkEntry.taskId==subTask.taskId
+			).distinct(m.WorkEntry.qaedEntryId)
 
 		all_planned = set([i.workEntryId for i in q_planned.all()])
 		all_qaed = set([i.qaedEntryId for i in q_qaed.all()])

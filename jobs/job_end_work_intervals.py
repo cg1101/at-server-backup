@@ -20,7 +20,7 @@ def end_work_intervals(task=None):
 		q = q.filter(m.WorkInterval.taskId==task.taskId)
 
 	now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-	endTime = datetime.datetime(now.year, now.month, now.day,\
+	endTime = datetime.datetime(now.year, now.month, now.day,
 			23, 59, 59, 999999, tzinfo=pytz.utc)
 
 	for wi in q.all():
