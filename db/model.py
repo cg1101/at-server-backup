@@ -1973,14 +1973,21 @@ class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
 	labelSet = fields.Nested('LabelSetSchema')
 	migratedBy = fields.Method('get_migrated_by')
+	display_name = fields.Method("get_display_name", dump_to="displayName")
+
 	def get_migrated_by(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj._migratedByUser).data
+
+	def get_display_name(self, obj):
+		return "stuff"
+		return "{0} - {1}".format(obj.task_id, obj.name)
+
 	class Meta:
 		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
 			'taskType', 'status', 'srcDir', 'lastStatusChange',
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
-			'globalProjectId', 'config', "loaderId")
+			'globalProjectId', 'config', "loaderId", "displayName")
 		ordered = True
 
 
@@ -2373,7 +2380,7 @@ class RecordingPlatformSchema(Schema):
 	loader = fields.Nested("LoaderSchema")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
-	task = fields.Nested("TaskSchema", only=("taskId", "name"))
+	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
 	display_name = fields.Method("get_display_name", dump_to="displayName")
 
 	def get_display_name(self, obj):
