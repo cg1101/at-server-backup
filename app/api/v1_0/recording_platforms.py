@@ -418,6 +418,7 @@ def update_audio_quality(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
+# TODO share code with upload list
 @bp.route("recordingplatforms/<int:recording_platform_id>/moveperformances", methods=["PUT"])
 @api
 @caps()
@@ -438,28 +439,61 @@ def move_performances(recording_platform):
 	destination = SubTask.query.get(data["subTaskId"])
 
 	performances = []
-	at_destination = []		# already at the destination
-	no_transition = []		# no transition exists
-	moved = []				# successfully moved
 
 	for raw_piece_id in data["rawPieceIds"]:
 		performance = Performance.query.get(raw_piece_id)
 		performances.append(performance)
 
-		# check if performance is already at destination
-		if performance.sub_task.sub_task_id == destination.sub_task_id:
-			at_destination.append(performance)
-			continue
-		
-		# check if valid transition exists
-		if not Transition.is_valid_transition(performance.sub_task.sub_task_id, destination.sub_task_id):
-			no_transition.append(performance)
-			continue
+	moved, at_destination, no_transition = recording_platform.move_performances(
+		performances,
+		destination,
+		session["current_user"].user_id,
+		data["changeMethod"]
+	)
+	db.session.flush()
 
-		# move performance
-		performance.move_to(destination.sub_task_id, data["changeMethod"], session["current_user"].user_id)
-		moved.append(performance)
+	return jsonify({
+		"atDestination": len(at_destination),
+		"noTransition": len(no_transition),
+		"moved": len(moved),
+		"performances": Performance.dump(performances, use="full"),
+	})
 
+
+@bp.route("recording-platforms/<int:recording_platform_id>/move-performances/upload", methods=["POST"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def upload_performance_list(recording_platform):
+
+	data = MyForm(
+		Field("changeMethod", is_mandatory=True, validators=[AudioCheckingChangeMethod.is_valid]),
+		Field("subTaskId", is_mandatory=True, validators=[SubTask.check_exists]),
+		Field("performanceNames", is_mandatory=True,
+			validators=[
+				validators.is_list,
+			]
+		),
+	).get_data()
+
+	destination = SubTask.query.get(data["subTaskId"])
+
+	performances = []
+
+	for performance_name in data["performanceNames"]:
+		# TODO handle exception
+		performance = Performance.query.filter_by(
+			recording_platform=recording_platform,
+			name=performance_name
+		).one()
+		performances.append(performance)
+
+	moved, at_destination, no_transition = recording_platform.move_performances(
+		performances,
+		destination,
+		session["current_user"].user_id,
+		data["changeMethod"]
+	)
 	db.session.flush()
 
 	return jsonify({

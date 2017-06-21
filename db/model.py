@@ -2308,7 +2308,7 @@ class RecordingPlatform(Base, ModelMixin):
 	audio_quality = synonym("audioQuality")
 	master_script_file = synonym("masterScriptFile")
 	master_hypothesis_file = synonym("masterHypothesisFile")
-
+	
 	@property
 	def loadable_performance_meta_categories(self):
 		"""
@@ -2374,7 +2374,43 @@ class RecordingPlatform(Base, ModelMixin):
 
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
+	
+	def move_performances(self, performances, destination, user_id, change_method):
+		"""
+		Moves performances to the destination sub task if allowed.
+		Returns a three-item tuple:
+		 1. list of performances successfully moved
+		 2. list of performances already at the destination sub task
+		 3. list of performances that can't be moved due to a missing transition
+		"""
+		
+		if self.task_id != destination.task_id:
+			raise RuntimeError
 
+		at_destination = []		# already at the destination
+		no_transition = []		# no transition exists
+		moved = []				# successfully moved
+
+		for performance in performances:
+
+			if performance.recording_platform != self:
+				raise RuntimeError
+
+			# check if performance is already at destination
+			if performance.sub_task.sub_task_id == destination.sub_task_id:
+				at_destination.append(performance)
+				continue
+		
+			# check if valid transition exists
+			if not Transition.is_valid_transition(performance.sub_task.sub_task_id, destination.sub_task_id):
+				no_transition.append(performance)
+				continue
+
+			# move performance
+			performance.move_to(destination.sub_task_id, change_method, user_id)
+			moved.append(performance)
+
+		return moved, at_destination, no_transition
 
 class RecordingPlatformSchema(Schema):
 	loader = fields.Nested("LoaderSchema")
