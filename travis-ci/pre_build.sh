@@ -8,8 +8,8 @@ git clone --depth=50 --branch=qa git@github.com:Appen/appen_next_client.git ${CL
 
 pushd ${CLIENT_DIR} >/dev/null
 echo -e "\033[0;32msetting up client repo in \033[1;34m$PWD\033[0m"
-npm install    >/dev/null 2>&1
-bower install  >/dev/null 2>&1
+npm install
+bower install
 
 # create symlinks inside lib
 pushd lib >/dev/null
