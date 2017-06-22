@@ -2375,6 +2375,10 @@ class RecordingPlatform(Base, ModelMixin):
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
 	
+	@property
+	def display_name(self):
+		return "{0} - Recording Platform {1}".format(self.recording_platform_type.name, self.recording_platform_id)
+
 	def move_performances(self, performances, destination, user_id, change_method):
 		"""
 		Moves performances to the destination sub task if allowed.
@@ -2417,10 +2421,7 @@ class RecordingPlatformSchema(Schema):
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
-	display_name = fields.Method("get_display_name", dump_to="displayName")
-
-	def get_display_name(self, obj):
-		return "{0} - Recording Platform {1}".format(obj.recording_platform_type.name, obj.recording_platform_id)
+	display_name = fields.String(dump_to="displayName")
 
 	class Meta:
 		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "audioQuality", "config")
@@ -2840,9 +2841,12 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 
 
 class PerformanceSchema(Schema):
-	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
-	task_id = fields.Integer(dump_to="taskId")
 	batch = fields.Method("get_batch")
+	current_feedback = fields.Nested("PerformanceFeedbackEntrySchema", dump_to="currentFeedback")
+	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recording_platform_id", "display_name"))
+	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
+	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
+	task_id = fields.Integer(dump_to="taskId")
 
 	def get_batch(self, obj):
 		return {
@@ -2856,7 +2860,6 @@ class PerformanceSchema(Schema):
 
 class Performance_FullSchema(PerformanceSchema):
 	meta_values = fields.Method("get_meta_values", dump_to="metaValues")
-	current_feedback = fields.Nested("PerformanceFeedbackEntrySchema", dump_to="currentFeedback")
 
 	def get_meta_values(self, obj):
 		values = {}
@@ -3024,10 +3027,19 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 
 		return recording
 
+	@property
+	def current_feedback(self):
+		if self.feedback_entries:
+			return self.feedback_entries[-1]	# TODO check ordering
+
+		return None
+
 
 class RecordingSchema(Schema):
 	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
 	duration = DurationField()
+	current_feedback = fields.Nested("RecordingFeedbackEntrySchema", dump_to="currentFeedback")
+	
 	class Meta:
 		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis")
 
