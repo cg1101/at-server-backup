@@ -1852,6 +1852,10 @@ class Task(Base, ModelMixin):
 	def is_type(self, *task_types):
 		return self.task_type in task_types
 
+	@property
+	def display_name(self):
+		return "{0} - {1}".format(self.task_id, self.name)
+
 	# FIXME update for transcription loading?
 	@property
 	def loadable(self):
@@ -1973,15 +1977,11 @@ class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
 	labelSet = fields.Nested('LabelSetSchema')
 	migratedBy = fields.Method('get_migrated_by')
-	display_name = fields.Method("get_display_name", dump_to="displayName")
+	display_name = fields.String(dump_to="displayName")
 
 	def get_migrated_by(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj._migratedByUser).data
-
-	def get_display_name(self, obj):
-		return "stuff"
-		return "{0} - {1}".format(obj.task_id, obj.name)
 
 	class Meta:
 		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
@@ -3034,14 +3034,26 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 
 		return None
 
+	@property
+	def display_name(self):
+		return "Recording {0}".format(self.recording_id)
+
+	@property
+	def task(self):
+		return self.performance.task
+
 
 class RecordingSchema(Schema):
 	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
 	duration = DurationField()
 	current_feedback = fields.Nested("RecordingFeedbackEntrySchema", dump_to="currentFeedback")
+	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
+	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recordingPlatformId", "display_name"))
+	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "name"))
+	display_name = fields.String(dump_to="displayName")
 	
 	class Meta:
-		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis")
+		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis", "recordingPlatformId")
 
 # CorpusCode
 class CorpusCode(Base, ModelMixin):
