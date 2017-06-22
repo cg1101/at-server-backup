@@ -216,7 +216,7 @@ def webservices_apply_user_search_filters():
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_qualifications():
-	userId = int(requests.form['userID'])
+	userId = int(request.form['userID'])
 	languageIds = [1, 2, 3, 4]
 
 	user = m.User.query.get(userId)
@@ -364,7 +364,8 @@ def webservices_recent_work():
 	subTaskById = {}
 	result = []
 	for interval in sorted(eventsByWorkInterval, key=lambda i:
-			(i.taskId, i.subTaskId, i.endTime)):
+			(i.taskId, i.subTaskId, i.endTime.strftime('%Y-%m-%d') if
+					i.endTime else '9999-99-99')):
 		events = eventsByWorkInterval[interval]
 		subTask = subTaskById.setdefault(interval.subTaskId,
 				m.SubTask.query.get(interval.subTaskId))
