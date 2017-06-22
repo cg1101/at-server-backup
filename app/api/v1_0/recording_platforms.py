@@ -26,7 +26,7 @@ from lib.audio_load import decompress_load_data
 from lib.metadata_validation import MetaValidator
 
 
-@bp.route("recordingplatformtypes", methods=["GET"])
+@bp.route("recording-platform-types", methods=["GET"])
 @api
 @caps()
 def get_recording_platform_types():
@@ -34,7 +34,7 @@ def get_recording_platform_types():
 	return jsonify({"recordingPlatformTypes": RecordingPlatformType.dump(recording_platform_types)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -42,7 +42,7 @@ def get_recording_platform(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/tracks", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/tracks", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -50,7 +50,7 @@ def get_recording_platform_tracks(recording_platform):
 	return jsonify(tracks=Track.dump(recording_platform.tracks))
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/tracks", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/tracks", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -78,7 +78,7 @@ def create_track(recording_platform):
 	return jsonify(track=Track.dump(track))
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/config", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/config", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -94,7 +94,7 @@ def update_recording_platform_config(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -105,7 +105,7 @@ def update_recording_platform_audio_cutup_config(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -113,7 +113,7 @@ def get_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -140,7 +140,7 @@ def create_corpus_code(recording_platform):
 	return jsonify({"corpusCode": CorpusCode.dump(corpus_code)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/scripted", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/scripted", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -149,7 +149,7 @@ def get_scripted_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/spontaneous", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/spontaneous", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -158,7 +158,7 @@ def get_spontaneous_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/upload", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/upload", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -206,7 +206,7 @@ def upload_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckinggroups", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audiocheckinggroups", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -214,7 +214,7 @@ def get_recording_platform_audio_checking_groups(recording_platform):
 	return jsonify({"audioCheckingGroups": AudioCheckingGroup.dump(recording_platform.audio_checking_groups)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckinggroups", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audiocheckinggroups", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -254,7 +254,7 @@ def create_audio_checking_group(recording_platform):
 	return jsonify({"audioCheckingGroup": AudioCheckingGroup.dump(audio_checking_group)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/performancemetacategories", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -262,7 +262,7 @@ def get_performance_meta_categories(recording_platform):
 	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/performancemetacategories", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/performancemetacategories", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -297,7 +297,7 @@ def create_performance_meta_category(recording_platform):
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
 
 
-@bp.route("recording_platforms/<int:recording_platform_id>/performancemetacategories/upload", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/performancemetacategories/upload", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -330,7 +330,7 @@ def upload_performance_meta_categories(recording_platform):
 	return jsonify({"metaCategories": PerformanceMetaCategory.dump(recording_platform.performance_meta_categories)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckingsections", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audiocheckingsections", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -338,7 +338,7 @@ def get_audio_checking_sections(recording_platform):
 	return jsonify({"audioCheckingSections": AudioCheckingSection.dump(recording_platform.audio_checking_sections)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audiocheckingsections", methods=["POST"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audiocheckingsections", methods=["POST"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -371,7 +371,7 @@ def create_audio_checking_section(recording_platform):
 	return jsonify({"audioCheckingSection": AudioCheckingSection.dump(audio_checking_section)})
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/corpuscodes/spontaneous/include", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/spontaneous/include", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -395,7 +395,7 @@ def include_spontaneous_corpus_codes(recording_platform):
 	return jsonify(success=True)
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/performances", methods=["GET"])
+@bp.route("recording-platforms/<int:recording_platform_id>/performances", methods=["GET"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -408,7 +408,7 @@ def get_performances(recording_platform):
 	return jsonify(performances=Performance.dump(recording_platform.performances, **kwargs))
 
 
-@bp.route("recordingplatforms/<int:recording_platform_id>/audioquality", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/audioquality", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
@@ -418,8 +418,7 @@ def update_audio_quality(recording_platform):
 	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
 
 
-# TODO share code with upload list
-@bp.route("recordingplatforms/<int:recording_platform_id>/moveperformances", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/moveperformances", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
