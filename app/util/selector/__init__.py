@@ -756,10 +756,10 @@ class Selector(object):
 		rs = set([r.rawPieceId for r in SS.query(m.RawPiece.rawPieceId
 				).filter(m.RawPiece.taskId==taskId)])
 		for filter_type, fs in filters[True].iteritems():
-			result = reduce(operator.or_, [MyFilter.run(f, task) for r in fs])
+			result = reduce(operator.or_, [MyFilter.run(f, task) for f in fs])
 			rs &= result
 		for filter_type, fs in filters[False].iteritems():
-			result = reduce(operator.or_, [MyFilter.run(f, task) for r in fs])
+			result = reduce(operator.or_, [MyFilter.run(f, task) for f in fs])
 			rs -= result
 
 		rs = sorted(rs)
