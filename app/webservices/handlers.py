@@ -2,18 +2,17 @@
 import re
 from collections import OrderedDict
 
-from flask import render_template, url_for, make_response, request
+from flask import url_for, request
 from sqlalchemy import func, or_
 from lxml import etree
 
 import db.model as m
 from db.db import SS
-from app.util import TestManager, Filterable
 from app.i18n import get_text as _
 from app.api import MyForm, Field, validators
+from app.util import TestManager, Filterable
 
 from .helpers import UserSearchAction, UserSearchFilter, calculate_task_payment_record
-
 from . import webservices as bp, ws
 
 
@@ -221,7 +220,7 @@ def webservices_available_qualifications():
 
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
-		raise RuntimeError
+		raise RuntimeError('user {} not found or inactive'.format(userId))
 
 	candidates = m.Test.query.filter_by(isEnabled=True
 		).order_by(m.Test.testId).all()
@@ -240,7 +239,7 @@ def webservices_available_work():
 	userId = int(request.values['userID'])
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
-		raise RuntimeError
+		raise RuntimeError('user {} not found or inactive'.format(userId))
 
 	# is_active = lambda subTask: subTask.task.status == m.Task.STATUS_ACTIVE
 	# has_supervisor = lambda subTask: len([x for x in subTask.task.supervisors
@@ -319,7 +318,7 @@ def webservices_recent_work():
 	userId = int(request.values['userID'])
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
-		raise RuntimeError
+		raise RuntimeError('user {} not found or inactive'.format(userId))
 
 	eventsBySubTaskId = {}
 	for ev in m.PayableEvent.query.filter_by(userId=userId
