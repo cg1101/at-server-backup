@@ -69,10 +69,6 @@ def create_app(config_name):
 	app.register_blueprint(webservices, url_prefix='/webservices')
 	app.register_blueprint(views, url_prefix='')
 
-	# with app.app_context():
-	# 	from app.webservices.helpers import init_data
-	# 	init_data()
-
 	oauth = OAuth()
 	soteria = oauth.remote_app('soteria',
 		base_url=None,

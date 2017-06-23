@@ -14,16 +14,28 @@ log = logging.getLogger(__name__)
 webservices = Blueprint('webservices', __name__, template_folder='./xml')
 
 
+_lazy_init_flag = False
+
+
+def _lazy_init():
+	global _lazy_init_flag
+	if not _lazy_init_flag:
+		from .helpers import init_data
+		init_data()
+		_lazy_init_flag = True
+
+
 def ws(template_xml):
 	def rendering_customization_decorator(fn):
 		@wraps(fn)
 		def xml_responder(*args, **kwargs):
+			_lazy_init_flag or _lazy_init()
 			try:
 				result = fn(*args, **kwargs)
 				template = template_xml
 				status_code = 200
 			except InvalidUsage, e:
-				result = dict(error=str(e))
+				result = e.to_dict()
 				template = 'error.xml'
 				status_code = 400
 			except Exception, e:
