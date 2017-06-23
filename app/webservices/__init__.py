@@ -35,7 +35,7 @@ def ws(template_xml):
 				template = template_xml
 				status_code = 200
 			except InvalidUsage, e:
-				result = dict(error=str(e))
+				result = e.to_dict()
 				template = 'error.xml'
 				status_code = 400
 			except Exception, e:

@@ -212,11 +212,40 @@ def webservices_apply_user_search_filters():
 	return dict(entries=entries)
 
 
+def normalize_u(data, key, value):
+	try:
+		userId = int(data['u'])
+	except KeyError:
+		raise ValueError(_('userId must be specified by parameter u'))
+	except ValueError:
+		raise ValueError(_('invalid user id: {0}').format(data['u']))
+	return userId
+
+
+def normalize_l(data, key, value):
+	languageIds = set()
+	key_p = re.compile('l\d+$')
+	for k in data:
+		if key_p.match(k):
+			try:
+				languageId = int(data[k])
+				languageIds.add(languageId)
+			except ValueError:
+				continue
+	return list(languageIds)
+
+
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_qualifications():
-	userId = int(request.form['u'])
-	languageIds = [1, 2, 3, 4]
+	data = MyForm(
+		Field('userId', is_mandatory=True, default=lambda: None,
+			normalizer=normalize_u),
+		Field('languageIds', is_mandatory=True, default=[],
+			normalizer=normalize_l),
+	).get_data(is_json=False, copy=True)
+	userId = data['userId']
+	languageIds = data['languageIds']
 
 	user = m.User.query.get(userId)
 	if not user or not user.isActive:
