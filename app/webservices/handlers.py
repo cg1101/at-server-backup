@@ -216,7 +216,7 @@ def webservices_apply_user_search_filters():
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_qualifications():
-	userId = int(request.form['userID'])
+	userId = int(request.form['u'])
 	languageIds = [1, 2, 3, 4]
 
 	user = m.User.query.get(userId)
