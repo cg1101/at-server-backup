@@ -74,6 +74,10 @@ class MetaValidator(object):
 			allowed_values = dict(demographic_category.options)
 			return EnumValidator(**allowed_values)
 
+		# string
+		elif demographic_category.TYPE == "string":
+			return StringValidator()
+		
 		else:
 			raise ValueError("Unhandled demographic category type: {0}".format(demographic_category.TYPE))
 		

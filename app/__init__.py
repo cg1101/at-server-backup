@@ -21,7 +21,7 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
-from LRUtilities.FlaskPlugins import GnxAudioServer, GnxPdb
+from LRUtilities.FlaskExtensions import GnxAudioServer, GnxPdb
 from LRUtilities.Misc import since_epoch
 
 
