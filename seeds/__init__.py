@@ -2,7 +2,6 @@ from db import database as db
 from db.model import (
 	AudioCheckingChangeMethod,
 	BatchingMode,
-	Loader,
 	RecordingPlatformType,
 	TaskType,
 	WorkType
@@ -24,16 +23,6 @@ models = [
 	BatchingMode(name=BatchingMode.CUSTOM_CONTEXT, requires_context=True),
 	BatchingMode(name=BatchingMode.ALLOCATION_CONTEXT, requires_context=False),
 	BatchingMode(name=BatchingMode.FOLDER, requires_context=True),
-
-	# loaders
-	Loader(name=Loader.STORAGE),
-	Loader(name=Loader.LINKED),
-	Loader(name=Loader.UNSTRUCTURED, all_performances_incomplete=True),
-	Loader(name=Loader.STANDARD, all_performances_incomplete=False),
-	Loader(name=Loader.AMR_SCRIPTED, all_performances_incomplete=False, metadata_sources=["Log File"]),
-	Loader(name=Loader.AMR_CONVERSATIONAL, all_performances_incomplete=False),
-	Loader(name=Loader.APPEN_TELEPHONY_SCRIPTED, all_performances_incomplete=False),
-	Loader(name=Loader.APPEN_TELEPHONY_CONVERSATIONAL, all_performances_incomplete=False, metadata_sources=["Log File"]),
 
 	# recording platform types
 	RecordingPlatformType(name=RecordingPlatformType.UNSPECIFIED),
