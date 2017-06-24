@@ -1794,28 +1794,11 @@ def create_recording_platform(task):
 			validators=[
 				RecordingPlatformType.check_exists
 		]),
-		Field('loaderId',
-			validators=[
-				m.Loader.check_exists
-		]),
-		Field('storageLocation', validators=[
-			validators.is_string,
-		]),
-		Field('masterScriptFile', validators=[
-			RecordingPlatform.is_valid_master_file,
-		]),
-		Field('masterHypothesisFile', validators=[
-			RecordingPlatform.is_valid_master_file,
-		]),
 	).get_data()
 
 	recording_platform = RecordingPlatform(
 		task=task,
 		recording_platform_type_id=data["recordingPlatformTypeId"],
-		loader_id=data.get("loaderId"),
-		storage_location=data.get("storageLocation"),
-		master_script_file=data.get("masterScriptFile"),
-		master_hypothesis_file=data.get("masterHypothesisFile"),
 		audio_quality=RecordingPlatform.DEFAULT_AUDIO_QUALITY,
 	)
 	db.session.add(recording_platform)
@@ -2131,37 +2114,13 @@ def save_audio_upload(task):
 @api
 @get_model(Task)
 def get_task_loader(task):
-	data = (task.config or {}).get("loader", {})
-
-	if task.loader:
-		data.update({"name": task.loader.name})
-
-	return jsonify(loader=data)
+	return jsonify(loader=task.loader)
 
 
 @bp.route("tasks/<int:task_id>/loader", methods=["PUT"])
 @api
 @get_model(Task)
 def update_task_loader(task):
-
-	loader_config = request.json
-	name = loader_config.get("name")
-
-	# check loader name
-	if name is None:
-		raise InvalidUsage("Loader name not provided")
-
-	# check valid loader
-	if not m.Loader.is_valid(task.task_type, name):
-		raise InvalidUsage("Loader {0} is not valid for {1} tasks".format(name, task.task_type))
-
-	# update loader
-	loader = m.Loader.query.filter_by(name=name).one()
-	task.loader = loader
-
-	# update loader config
-	del loader_config["name"]
-	task.update_config({"loader":loader_config})
+	task.set_loader(request.json)
 	db.session.commit()
-
 	return jsonify(success=True)

@@ -3,6 +3,8 @@ import os
 
 from marshmallow import Schema, fields
 
+from lib.loaders import Loaders
+
 
 PERFORMANCE_DATA_SCHEMA = {
 	"type": "object",
@@ -102,11 +104,7 @@ class LoadPerformanceMetaCategorySchema(Schema):
 class LoadRecordingPlatformSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
-	storage_location = fields.String(dump_to="storageLocation")
-	master_hypothesis_file = fields.Dict(dump_to="masterHypothesisFile")
-	master_script_file = fields.Dict(dump_to="masterScriptFile")
-	loader = fields.Function(lambda obj: obj.loader.name)
-	config = fields.Dict()
+	loader = fields.Dict()
 	completed_performances = fields.Method("get_completed_performances", dump_to="completedPerformances")
 	incomplete_performances = fields.Method("get_incomplete_performances", dump_to="incompletePerformances")
 	tracks = fields.Nested(LoadTrackSchema, many=True)
@@ -119,7 +117,7 @@ class LoadRecordingPlatformSchema(Schema):
 		"""
 		completed = []
 
-		if not obj.loader.all_performances_incomplete:
+		if obj.loader["name"] != Loaders.UNSTRUCTURED:
 			for performance in obj.performances:
 				if not performance.incomplete:
 					completed.append(performance.name)
@@ -149,7 +147,7 @@ class LoadRecordingPlatformSchema(Schema):
 		for performance in obj.performances:
 			
 			# if performance is incomplete
-			if obj.loader.all_performances_incomplete or performance.incomplete:
+			if obj.loader["name"] == Loaders.UNSTRUCTURED or performance.incomplete:
 				
 				# get list of existing filenames
 				existing_files = []

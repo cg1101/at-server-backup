@@ -57,15 +57,8 @@ UTTERANCES_DATA_SCHEMA = {
 class TranscriptionLoadConfigSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	task_type = fields.String(dump_to="taskType")
-	loader = fields.Function(lambda obj: obj.loader.name)
-	config = fields.Method("get_loader_config")
+	loader = fields.Dict()
 	loaded_files = fields.Method("get_loaded_files", dump_to="loadedFiles")
-
-	def get_loader_config(self, obj):
-		"""
-		Returns loader specific config (if any).
-		"""
-		return (obj.config or {}).get("loader")
 
 	# TODO this is only required by storage loader - use end point instead
 	def get_loaded_files(self, obj):

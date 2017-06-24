@@ -78,20 +78,13 @@ def create_track(recording_platform):
 	return jsonify(track=Track.dump(track))
 
 
-@bp.route("recording-platforms/<int:recording_platform_id>/config", methods=["PUT"])
+@bp.route("recording-platforms/<int:recording_platform_id>/loader", methods=["PUT"])
 @api
 @caps()
 @get_model(RecordingPlatform)
-def update_recording_platform_config(recording_platform):
-	data = MyForm(
-		Field("config", is_mandatory=True, normalizer=normalizers.to_json, validators=[
-			simple_validators.is_dict(),
-		]),
-	).get_data()
-
-	recording_platform.config = data["config"]
-	db.session.flush()
-	return jsonify({"recordingPlatform": RecordingPlatform.dump(recording_platform)})
+def update_recording_platform_loader(recording_platform):
+	recording_platform.set_loader(request.json)
+	return jsonify(success=True)
 
 
 @bp.route("recording-platforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])

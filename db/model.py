@@ -26,6 +26,7 @@ from .db import SS
 from .db import database as db
 from lib import utcnow, validator
 from lib.audio_load import validate_load_performance_data, validate_load_utterance_data
+from lib.loaders import get_loader_metadata_sources
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
 from schema import *
 
@@ -1827,15 +1828,11 @@ class Task(Base, ModelMixin):
 	subTasks = relationship('SubTask', back_populates='task')
 	expansions = relationship('KeyExpansion', order_by='KeyExpansion.char')
 
-	# relationships
-	loader = relationship("Loader")
-
 	# synonyms
 	task_id = synonym("taskId")
 	task_type = synonym("taskType")
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
-	loader_id = synonym("loaderId")
 	audio_uploads = synonym("audioUploads")
 
 	@property
@@ -1972,6 +1969,10 @@ class Task(Base, ModelMixin):
 		self.stats = stats
 		flag_modified(self, "stats")
 
+	def set_loader(self, loader):
+		self.loader = loader
+		flag_modified(self, "loader")
+
 
 class TaskSchema(Schema):
 	tagSet = fields.Nested('TagSetSchema')
@@ -1987,7 +1988,7 @@ class TaskSchema(Schema):
 		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
 			'taskType', 'status', 'srcDir', 'lastStatusChange',
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
-			'globalProjectId', 'config', "loaderId", "displayName")
+			'globalProjectId', 'config', "displayName")
 		ordered = True
 
 
@@ -2294,20 +2295,14 @@ class RecordingPlatform(Base, ModelMixin):
 
 	# relationships
 	task = relationship("Task", backref="recording_platforms")
-	loader = relationship("Loader")
 	recording_platform_type = relationship("RecordingPlatformType")
 
 	# synonyms
 	recording_platform_id = synonym("recordingPlatformId")
 	recording_platform_type_id = synonym("recordingPlatformTypeId")
 	task_id = synonym("taskId")
-	loader_id = synonym("loaderId")
 	recording_platform_id = synonym("recordingPlatformId")
-	storage_location = synonym("storageLocation")
-	audio_cutup_config = synonym("audioCutupConfig")
 	audio_quality = synonym("audioQuality")
-	master_script_file = synonym("masterScriptFile")
-	master_hypothesis_file = synonym("masterHypothesisFile")
 	
 	@property
 	def loadable_performance_meta_categories(self):
@@ -2324,9 +2319,8 @@ class RecordingPlatform(Base, ModelMixin):
 		associated loader (if any) and any custom metadata sources
 		defined in the recording platform config.
 		"""
-
-		if self.loader and self.loader.metadata_sources:
-			return self.loader.metadata_sources
+		if self.loader and "name" in self.loader:
+			return get_loader_metadata_sources(self.loader["name"])
 
 		return []
 
@@ -2416,15 +2410,18 @@ class RecordingPlatform(Base, ModelMixin):
 
 		return moved, at_destination, no_transition
 
+	def set_loader(self, loader):
+		self.loader = loader
+		flag_modified(self, "loader")
+
 class RecordingPlatformSchema(Schema):
-	loader = fields.Nested("LoaderSchema")
 	metadata_sources = fields.Dict(dump_to="metadataSources")
 	recording_platform_type = fields.Nested("RecordingPlatformTypeSchema", dump_to="recordingPlatformType")
 	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
 	display_name = fields.String(dump_to="displayName")
 
 	class Meta:
-		additional = ("recordingPlatformId", "taskId", "storageLocation", "masterHypothesisFile", "masterScriptFile", "audioCutupConfig", "audioQuality", "config")
+		additional = ("recordingPlatformId", "taskId", "audioQuality", "loader")
 
 
 # AudioFile
@@ -3309,71 +3306,6 @@ class AudioCheckingChangeMethod(Base, ModelMixin):
 class AudioCheckingChangeMethodSchema(Schema):
 	class Meta:
 		fields = ("changeMethodId", "name")
-
-
-# Loader
-class Loader(Base, ModelMixin):
-	__table__ = t_loaders
-
-	# constants
-	STORAGE = "Storage"
-	LINKED = "Linked"
-	UNSTRUCTURED = "Unstructured"
-	STANDARD = "Standard"
-	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
-	AMR_CONVERSATIONAL = "Appen Mobile Recorder - Conversational"
-	APPEN_TELEPHONY_SCRIPTED = "Appen Telephony - Scripted"
-	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
-
-	# synonyms
-	loader_id = synonym("loaderId")
-	all_performances_incomplete = synonym("allPerformancesIncomplete")
-	metadata_sources = synonym("metadataSources")
-
-	@classmethod
-	def get_valid_loaders(cls, task_type):
-		"""
-		Returns a list of Loaders that are valid
-		for the task type.
-		"""
-
-		names = []
-
-		# audio checking
-		if task_type == TaskType.AUDIO_CHECKING:
-			names = [
-				cls.UNSTRUCTURED,
-				cls.STANDARD,
-				cls.AMR_SCRIPTED,
-				cls.AMR_CONVERSATIONAL,
-				cls.APPEN_TELEPHONY_SCRIPTED,
-				cls.APPEN_TELEPHONY_CONVERSATIONAL,
-			]
-
-		# transcription
-		elif task_type == TaskType.TRANSCRIPTION:
-			names = [
-				cls.STORAGE,
-				cls.LINKED
-			]
-
-		# return loaders
-		return [cls.query.filter_by(name=name).one() for name in names]
-
-	@classmethod
-	def is_valid(cls, task_type, loader_name):
-		"""
-		Checks if the loader is valid for the
-		task type.
-		"""
-		valid_loaders = cls.get_valid_loaders(task_type)
-		names = set([loader.name for loader in valid_loaders])
-		return loader_name in names
-
-
-class LoaderSchema(Schema):
-	class Meta:
-		fields = ("loaderId", "name")
 
 
 # Utterance

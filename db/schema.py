@@ -345,16 +345,15 @@ t_tasks =  Table('tasks', metadata,
 	Column(u'global_project_id', INTEGER, key=u'globalProjectId', doc=''),
 	Column("archive_info", JSONB, key="archiveInfo", doc=""),
 	Column("config", JSONB, key="config", doc=""),
-	Column("loader_id", INTEGER, key="loaderId", doc=""),
 	Column("stats", JSONB, key="stats", doc=""),
 	Column("audio_uploads", JSONB, key="audioUploads", doc=""),
+	Column("loader", JSONB, key="loader", doc=""),
 	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
 	ForeignKeyConstraint([u'projectId'], [u'projects.projectId']),
 	ForeignKeyConstraint([u'tagSetId'], [u'tagsets.tagSetId']),
 	ForeignKeyConstraint([u'handlerId'], [u'filehandlers.handlerId']),
 	ForeignKeyConstraint([u'migratedBy'], [u'users.userId']),
-	ForeignKeyConstraint(["loaderId"], ["loaders.loaderId"]),
 	CheckConstraint("src_dir=ANY(ARRAY['ltr','rtl'])"),
 	CheckConstraint("status=ANY(ARRAY['active','disabled','finished','closed','archived'])"),
 )
@@ -1291,17 +1290,11 @@ t_recording_platforms = Table("recording_platforms", metadata,
 	Column("recording_platform_id", INTEGER, primary_key=True, key="recordingPlatformId", doc=""),
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
 	Column("recording_platform_type_id", INTEGER, nullable=False, key="recordingPlatformTypeId", doc=""),
-	Column("storage_location", TEXT, key="storageLocation", doc=""),
-	Column("loader_id", INTEGER, key="loaderId", doc=""),
-	Column("default_audio_spec", JSONB, key="defaultAudioSpec", doc=""),
-	Column("master_script_file", JSONB, key="masterScriptFile", doc=""),
-	Column("master_hypothesis_file", JSONB, key="masterHypothesisFile", doc=""),
-	Column("audio_cutup_config", JSONB, key="audioCutupConfig", doc=""),
 	Column("audio_quality", JSONB, nullable=False, key="audioQuality", doc=""),
 	Column("config", JSONB, key="config", doc=""),
+	Column("loader", JSONB, key="loader", doc=""),
 	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
 	ForeignKeyConstraint(["recordingPlatformTypeId"], ["recording_platform_types.recordingPlatformTypeId"]),
-	ForeignKeyConstraint(["loaderId"], ["loaders.loaderId"]),
 )
 Index("recording_platforms_by_task_id", t_recording_platforms.c.taskId, unique=False)
 
@@ -1560,13 +1553,6 @@ t_recording_feedback_flags = Table("recording_feedback_flags", metadata,
 	PrimaryKeyConstraint("recordingFeedbackEntryId", "recordingFlagId"),
 )
 Index("recording_feedback_flags_by_recording_feedback_entry_id", t_recording_feedback_flags.c.recordingFeedbackEntryId, unique=False)
-
-t_loaders = Table("loaders", metadata,
-	Column("loader_id", INTEGER, primary_key=True, key="loaderId", doc=""),
-	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
-	Column("all_performances_incomplete", BOOLEAN, key="allPerformancesIncomplete", doc=""),
-	Column("metadata_sources", JSONB, key="metadataSources", doc="")
-)
 
 t_utterances = Table("utterances", metadata,
 	Column("rawpieceid", INTEGER, primary_key=True, key="rawPieceId", doc=""),
