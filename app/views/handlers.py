@@ -28,6 +28,11 @@ def work_on_batch(batchId):
 	return redirect('/#' + request.path)
 
 
+@bp.route('/tasks/<int:taskId>')
+def task_main(taskId):
+	return redirect('/#' + request.path)
+
+
 @bp.route('/tasks/<int:taskId>/config')
 def task_config(taskId):
 	return redirect('/#' + request.path)
