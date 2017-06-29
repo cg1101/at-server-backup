@@ -434,10 +434,12 @@ def filter_label(task, labelId):
 		).order_by(m.WorkEntry.rawPieceId, m.WorkEntry.created.desc())
 
 	sub_q = inner.subquery('sub_q')
-	q = sub_q.join(m.AppliedLabel, sub_q.c.entryId==m.AppliedLabel.entryId)
+	q = sub_q.join(m.AppliedLabel)
+
+	sel_stmt = select([sub_q.c.rawPieceId], distinct=True, from_obj=q)
 	if labelId != None:
-		q = select([sub_q]).select_from(sub_q).where(m.AppliedLabel.labelId==labelId).alias('blah')
-	sel_stmt = select(q.c, distinct=True, from_obj=q)
+		sel_stmt = sel_stmt.where(m.AppliedLabel.labelId==labelId)
+
 	return set([r.rawPieceId for r in SS.bind.execute(sel_stmt)])
 
 
@@ -485,7 +487,7 @@ def filter_qa_severity(task, isMoreThan, score, isCorrect):
 		func.sum(m.AppliedError.severity).label('qaErrorSum')
 		).group_by(m.AppliedError.entryId).subquery()
 
-	q = SS.query(sub_q.rawPieceId, stmt.c.qaErrorSum
+	q = SS.query(sub_q.c.rawPieceId, stmt.c.qaErrorSum
 		).join(stmt, stmt.c.entryId==sub_q.c.entryId)
 
 	return set([r.rawPieceId for r in q.all() if predicate(r.qaErrorSum)])
