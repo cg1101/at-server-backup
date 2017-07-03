@@ -10,7 +10,7 @@ import db.model as m
 from db.db import SS
 from app.i18n import get_text as _
 from app.api import MyForm, Field, validators
-from app.util import TestManager, Filterable
+from app.util import TestManager, Filterable, edm
 
 from .helpers import UserSearchAction, UserSearchFilter, calculate_task_payment_record
 from . import webservices as bp, ws
@@ -235,6 +235,26 @@ def normalize_l(data, key, value):
 	return list(languageIds)
 
 
+def _get_user(userId):
+	user = m.User.query.get(userId)
+	if user is None:
+		# user not found locally
+		try:
+			user = edm.make_new_user(userId)
+		except:
+			# error getting user from edm
+			user = None
+		else:
+			try:
+				SS.add(user)
+				SS.commit()
+			except:
+				# error adding user locally
+				SS.rollback()
+				user = None
+	return user
+
+
 @bp.route('/available_qualifications', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_qualifications():
@@ -247,7 +267,7 @@ def webservices_available_qualifications():
 	userId = data['userId']
 	languageIds = data['languageIds']
 
-	user = m.User.query.get(userId)
+	user = _get_user(userId)
 	if not user or not user.isActive:
 		raise RuntimeError('user {} not found or inactive'.format(userId))
 
@@ -261,12 +281,12 @@ def webservices_available_qualifications():
 		result.append(record)
 	return dict(entries=result)
 
-
 @bp.route('/available_work', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_work():
 	userId = int(request.values['userID'])
-	user = m.User.query.get(userId)
+
+	user = _get_user(userId)
 	if not user or not user.isActive:
 		raise RuntimeError('user {} not found or inactive'.format(userId))
 
@@ -345,7 +365,8 @@ def webservices_get_user_details_js():
 @ws('recent_work.xml')
 def webservices_recent_work():
 	userId = int(request.values['userID'])
-	user = m.User.query.get(userId)
+
+	user = _get_user(userId)
 	if not user or not user.isActive:
 		raise RuntimeError('user {} not found or inactive'.format(userId))
 
@@ -478,7 +499,8 @@ def webservices_update_payments():
 		for i in m.PaymentType.query])
 	for i in to_add:
 		d = confirmedByReceiptId[i]
-		if not m.User.query.get(d['userId']):
+		user = _get_user(d['userId'])
+		if not user:
 			raise RuntimeError(_('user {0} not found').format(d['userId']))
 		if d['taskId'] not in taskIds:
 			# TODO: raise Error instead of ignoring it
