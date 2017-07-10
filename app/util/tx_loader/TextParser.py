@@ -49,19 +49,27 @@ class Tokenizer(object):
 	def __call__(self, s):
 		toTry = sorted(self.tokenTypes, key=lambda x: x.length, reverse=True)
 		for i in toTry:
-			#print i.regex.pattern
+			# print i.regex.pattern, i.text
 			pass
 		pos = 0
 		while s[pos:]:
-			#print '\n' + s
-			#print ' ' * pos + '^'
+			# print '\n' + s
+			# print ' ' * pos + '^'
 			candidate = None
 			# try tokenTypes defined from tags first
 			for tt in toTry:
+				# print 'try tt', tt
 				if s[pos:].startswith(tt.text):
 					yield (tt.text, tt.length, tt)
 					pos += tt.length
 					break
+				else:
+					mo = tt.regex.match(s[pos:])
+					if mo:
+						# print 'found a match', tt
+						yield (mo.group(0), mo.end(), tt)
+						pos += mo.end()
+						break
 			else:
 				m = TOKEN_TYPE_BLANK.regex.match(s[pos:])
 				if m:
@@ -131,6 +139,7 @@ STATES = {
 		PO_PREFIX: ('add',),
 		PO_MARKUP: ('add',),
 		PO_EMBEDDABLE: ('add',),
+		PO_TIMESTAMP: ('add',),
 		TOKEN_EVENT: ('push', 1),
 		TOKEN_PREFIX: ('push', 2),
 		TOKEN_MARKUP_OPEN: ('push', 3),
@@ -181,6 +190,8 @@ class Parser(object):
 		tokens = [Token(matchedText, tokenType.name, tagId=tokenType.tagId) for
 			(matchedText, matchedLength, tokenType) in self.tokenizer(text)]
 
+		# print 'tokens', tokens
+
 		if DEBUG_MODE:
 			f = cStringIO.StringIO()
 			f.write('\nTokens:\n')
@@ -198,9 +209,13 @@ class Parser(object):
 				assert items[-1].type == TOKEN_MARKUP_CLOSE and items[0].tagId == items[-1].tagId
 			elif items[0].type == TOKEN_EMBEDDABLE_OPEN:
 				assert items[-1].type == TOKEN_EMBEDDABLE_CLOSE and items[0].tagId == items[-1].tagId
+			elif items[0].type == TOKEN_TIMESTAMP:
+				assert len(items) == 1
 			po = ParsedObject(po_type, items, tagId=items[0].tagId)
+			# print 'created parsed object %r' % po
 			parsing_stack.pop()
 			tokens.insert(0, po)
+			# print 'tokens now changes to %r' % tokens
 
 		def dump_item(item, doc, parentNode):
 			if item.type in (TOKEN_BLANK, TOKEN_LITERAL):
@@ -236,6 +251,13 @@ class Parser(object):
 				for j in item.items[1:-1]:
 					dump_item(j, doc, node)
 				parentNode.appendChild(node)
+			elif item.type in (PO_TIMESTAMP,):
+				tag = self.tagById[item.tagId]
+				node = doc.createElement('IMG')
+				node.setAttribute('tagid', str(item.tagId))
+				node.setAttribute('src', '/tagimages/%d.png' % item.tagId)
+				node.setAttribute('timestamp-value', tag.tt.regex.match(item.items[0]).group(1))
+				parentNode.appendChild(node)
 			else:
 				raise RuntimeError, 'unexpected token: %s' % item
 
@@ -248,6 +270,7 @@ class Parser(object):
 			result = doc.toxml()
 			result = result.replace('<?xml version="1.0" ?>', '').replace('<div>', '').replace('</div>', '')
 			return result
+
 		while tokens:
 			# print '=' * 70
 			# pprint.pprint(parsing_stack)
@@ -258,7 +281,9 @@ class Parser(object):
 
 			if None in STATES[currentState]:
 				# default action, no need to fetch lookAheadToken
+				# print 'default action, no need to fetch lookAheadToken'
 				t = STATES[currentState][None]
+				# print t
 				action = t[0]
 				if action == 'reduce':
 					# TODO: we need to check to make sure tagId matches
@@ -279,6 +304,7 @@ class Parser(object):
 				# print 'key: ==>%s<==' % key
 				# print 'tuple: ==>%r<==' % (t,)
 				# print 'action=%s' % action
+				# print 'currentState=%s' % currentState
 				if action == 'add':
 					items.append(lookAheadToken)
 					continue
@@ -327,9 +353,10 @@ def get_token_types(tags):
 			tt = TokenType(TOKEN_EMBEDDABLE_CLOSE, t.extractEnd, tagId=t.tagId)
 			tokenTypes.append(tt)
 		elif t.tagType == m.Tag.TIMESTAMPED:
-			regex = re.escape(t.extractStart.replace(' ', '_')) + '\d+\.\d+' + re.escape((t.extractEnd or '').replace(' ', '_'))
+			regex = re.escape(t.extractStart.replace(' ', '_')) + '(\d+\.\d+)' + re.escape((t.extractEnd or '').replace(' ', '_'))
 			tt = TokenType(TOKEN_TIMESTAMP, regex, escape=False, tagId=t.tagId)
 			tokenTypes.append(tt)
+		t.tt = tt
 	return tokenTypes
 
 class TxParser(object):
@@ -350,8 +377,6 @@ class TxParser(object):
 def main():
 	import argparse
 	import fileinput
-
-	import db.model as m
 
 	global log
 	log = logging.getLogger('TextParser')
@@ -392,8 +417,15 @@ def main():
 		f.close()
 
 	txParser = TxParser(tags)
-	for l in map(lambda x: x.rstrip('\r\n'), fileinput.input(args.input)):
+	while True:
+		try:
+			l = raw_input()
+			if not l:
+				break
+		except (KeyboardInterrupt, EOFError):
+			break
 		print txParser.parse(l)
+
 
 
 if __name__ == '__main__':
