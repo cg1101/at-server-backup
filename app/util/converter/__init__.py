@@ -1,5 +1,6 @@
 
 import os
+import re
 import unicodedata
 
 from lxml import etree
@@ -81,7 +82,14 @@ class Converter(object):
 				return '\n' + (element.tail or '')
 
 			if element.tag.lower() == 'timestamp':
-				return ('[%.3f]' % float(element.attrib['value'])) + (element.tail or '')
+				try:
+					tagId = int(element.attrib['tagid'])
+					tag = tags.setdefault(tagId, m.Tag.query.get(tagId))
+					extractStart = re.sub(r'\s+', (tag.extractStart or ''), '_')
+					extractEnd = re.sub(r'\s+', (tag.extractEnd or ''), '_')
+				except Exception, e:
+					raise
+				return ('%s%.3f%s' % (extractStart, float(element.attrib['value']), extractEnd)) + (element.tail or '')
 
 			extractStart = ''
 			extractEnd = ''

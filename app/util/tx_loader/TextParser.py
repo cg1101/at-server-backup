@@ -7,33 +7,37 @@ import logging.handlers
 import cStringIO
 from xml.dom.minidom import getDOMImplementation
 
+import db.model as m
+
 log = logging.getLogger(__name__)
-logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 
 DEBUG_MODE = False
 
-TOKEN_LITERAL = "TOKEN_LITERAL"
-TOKEN_BLANK = "TOKEN_BLANK"
-TOKEN_EVENT = "TOKEN_EVENT"
-TOKEN_PREFIX = "TOKEN_PREFIX"
-TOKEN_MARKUP_OPEN = "TOKEN_MARKUP_OPEN"
-TOKEN_MARKUP_CLOSE = "TOKEN_MARKUP_CLOSE"
-TOKEN_EMBEDDABLE_OPEN = "TOKEN_EMBEDDABLE_OPEN"
-TOKEN_EMBEDDABLE_CLOSE = "TOKEN_EMBEDDABLE_CLOSE"
+TOKEN_LITERAL = 'TOKEN_LITERAL'
+TOKEN_BLANK = 'TOKEN_BLANK'
+TOKEN_EVENT = 'TOKEN_EVENT'
+TOKEN_PREFIX = 'TOKEN_PREFIX'
+TOKEN_MARKUP_OPEN = 'TOKEN_MARKUP_OPEN'
+TOKEN_MARKUP_CLOSE = 'TOKEN_MARKUP_CLOSE'
+TOKEN_EMBEDDABLE_OPEN = 'TOKEN_EMBEDDABLE_OPEN'
+TOKEN_EMBEDDABLE_CLOSE = 'TOKEN_EMBEDDABLE_CLOSE'
 TOKEN_END = 'TOKEN_END'
+TOKEN_TIMESTAMP = 'TOKEN_TIMESTAMP'
 
 PO_MARKUP = 'PO_MARKUP'
 PO_PREFIX = 'PO_PREFIX'
 PO_EVENT = 'PO_EVENT'
 PO_EMBEDDABLE = 'PO_EMBEDDABLE'
+PO_TIMESTAMP = 'PO_TIMESTAMP'
 
 class TokenType(object):
-	def __init__(self, name, regex, escape=True, tagid=None):
+	def __init__(self, name, regex, escape=True, tagId=None):
 		self.name = name
 		self.text = regex
 		self.regex = re.compile(re.escape(regex) if escape else regex)
 		self.length = len(regex)
-		self.tagid = tagid
+		self.tagId = tagId
 
 TOKEN_TYPE_LITERAL = TokenType(TOKEN_LITERAL, r'\S+', False)
 TOKEN_TYPE_BLANK = TokenType(TOKEN_BLANK, r'\s+', False)
@@ -49,8 +53,8 @@ class Tokenizer(object):
 			pass
 		pos = 0
 		while s[pos:]:
-			#print "\n" + s
-			#print " " * pos + "^"
+			#print '\n' + s
+			#print ' ' * pos + '^'
 			candidate = None
 			# try tokenTypes defined from tags first
 			for tt in toTry:
@@ -91,21 +95,21 @@ class ParserBase(object):
 	pass
 
 class Token(ParserBase, unicode):
-	def __new__(cls, value, type, tagid=None):
+	def __new__(cls, value, type, tagId=None):
 		self = super(Token, cls).__new__(cls, value)
 		self.type = type
-		self.tagid = tagid
+		self.tagId = tagId
 		return self
 	def __repr__(self):
-		return '<%s(%s), tagid:%s>' % (self.type, super(Token, self.__class__).__repr__(self), self.tagid)
+		return '<%s(%s), tagId:%s>' % (self.type, super(Token, self.__class__).__repr__(self), self.tagId)
 
 class ParsedObject(ParserBase):
-	def __init__(self, type, items, tagid=None):
+	def __init__(self, type, items, tagId=None):
 		self.type = type
 		self.items = items[:]
-		self.tagid = tagid
+		self.tagId = tagId
 	def __repr__(self):
-		return '<%s:[%s], tagid:%s>' % (self.type, (','.join(['%r' % i for i in self.items])), self.tagid)
+		return '<%s:[%s], tagId:%s>' % (self.type, (','.join(['%r' % i for i in self.items])), self.tagId)
 
 # grammar
 '''
@@ -131,6 +135,7 @@ STATES = {
 		TOKEN_PREFIX: ('push', 2),
 		TOKEN_MARKUP_OPEN: ('push', 3),
 		TOKEN_EMBEDDABLE_OPEN: ('push', 4),
+		TOKEN_TIMESTAMP: ('push', 5),
 	},
 	# state 1 inside event
 	1: {
@@ -154,6 +159,9 @@ STATES = {
 		TOKEN_EMBEDDABLE_CLOSE: ('reduce', 'PO_EMBEDDABLE'),
 		PO_EMBEDDABLE: ('add',),
 	},
+	5: {
+		None: ('reduce', 'PO_TIMESTAMP'),
+	}
 }
 
 import pprint
@@ -170,14 +178,14 @@ class Parser(object):
 		first parse input text into a tree,
 		then dump this parse result tree as html
 		'''
-		tokens = [Token(matchedText, tokenType.name, tagid=tokenType.tagid) for
+		tokens = [Token(matchedText, tokenType.name, tagId=tokenType.tagId) for
 			(matchedText, matchedLength, tokenType) in self.tokenizer(text)]
 
 		if DEBUG_MODE:
 			f = cStringIO.StringIO()
-			f.write("\nTokens:\n")
+			f.write('\nTokens:\n')
 			for token in tokens:
-				f.write("%s:\t'%s', %d, tagid: %s\n" % (token.type, token, len(token), token.tagid))
+				f.write("%s:\t'%s', %d, tagId: %s\n" % (token.type, token, len(token), token.tagId))
 			log.debug('\033[1;32m%s\033[0m' % f.getvalue())
 			f.close()
 
@@ -187,10 +195,10 @@ class Parser(object):
 		def do_reduce(po_type, items):
 			#log.debug('reducing to %s using %s' % (po_type, items))
 			if items[0].type == TOKEN_MARKUP_OPEN:
-				assert items[-1].type == TOKEN_MARKUP_CLOSE and items[0].tagid == items[-1].tagid
+				assert items[-1].type == TOKEN_MARKUP_CLOSE and items[0].tagId == items[-1].tagId
 			elif items[0].type == TOKEN_EMBEDDABLE_OPEN:
-				assert items[-1].type == TOKEN_EMBEDDABLE_CLOSE and items[0].tagid == items[-1].tagid
-			po = ParsedObject(po_type, items, tagid=items[0].tagid)
+				assert items[-1].type == TOKEN_EMBEDDABLE_CLOSE and items[0].tagId == items[-1].tagId
+			po = ParsedObject(po_type, items, tagId=items[0].tagId)
 			parsing_stack.pop()
 			tokens.insert(0, po)
 
@@ -199,17 +207,17 @@ class Parser(object):
 				node = doc.createTextNode(item)
 				parentNode.appendChild(node)
 			elif item.type in (PO_EVENT,):
-				node = doc.createElement("IMG")
-				node.setAttribute('tagid', str(item.tagid))
-				node.setAttribute('tagtype', self.tagById[item.tagid].tagType)
+				node = doc.createElement('IMG')
+				node.setAttribute('tagid', str(item.tagId))
+				node.setAttribute('tagtype', self.tagById[item.tagId].tagType)
 				assert len(item.items) == 1
 				parentNode.appendChild(node)
 			elif item.type in (PO_PREFIX,):
 				assert len(item.items) == 2
-				tag = self.tagById[item.tagid]
+				tag = self.tagById[item.tagId]
 				node = doc.createElement('SPAN')
-				node.setAttribute('tagid', str(item.tagid))
-				node.setAttribute('tagtype', self.tagById[item.tagid].tagType)
+				node.setAttribute('tagid', str(item.tagId))
+				node.setAttribute('tagtype', self.tagById[item.tagId].tagType)
 				node.setAttribute('style', tag.style)
 				dump_item(item.items[1], doc, node)
 				parentNode.appendChild(node)
@@ -217,19 +225,19 @@ class Parser(object):
 				opening = item.items[0]
 				closing = item.items[-1]
 				try:
-					assert opening.tagid == closing.tagid == item.tagid
+					assert opening.tagId == closing.tagId == item.tagId
 				except:
 					print opening, closing, item
-				tag = self.tagById[opening.tagid]
+				tag = self.tagById[opening.tagId]
 				node = doc.createElement('SPAN')
-				node.setAttribute('tagid', str(item.tagid))
+				node.setAttribute('tagid', str(item.tagId))
 				node.setAttribute('tagtype', tag.tagType)
 				node.setAttribute('style', tag.style)
 				for j in item.items[1:-1]:
 					dump_item(j, doc, node)
 				parentNode.appendChild(node)
 			else:
-				raise RuntimeError, "unexpected token: %s" % item
+				raise RuntimeError, 'unexpected token: %s' % item
 
 		def dump(parsed_items):
 			impl = getDOMImplementation()
@@ -253,7 +261,7 @@ class Parser(object):
 				t = STATES[currentState][None]
 				action = t[0]
 				if action == 'reduce':
-					# TODO: we need to check to make sure tagid matches
+					# TODO: we need to check to make sure tagId matches
 					do_reduce(t[1], items)
 			else:
 				lookAheadToken = tokens.pop(0)
@@ -298,24 +306,29 @@ def get_token_types(tags):
 		if s in regs:
 			raise ValueError, 'ambiguous tag configuration: %s' % s
 		regs[s] = t
-		if t.tagType == 'Event':
+		if t.tagType == m.Tag.EVENT:
 			assert not t.extractEnd
-			tt = TokenType(TOKEN_EVENT, t.extractStart, tagid=t.tagId)
+			tt = TokenType(TOKEN_EVENT, t.extractStart, tagId=t.tagId)
 			tokenTypes.append(tt)
-		elif t.tagType in ('Span', 'Substitution', 'Footnote', 'Entity'):
+		elif t.tagType in (m.Tag.NON_EMBEDDABLE, m.Tag.SUBSTITUTION,
+				m.Tag.FOOTNOTE, m.Tag.ENTITY):
 			if t.extractEnd:
-				tt = TokenType(TOKEN_MARKUP_OPEN, t.extractStart, tagid=t.tagId)
+				tt = TokenType(TOKEN_MARKUP_OPEN, t.extractStart, tagId=t.tagId)
 				tokenTypes.append(tt)
-				tt = TokenType(TOKEN_MARKUP_CLOSE, t.extractEnd, tagid=t.tagId)
+				tt = TokenType(TOKEN_MARKUP_CLOSE, t.extractEnd, tagId=t.tagId)
 				tokenTypes.append(tt)
 			else:
-				tt = TokenType(TOKEN_PREFIX, t.extractStart, tagid=t.tagId)
+				tt = TokenType(TOKEN_PREFIX, t.extractStart, tagId=t.tagId)
 				tokenTypes.append(tt)
-		elif t.tagType == 'SpanB':
-			tt = TokenType(TOKEN_EMBEDDABLE_OPEN, t.extractStart, tagid=t.tagId)
+		elif t.tagType == m.Tag.EMBEDDABLE:
+			tt = TokenType(TOKEN_EMBEDDABLE_OPEN, t.extractStart, tagId=t.tagId)
 			tokenTypes.append(tt)
 			assert t.extractEnd
-			tt = TokenType(TOKEN_EMBEDDABLE_CLOSE, t.extractEnd, tagid=t.tagId)
+			tt = TokenType(TOKEN_EMBEDDABLE_CLOSE, t.extractEnd, tagId=t.tagId)
+			tokenTypes.append(tt)
+		elif t.tagType == m.Tag.TIMESTAMPED:
+			regex = re.escape(t.prefix.replace(' ', '_')) + '\d\+\.\d+' + re.escape((t.suffix or '').replace(' ', '_'))
+			tt = TokenType(TOKEN_TIMESTAMP, regex, escape=False, tagId=t.tagId)
 			tokenTypes.append(tt)
 	return tokenTypes
 
@@ -329,16 +342,16 @@ class TxParser(object):
 			self.parser = Parser(tokenizer, tags)
 
 	def parse(self, text):
-		"""
+		'''
 		parse input text, convert text into html format
-		"""
+		'''
 		return self.parser(text)
 
 def main():
 	import argparse
 	import fileinput
-	import database.utilities as dbutil
-	from database.pool import getCursor
+
+	import db.model as m
 
 	global log
 	log = logging.getLogger('TextParser')
@@ -354,15 +367,15 @@ def main():
 	parser.add_argument('-D', '--debug', action='store_true', default=False, help='Turn on debug mode')
 
 	args = parser.parse_args()
-	cursor = getCursor()
+
 	if args.tagSetID:
-		tags = dbutil.getTags(cursor, tagSetID=args.tagSetID)
+		tags = m.Tag.query.filter(m.Tag.tagSetId==tagSetID).all()
 	elif args.taskID:
 		try:
-			task = dbutil.getTasks(cursor, taskID=args.taskID)[0]
+			task = m.Task.query.get(args.taskID)
 		except:
 			parser.error('cannot find task %s' % args.taskID)
-		tags = [] if task.tagsetid == None else dbutil.getTags(cursor, tagSetID=task.tagsetid)
+		tags = [] if not task.tagSetId else task.tagSet.tags[:]
 	else:
 		parser.error('must specify either taskID or tagSetID')
 
@@ -374,7 +387,7 @@ def main():
 		f = cStringIO.StringIO()
 		f.write('\nfound %d tags\n' % len(tags))
 		for t in tags:
-			f.write('tag #%d: %s, %s %s\n' % (t.tagid, t.tagtype, t.extractstart, t.extractend or ''))
+			f.write('tag #%d: %s, %s %s\n' % (t.tagId, t.tagType, t.extractstart, t.extractend or ''))
 		log.info('\033[1;34m%s\033[0m' % f.getvalue())
 		f.close()
 
@@ -383,5 +396,5 @@ def main():
 		print txParser.parse(l)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 	main()
