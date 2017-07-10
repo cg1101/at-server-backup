@@ -327,7 +327,7 @@ def get_token_types(tags):
 			tt = TokenType(TOKEN_EMBEDDABLE_CLOSE, t.extractEnd, tagId=t.tagId)
 			tokenTypes.append(tt)
 		elif t.tagType == m.Tag.TIMESTAMPED:
-			regex = re.escape(t.extractStart.replace(' ', '_')) + '\d\+\.\d+' + re.escape((t.extractEnd or '').replace(' ', '_'))
+			regex = re.escape(t.extractStart.replace(' ', '_')) + '\d+\.\d+' + re.escape((t.extractEnd or '').replace(' ', '_'))
 			tt = TokenType(TOKEN_TIMESTAMP, regex, escape=False, tagId=t.tagId)
 			tokenTypes.append(tt)
 	return tokenTypes
