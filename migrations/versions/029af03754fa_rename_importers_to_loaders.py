@@ -16,7 +16,6 @@ import json
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from migrations.seed import add_seed_data
 
 
 def upgrade():
@@ -25,37 +24,8 @@ def upgrade():
 	op.add_column(u'loaders', sa.Column('all_performances_incomplete', sa.BOOLEAN(), nullable=True))
 	op.add_column(u'loaders', sa.Column('metadata_sources', postgresql.JSONB(), nullable=True))
 
-	# add audio checking loaders
-	add_seed_data("loaders", {
-		"name" : "Unstructured",
-		"all_performances_incomplete": True
-	})
-	add_seed_data("loaders", {
-		"name" : "Standard",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Mobile Recorder - Scripted",
-		"all_performances_incomplete": False,
-		"metadata_sources": json.dumps(["Log File"]),
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Mobile Recorder - Conversational",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Telephony - Scripted",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Telephony - Conversational",
-		"all_performances_incomplete": False,
-		"metadata_sources": json.dumps(["Log File"]),
-	})
-	
 	# rename performances imported at column
 	op.alter_column(u'performances', 'imported_at', new_column_name='loaded_at')
-
 
 	# update recording platforms
 	
@@ -102,34 +72,6 @@ def downgrade():
 		sa.PrimaryKeyConstraint('audio_importer_id', name=u'audio_importers_pkey'),
 		sa.UniqueConstraint('name', name=u'audio_importers_name_key')
 	)
-
-	# add audio importers
-	add_seed_data("loaders", {
-		"name" : "Unstructured",
-		"all_performances_incomplete": True
-	})
-	add_seed_data("loaders", {
-		"name" : "Standard",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Mobile Recorder - Scripted",
-		"all_performances_incomplete": False,
-		"metadata_sources": json.dumps(["Log File"]),
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Mobile Recorder - Conversational",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Telephony - Scripted",
-		"all_performances_incomplete": False
-	})
-	add_seed_data("loaders", {
-		"name" : "Appen Telephony - Conversational",
-		"all_performances_incomplete": False,
-		"metadata_sources": json.dumps(["Log File"]),
-	})
 
 
 	# update recording platforms

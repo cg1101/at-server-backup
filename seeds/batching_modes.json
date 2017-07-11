@@ -1,0 +1,41 @@
+{
+	"table": "batchingmodes",
+	"records": [
+		{
+			"modeId": 1,
+			"name": "None",
+			"description": null,
+			"requiresContext": false
+		},
+		{
+			"modeId": 2,
+			"name": "Performance",
+			"description": null,
+			"requiresContext": true
+		},
+		{
+			"modeId": 3,
+			"name": "File",
+			"description": null,
+			"requiresContext": true
+		},
+		{
+			"modeId": 5,
+			"name": "Custom Context",
+			"description": null,
+			"requiresContext": true
+		},
+		{
+			"modeId": 6,
+			"name": "Allocation Context",
+			"description": null,
+			"requiresContext": false
+		},
+		{
+			"modeId": 7,
+			"name": "Folder",
+			"description": null,
+			"requiresContext": true
+		}
+	]
+}

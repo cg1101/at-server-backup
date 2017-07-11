@@ -1,0 +1,35 @@
+{
+	"table": "worktypes",
+	"records": [
+		{
+			"workTypeId": 1,
+			"name": "Work",
+			"description": "First pass of working that generates initial result, similar to 'Transcription' in s3v2.",
+			"modifiesTranscription": true
+		},
+		{
+			"workTypeId": 2,
+			"name": "QA",
+			"description": "Check work result, similar to 'QA' in s3v2.",
+			"modifiesTranscription": false
+		},
+		{
+			"workTypeId": 3,
+			"name": "Rework",
+			"description": "Redo some items, similar to 'Rework' in s3v2.",
+			"modifiesTranscription": true
+		},
+		{
+			"workTypeId": 4,
+			"name": "2ndPass_work",
+			"description": "3 way transcription, second pass, generate output based on 1st pass result",
+			"modifiesTranscription": true
+		},
+		{
+			"workTypeId": 6,
+			"name": "2ndPass_rework",
+			"description": null,
+			"modifiesTranscription": true
+		}
+	]
+}

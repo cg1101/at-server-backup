@@ -76,7 +76,7 @@ t_ao_users = Table('ao_users', metadata,
 
 
 t_batchingmodes =  Table('batchingmodes', metadata,
-	Column(u'modeid', INTEGER, primary_key=True, nullable=False, key=u'modeId', doc=''),
+	Column(u'modeid', INTEGER, primary_key=True, nullable=False, key=u'modeId', doc='', autoincrement=False),
 	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'requirescontext', BOOLEAN, nullable=False, server_default=text(u'true'), key=u'requiresContext', doc=''),
@@ -144,7 +144,7 @@ t_tagsets =  Table('tagsets', metadata,
 
 
 t_tasktypes =  Table('tasktypes', metadata,
-	Column(u'tasktypeid', INTEGER, primary_key=True, nullable=False, key=u'taskTypeId', doc=''),
+	Column(u'tasktypeid', INTEGER, primary_key=True, nullable=False, key=u'taskTypeId', doc='', autoincrement=False),
 	Column(u'name', TEXT, nullable=False, key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 )
@@ -161,7 +161,7 @@ Index('taskreporttypes_name_key', t_taskreporttypes.c.name, unique=True)
 
 
 t_worktypes =  Table('worktypes', metadata,
-	Column(u'worktypeid', INTEGER, primary_key=True, nullable=False, key=u'workTypeId', doc=''),
+	Column(u'worktypeid', INTEGER, primary_key=True, nullable=False, key=u'workTypeId', doc='', autoincrement=False),
 	Column(u'name', TEXT, nullable=False,# unique=True,
 			key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
@@ -1211,7 +1211,7 @@ Index("tracks_by_recording_platform_id", t_tracks.c.recordingPlatformId, unique=
 
 
 t_recording_platform_types = Table("recording_platform_types", metadata,
-	Column("recording_platform_type_id", INTEGER, primary_key=True, key="recordingPlatformTypeId", doc=""),
+	Column("recording_platform_type_id", INTEGER, primary_key=True, key="recordingPlatformTypeId", doc="", autoincrement=False),
 	Column("name", TEXT, nullable=False, unique=True, key="name", doc=""),
 )
 
@@ -1437,11 +1437,6 @@ t_metadata_change_requests = Table("meta_data_change_requests", metadata,
 Index("meta_data_change_requests_by_task_id", t_metadata_change_requests.c.taskId, unique=False)
 
 
-t_database_settings = Table("database_settings", metadata,
-	Column("seeded", BOOLEAN, primary_key=True)
-)
-
-
 t_performance_flags = Table("performance_flags", metadata,
 	Column("performance_flag_id", INTEGER, primary_key=True, key="performanceFlagId", doc=""),
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
@@ -1506,7 +1501,7 @@ t_transitions = Table("transitions", metadata,
 Index("transitions_by_task_id", t_transitions.c.taskId, unique=False)
 
 t_audio_checking_change_methods = Table("audio_checking_change_methods", metadata,
-	Column("change_method_id", INTEGER, primary_key=True, key="changeMethodId", doc=""),
+	Column("change_method_id", INTEGER, primary_key=True, key="changeMethodId", doc="", autoincrement=False),
 	Column("name", TEXT, unique=True, nullable=False, key="name", doc=""),
 )
 

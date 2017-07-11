@@ -1,0 +1,40 @@
+{
+	"table": "tasktypes",
+	"records": [
+		{
+			"taskTypeId": 1,
+			"name": "translation",
+			"description": "free editing: yes, use of tag/label: optional, payment counted by: words"
+		},
+		{
+			"taskTypeId": 2,
+			"name": "text collection",
+			"description": "free editing: yes, use of tag/label: optional, payment counted by: item"
+		},
+		{
+			"taskTypeId": 3,
+			"name": "markup",
+			"description": "free editing: no, use of tag/label: yes, payment counted by: item"
+		},
+		{
+			"taskTypeId": 4,
+			"name": "3-way translation",
+			"description": "free editing: yes, use of tag/label: optional, payment counted by: words"
+		},
+		{
+			"taskTypeId": 5,
+			"name": "DEFT like",
+			"description": "free editing: no, use of tag/label: yes, payment counted by: item"
+		},
+		{
+			"taskTypeId": 6,
+			"name": "audio checking",
+			"description": null
+		},
+		{
+			"taskTypeId": 7,
+			"name": "transcription",
+			"description": null
+		}
+	]
+}

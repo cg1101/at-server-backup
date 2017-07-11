@@ -1,0 +1,21 @@
+{
+	"table": "recording_platform_types",
+	"records": [
+		{
+			"recordingPlatformTypeId": 1,
+			"name": "Unspecified"
+		},
+		{
+			"recordingPlatformTypeId": 2,
+			"name": "Sony Mobile Recorder"
+		},
+		{
+			"recordingPlatformTypeId": 3,
+			"name": "Appen Mobile Recorder"
+		},
+		{
+			"recordingPlatformTypeId": 4,
+			"name": "Telephony"
+		}
+	]
+}

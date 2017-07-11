@@ -14,26 +14,12 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
-from migrations.seed import is_database_seeded
 
 
 def upgrade():
-	if is_database_seeded():
-		from alembic import context
-		migrate_context = context.get_context()
-		migrate_context.connection.execute(
-			sa.text("update loaders set name = :new_name where name = :old_name"),
-			old_name="From Audio Checking",
-			new_name="Linked",
-		)
+	pass # used to be seed data migration
 
 
 def downgrade():
-	if is_database_seeded():
-		from alembic import context
-		migrate_context = context.get_context()
-		migrate_context.connection.execute(
-			sa.text("update loaders set name = :new_name where name = :old_name"),
-			old_name="Linked",
-			new_name="From Audio Checking",
-		)
+	pass # used to be seed data migration
+

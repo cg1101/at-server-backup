@@ -7,13 +7,16 @@ import re
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 
+from LRUtilities.FlaskExtensions import SeedMigrate, SeedMigrateCommand
 from application import application as app
 from db import database as db
 
 manager = Manager(app)
 migrate = Migrate(app, db)
+seed_migrate = SeedMigrate(app, db)
 
 manager.add_command('db', MigrateCommand)
+manager.add_command("seed", SeedMigrateCommand)
 
 # def make_shell_context():
 # 	return dict(app=app, db=db, User=User, Role=Role)
@@ -53,15 +56,6 @@ def list(detailed=False):
 
 		else:
 			print("{0} methods: {1} -> {2}".format(str(rule), ",".join(rule.methods), rule.endpoint))
-
-
-@manager.command
-def seed():
-	"""
-	Add seed data to the database.
-	"""
-	from seeds import seed_db
-	seed_db()
 
 
 if __name__ == '__main__':

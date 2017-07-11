@@ -15,7 +15,6 @@ depends_on = None
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from migrations.seed import add_seed_data
 
 def upgrade():
 	
@@ -26,8 +25,6 @@ def upgrade():
 	sa.PrimaryKeyConstraint('change_method_id'),
 	sa.UniqueConstraint('name')
 	)
-	add_seed_data("audio_checking_change_methods", {"name" : "Admin"})
-	add_seed_data("audio_checking_change_methods", {"name" : "Work Page"})
 
 	# performance feedback
 	op.create_table('performance_feedback',

@@ -15,7 +15,6 @@ depends_on = None
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from migrations.seed import add_seed_data
 
 def upgrade():
 	op.create_table('loaders',
@@ -26,8 +25,6 @@ def upgrade():
 	)
 	op.add_column(u'tasks', sa.Column('loader_id', sa.INTEGER(), nullable=True))
 
-	add_seed_data("loaders", {"name": "Storage"}) 
-	add_seed_data("loaders", {"name": "From Audio Checking"}) 
 	
 def downgrade():
 	op.drop_column(u'tasks', 'loader_id')

@@ -14,12 +14,11 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
-from migrations.seed import delete_seed_data, add_seed_data
 
 
 def upgrade():
-	add_seed_data("audio_checking_change_methods", {"name": "Performance Search Page"})
+	pass # used to be seed data migration
 
 
 def downgrade():
-	delete_seed_data("audio_checking_change_methods", "name = :name", name="Performance Search Page")
+	pass # used to be seed data migration

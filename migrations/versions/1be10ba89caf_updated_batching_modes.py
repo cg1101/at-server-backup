@@ -14,40 +14,12 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
-from migrations.seed import is_database_seeded, delete_seed_data, add_seed_data
 
 
 def upgrade():
-
-	if is_database_seeded():
-		from alembic import context
-		migrate_context = context.get_context()
-		migrate_context.connection.execute(
-			sa.text("update batchingmodes set name = :new_name where name = :old_name"),
-			new_name="File",
-			old_name="Recording"
-		)
-		migrate_context.connection.execute(
-			sa.text("update batchingmodes set name = :new_name where name = :old_name"),
-			new_name="Performance",
-			old_name="Session"
-		)
-		delete_seed_data("batchingmodes", "name = :name", name="Long Recordings")
+	pass # used to be seed data migration
 
 
 def downgrade():
+	pass # used to be seed data migration
 
-	if is_database_seeded():
-		from alembic import context
-		migrate_context = context.get_context()
-		migrate_context.connection.execute(
-			sa.text("update batchingmodes set name = :new_name where name = :old_name"),
-			new_name="Recording",
-			old_name="File"
-		)
-		migrate_context.connection.execute(
-			sa.text("update batchingmodes set name = :new_name where name = :old_name"),
-			new_name="Session",
-			old_name="Performance"
-		)
-		add_seed_data("batchingmodes", {"name" : "Long Recordings", "requirescontext": True})

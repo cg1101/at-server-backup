@@ -49,6 +49,7 @@ class Config:
 	AUDIO_SERVER_API_SECRET = None
 	AUDIO_SERVER_API_CLS = None
 	ADMIN_APPEN_ID = os.environ.get("ADMIN_APPEN_ID")
+	SEED_MIGRATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "seeds"))
 
 	@staticmethod
 	def init_app(app):
