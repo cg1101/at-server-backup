@@ -3,7 +3,7 @@ import os
 
 from marshmallow import Schema, fields
 
-from lib.loaders import Loaders
+from lib.loaders import AudioCheckingLoaders
 
 
 PERFORMANCE_DATA_SCHEMA = {
@@ -117,7 +117,7 @@ class LoadRecordingPlatformSchema(Schema):
 		"""
 		completed = []
 
-		if obj.loader["name"] != Loaders.UNSTRUCTURED:
+		if obj.loader["name"] != AudioCheckingLoaders.UNSTRUCTURED:
 			for performance in obj.performances:
 				if not performance.incomplete:
 					completed.append(performance.name)
@@ -147,7 +147,7 @@ class LoadRecordingPlatformSchema(Schema):
 		for performance in obj.performances:
 			
 			# if performance is incomplete
-			if obj.loader["name"] == Loaders.UNSTRUCTURED or performance.incomplete:
+			if obj.loader["name"] == AudioCheckingLoaders.UNSTRUCTURED or performance.incomplete:
 				
 				# get list of existing filenames
 				existing_files = []

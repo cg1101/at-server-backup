@@ -1,16 +1,15 @@
-class Loaders(object):
-	
-	# transcription loaders
-	STORAGE = "Storage"
-	LINKED = "Linked"
-
-	# audio checking loaders
+class AudioCheckingLoaders(object):
 	UNSTRUCTURED = "Unstructured"
 	STANDARD = "Standard"
 	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
 	AMR_CONVERSATIONAL = "Appen Mobile Recorder - Conversational"
 	APPEN_TELEPHONY_SCRIPTED = "Appen Telephony - Scripted"
 	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
+
+
+class TranscriptionLoaders(object):
+	STORAGE = "Storage"
+	LINKED = "Linked"
 
 
 def get_available_loaders(task_type=None, recording_platform_type=None):
@@ -21,20 +20,20 @@ def get_available_loaders(task_type=None, recording_platform_type=None):
 
 	if task_type == TaskType.TRANSCRIPTION:
 		return (
-			Loaders.STORAGE,
-			Loaders.LINKED,
+			TranscriptionLoaders.STORAGE,
+			TranscriptionLoaders.LINKED,
 		)
 
 	if recording_platform_type == RecordingPlatformType.APPEN_MOBILE_RECORDER:
 		return (
-			Loaders.AMR_SCRIPTED,
-			Loaders.AMR_CONVERSATIONAL,
+			AudioCheckingLoaders.AMR_SCRIPTED,
+			AudioCheckingLoaders.AMR_CONVERSATIONAL,
 		)
 
 	if recording_platform_type == RecordingPlatformType.TELEPHONY:
 		return (
-			Loaders.APPEN_TELEPHONY_SCRIPTED,
-			Loaders.APPEN_TELEPHONY_CONVERSATIONAL,
+			AudioCheckingLoaders.APPEN_TELEPHONY_SCRIPTED,
+			AudioCheckingLoaders.APPEN_TELEPHONY_CONVERSATIONAL,
 		)
 
 
@@ -44,17 +43,18 @@ def get_loader_metadata_sources(name):
 	the loader.
 	"""
 
-	if name == Loaders.AMR_SCRIPTED:
+	if name == AudioCheckingLoaders.AMR_SCRIPTED:
 		return ["Log File"]
 
-	if name == Loaders.APPEN_TELEPHONY_CONVERSATIONAL:
+	if name == AudioCheckingLoaders.APPEN_TELEPHONY_CONVERSATIONAL:
 		return ["Log File"]
 	
 	return []
 
 
 __all__ = [
-	"Loaders",
+	"AudioCheckingLoaders",
+	"TranscriptionLoaders",
 	"get_available_loaders",
 	"get_loader_metadata_sources",
 ]
