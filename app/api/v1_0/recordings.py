@@ -61,3 +61,11 @@ def create_recording_feedback_entry(recording):
 	entry.add_flags(flags)
 	db.session.commit()
 	return jsonify(entry=RecordingFeedbackEntry.dump(entry))
+
+
+@bp.route("recordings/<int:recording_id>/feedback/current", methods=["GET"])
+@api
+@caps()
+@get_model(Recording)
+def get_current_recording_feedback_entry(recording):
+	return jsonify(entry=RecordingFeedbackEntry.dump(recording.current_feedback))

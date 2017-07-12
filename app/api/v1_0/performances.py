@@ -128,6 +128,14 @@ def create_performance_feedback_entry(performance):
 	return jsonify(entry=PerformanceFeedbackEntry.dump(entry))
 
 
+@bp.route("performances/<int:raw_piece_id>/feedback/current", methods=["GET"])
+@api
+@caps()
+@get_model(Performance)
+def get_current_performance_feedback_entry(performance):
+	return jsonify(entry=PerformanceFeedbackEntry.dump(performance.current_feedback))
+
+
 @bp.route("performances/<int:raw_piece_id>/transitionlog", methods=["GET"])
 @api
 @caps()
