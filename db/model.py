@@ -2461,8 +2461,25 @@ class AudioFile(Base, LoadMixin):
 
 		return audio_file
 
+	@property
+	def display_name(self):
+		return "Audio File {0}".format(self.audio_file_id)
+
+	@property
+	def performance(self):
+		return self.recording.performance
+	
+	@property
+	def task(self):
+		return self.performance.task
+
 
 class AudioFileSchema(Schema):
+	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
+	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recordingPlatformId", "display_name"))
+	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "name"))
+	recording = fields.Nested("RecordingSchema", only=("recordingId", "display_name"))
+	display_name = fields.String(dump_to="displayName")
 	track = fields.Nested("TrackSchema")
 
 	class Meta:
