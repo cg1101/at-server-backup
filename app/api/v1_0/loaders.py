@@ -22,7 +22,7 @@ def get_loaders():
 
 		loaders = get_available_loaders(task_type=task_type.name)
 
-	if recording_platform_type_id:
+	elif recording_platform_type_id:
 		recording_platform_type = RecordingPlatformType.query.get(recording_platform_type_id)
 
 		if not recording_platform_type:
