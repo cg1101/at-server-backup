@@ -2303,7 +2303,7 @@ class RecordingPlatform(Base, ModelMixin):
 	task_id = synonym("taskId")
 	recording_platform_id = synonym("recordingPlatformId")
 	audio_quality = synonym("audioQuality")
-	
+
 	@property
 	def loadable_performance_meta_categories(self):
 		"""
@@ -2368,7 +2368,7 @@ class RecordingPlatform(Base, ModelMixin):
 
 			if value["parser"] not in cls.MASTER_FILE_PARSERS:
 				raise ValueError("invalid parser")
-	
+
 	@property
 	def display_name(self):
 		return "{0} - Recording Platform {1}".format(self.recording_platform_type.name, self.recording_platform_id)
@@ -2381,7 +2381,7 @@ class RecordingPlatform(Base, ModelMixin):
 		 2. list of performances already at the destination sub task
 		 3. list of performances that can't be moved due to a missing transition
 		"""
-		
+
 		if self.task_id != destination.task_id:
 			raise RuntimeError
 
@@ -2398,7 +2398,7 @@ class RecordingPlatform(Base, ModelMixin):
 			if performance.sub_task.sub_task_id == destination.sub_task_id:
 				at_destination.append(performance)
 				continue
-		
+
 			# check if valid transition exists
 			if not Transition.is_valid_transition(performance.sub_task.sub_task_id, destination.sub_task_id):
 				no_transition.append(performance)
@@ -2468,7 +2468,7 @@ class AudioFile(Base, LoadMixin):
 	@property
 	def performance(self):
 		return self.recording.performance
-	
+
 	@property
 	def task(self):
 		return self.performance.task
@@ -3065,7 +3065,7 @@ class RecordingSchema(Schema):
 	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recordingPlatformId", "display_name"))
 	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "name"))
 	display_name = fields.String(dump_to="displayName")
-	
+
 	class Meta:
 		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis", "recordingPlatformId")
 
