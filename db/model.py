@@ -3183,10 +3183,16 @@ class Track(Base, ModelMixin):
 		"""
 		return self.check_updated_field_unique("name", recording_platform=self.recording_platform)
 
+	@property
+	def display_name(self):
+		return "{0}. {1}".format(self.track_index, self.name)
+
 
 class TrackSchema(Schema):
+	display_name = fields.String(dump_to="displayName")
+
 	class Meta:
-		fields = ("trackId", "name", "trackIndex")
+		additional = ("trackId", "name", "trackIndex")
 
 
 class AudioCheckingGroup(Base):
