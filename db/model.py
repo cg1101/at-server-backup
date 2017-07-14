@@ -331,6 +331,19 @@ class FeedbackEntryMixin(object):
 			self.entry_flags.append(self.EntryFlagModel(flag=flag))
 
 
+class FeedbackFlagMixin(object):
+	"""
+	Adds extra functionality for feedback
+	flag models.
+	"""
+
+	FlagIdAttr = None
+
+	@property
+	def flag_id(self):
+		return getattr(self, self.FlagIdAttr)
+
+
 def set_schema(cls, schema_class, schema_key=None):
 	if not issubclass(schema_class, Schema):
 		raise TypeError('schema must be subclass of Schema')
@@ -2671,8 +2684,10 @@ class PerformanceFeedbackEntrySchema(Schema):
 
 
 # PerformanceFlag
-class PerformanceFlag(Base, ModelMixin):
+class PerformanceFlag(Base, ModelMixin, FeedbackFlagMixin):
 	__table__ = t_performance_flags
+
+	FlagIdAttr = "performanceFlagId"
 
 	# constants
 	INFO = "Info"
@@ -2715,8 +2730,10 @@ class PerformanceFlag(Base, ModelMixin):
 
 
 class PerformanceFlagSchema(Schema):
+	flag_id = fields.Integer(dump_to="flagId")
+
 	class Meta:
-		fields = ("performanceFlagId", "name", "severity", "enabled")
+		additional = ("performanceFlagId", "name", "severity", "enabled")
 
 
 # Performance
@@ -2913,8 +2930,10 @@ class RecordingMetaValueSchema(Schema):
 
 
 # RecordingFlag
-class RecordingFlag(Base, ModelMixin):
+class RecordingFlag(Base, ModelMixin, FeedbackFlagMixin):
 	__table__ = t_recording_flags
+
+	FlagIdAttr = "recordingFlagId"
 
 	# constants
 	INFO = "Info"
@@ -2957,8 +2976,10 @@ class RecordingFlag(Base, ModelMixin):
 
 
 class RecordingFlagSchema(Schema):
+	flag_id = fields.Integer(dump_to="flagId")
+
 	class Meta:
-		fields = ("recordingFlagId", "name", "severity", "enabled")
+		additional = ("recordingFlagId", "name", "severity", "enabled")
 
 
 class RecordingFeedbackEntryFlag(Base, ModelMixin):
