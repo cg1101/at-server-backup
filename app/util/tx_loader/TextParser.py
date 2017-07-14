@@ -225,6 +225,7 @@ class Parser(object):
 				node = doc.createElement('IMG')
 				node.setAttribute('tagid', str(item.tagId))
 				node.setAttribute('tagtype', self.tagById[item.tagId].tagType)
+				node.setAttribute('src', '/tagimages/%s.png' % item.tagId)
 				assert len(item.items) == 1
 				parentNode.appendChild(node)
 			elif item.type in (PO_PREFIX,):
