@@ -147,12 +147,12 @@ def load_json_file(file, auto_gen_allocation_context=True,
 		assert isinstance(data_dict, dict)
 
 	def validate_assembly_context(data_dict):
-		assert (data_dict.has_key['assemblyContext'] and
+		assert (data_dict.has_key('assemblyContext') and
 			isinstance(data_dict['assemblyContext'], basestring) and
 			data_dict['assemblyContext'].strip())
 	def validate_allocation_context(data_dict):
-		assert (data_dict.has_key['allocationContext'] and
-			isinstance(data_data['allocationContext'], basestring) and
+		assert (data_dict.has_key('allocationContext') and
+			isinstance(data_dict['allocationContext'], basestring) and
 			data_dict['allocationContext'].strip())
 	def validate_meta(data_dict):
 		literal = data_dict.get('meta', None)
