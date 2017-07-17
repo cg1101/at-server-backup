@@ -141,7 +141,15 @@ def load_utt_file(file):
 def load_json_file(file, auto_gen_allocation_context=True,
 		auto_gen_assembly_context=True, auto_gen_words=True,
 		validate_meta=True, escape=True, **kwargs):
-	todo = json.load(file)
+
+	try:
+		todo = json.load(file)
+	except:
+		raise RuntimeError('error loading json file')
+	if not isinstance(todo, list):
+		raise RuntimeError('data input must be a list')
+	if not len(todo):
+		raise RuntimeError('data list is empty')
 
 	def validate_data_dict(data_dict):
 		assert isinstance(data_dict, dict)
@@ -170,7 +178,10 @@ def load_json_file(file, auto_gen_allocation_context=True,
 	itemDicts = []
 	for dd in todo:
 		for v in validators:
-			v(dd)
+			try:
+				v(dd)
+			except:
+				raise RuntimeError('validation failed: {}: {}'.format(v, dd))
 		if auto_gen_words:
 			dd['words'] = 1
 		itemDicts.append(dd)
