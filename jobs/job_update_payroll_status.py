@@ -127,7 +127,7 @@ class SubTaskHelper(object):
 
 			user = m.User.query.get(userId)
 			if user.paymentType in (#m.User.PAYMENT_TYPE_CLIENT,
-					m.User.PAYMENT_TYPE_INTERVAL,):
+					m.User.PAYMENT_TYPE_INTERNAL,):
 				totalAmount = 0
 
 			cp = m.CalculatedPayment(payrollId=payrollId,
