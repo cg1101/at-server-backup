@@ -141,18 +141,26 @@ def load_utt_file(file):
 def load_json_file(file, auto_gen_allocation_context=True,
 		auto_gen_assembly_context=True, auto_gen_words=True,
 		validate_meta=True, escape=True, **kwargs):
-	todo = json.load(file)
+
+	try:
+		todo = json.load(file)
+	except:
+		raise RuntimeError('error loading json file')
+	if not isinstance(todo, list):
+		raise RuntimeError('data input must be a list')
+	if not len(todo):
+		raise RuntimeError('data list is empty')
 
 	def validate_data_dict(data_dict):
 		assert isinstance(data_dict, dict)
 
 	def validate_assembly_context(data_dict):
-		assert (data_dict.has_key['assemblyContext'] and
+		assert (data_dict.has_key('assemblyContext') and
 			isinstance(data_dict['assemblyContext'], basestring) and
 			data_dict['assemblyContext'].strip())
 	def validate_allocation_context(data_dict):
-		assert (data_dict.has_key['allocationContext'] and
-			isinstance(data_data['allocationContext'], basestring) and
+		assert (data_dict.has_key('allocationContext') and
+			isinstance(data_dict['allocationContext'], basestring) and
 			data_dict['allocationContext'].strip())
 	def validate_meta(data_dict):
 		literal = data_dict.get('meta', None)
@@ -168,9 +176,12 @@ def load_json_file(file, auto_gen_allocation_context=True,
 	if validate_meta:
 		validators.append(validate_meta)
 	itemDicts = []
-	for dd in todo:
+	for i, dd in enumerate(todo):
 		for v in validators:
-			v(dd)
+			try:
+				v(dd)
+			except:
+				raise RuntimeError('validation failed: item {}, {}: {}'.format(i, v, dd))
 		if auto_gen_words:
 			dd['words'] = 1
 		itemDicts.append(dd)
