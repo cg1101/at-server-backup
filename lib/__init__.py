@@ -1,7 +1,32 @@
 import datetime
 import pytz
+import re
 
 from functools import wraps
+
+
+class GetConstantsMixin(object):
+	"""
+	Class mixin for use of the
+	get_constants function.
+	"""
+
+	@classmethod
+	def get_constants(cls):
+		"""
+		Returns the constants defined on the
+		class. Constants are assumed to be
+		variables with names consisting of
+		uppercase letters or underscores only.
+		"""
+		constants = {}
+
+		for attr in dir(cls):
+			if re.match("[A-Z_]+$", attr):
+				value = getattr(cls, attr)
+				constants[attr] = value
+
+		return constants
 
 
 def utcnow():

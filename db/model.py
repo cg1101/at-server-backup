@@ -24,7 +24,7 @@ from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
 from .db import database as db
-from lib import utcnow, validator
+from lib import GetConstantsMixin, utcnow, validator
 from lib.audio_load import validate_load_performance_data, validate_load_utterance_data
 from lib.loaders import get_loader_metadata_sources
 from lib.metadata_validation import MetaValidator, MetaValue, process_received_metadata, resolve_new_metadata
@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 # model mixin classes
 
-class ModelMixin(object):
+class ModelMixin(GetConstantsMixin):
 
 	@classmethod
 	def check_exists(cls, data, key, value):
@@ -411,7 +411,7 @@ class PdbTaskSchema(Schema):
 
 
 # WorkType
-class WorkType(Base):
+class WorkType(Base, ModelMixin):
 	__table__ = t_worktypes
 
 	WORK = 'Work'
@@ -648,7 +648,7 @@ class Batch_BriefSchema(Schema):
 
 
 # BathchingMode
-class BatchingMode(Base):
+class BatchingMode(Base, ModelMixin):
 	__table__ = t_batchingmodes
 
 	# constants
@@ -2040,7 +2040,7 @@ class TaskSupervisorSchema(Schema):
 		ordered = True
 
 # TaskType
-class TaskType(Base):
+class TaskType(Base, ModelMixin):
 	TRANSLATION = 'translation'
 	TEXT_COLLECTION = 'text collection'
 	MARKUP = 'markup'

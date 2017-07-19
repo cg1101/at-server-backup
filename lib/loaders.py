@@ -1,4 +1,9 @@
-class AudioCheckingLoaders(object):
+import re
+
+from lib import GetConstantsMixin
+
+
+class AudioCheckingLoaders(GetConstantsMixin):
 	UNSTRUCTURED = "Unstructured"
 	STANDARD = "Standard"
 	AMR_SCRIPTED = "Appen Mobile Recorder - Scripted"
@@ -7,7 +12,7 @@ class AudioCheckingLoaders(object):
 	APPEN_TELEPHONY_CONVERSATIONAL = "Appen Telephony - Conversational"
 
 
-class TranscriptionLoaders(object):
+class TranscriptionLoaders(GetConstantsMixin):
 	STORAGE = "Storage"
 	LINKED = "Linked"
 
