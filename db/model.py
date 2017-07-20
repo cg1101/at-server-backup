@@ -2899,7 +2899,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 
 
 class PerformanceSchema(Schema):
-	batch = fields.Method("get_batch")
+	batch = fields.Nested("BatchSchema", only=("batchId", "user"))
 	current_feedback = fields.Nested("PerformanceFeedbackEntrySchema", dump_to="currentFeedback")
 	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recording_platform_id", "display_name"))
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
@@ -2907,12 +2907,6 @@ class PerformanceSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	display_name = fields.String(dump_to="displayName")
 	album = fields.Nested("AlbumSchema", only=("albumId", "display_name", "num_performances"))
-
-	def get_batch(self, obj):
-		return {
-			"batchId": obj.batch.batch_id,
-			"assigned": bool(obj.batch.user_id),
-		}
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "loadedAt")
