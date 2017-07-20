@@ -2584,11 +2584,16 @@ class Album(Base):
 	def display_name(self):
 		return self.name or "Album {0}".format(self.album_id)
 
+	@property
+	def num_performances(self):
+		return len(self.performances)
+
 
 class AlbumSchema(Schema):
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
 	display_name = fields.String(dump_to="displayName")
 	performances = fields.Nested("PerformanceSchema", many=True, only=("rawPieceId", "display_name"))
+	num_performances = fields.Integer(dump_to="numPerformances")
 
 	class Meta:
 		additional = ("albumId", "speakerId")
@@ -2901,7 +2906,7 @@ class PerformanceSchema(Schema):
 	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
 	task_id = fields.Integer(dump_to="taskId")
 	display_name = fields.String(dump_to="displayName")
-	album = fields.Nested("AlbumSchema", only=("albumId", "display_name"))
+	album = fields.Nested("AlbumSchema", only=("albumId", "display_name", "num_performances"))
 
 	def get_batch(self, obj):
 		return {
