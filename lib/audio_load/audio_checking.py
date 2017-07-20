@@ -25,6 +25,9 @@ PERFORMANCE_DATA_SCHEMA = {
 		"metadata": {
 			"type": "object"
 		},
+		"albumName": {
+			"type": ["string", "null"]
+		},
 		"recordings": {
 			"type": "array",
 			"minItems": 1,

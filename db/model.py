@@ -2572,15 +2572,26 @@ class AlbumMetaValueSchema(Schema):
 class Album(Base):
 	__table__ = t_albums
 
+	# relationships
+	task = relationship("Task", backref="albums")
+
 	# synonyms
 	album_id = synonym("albumId")
 	task_id = synonym("taskId")
 	speaker_id = synonym("speakerId")
 
+	@property
+	def display_name(self):
+		return self.name or "Album {0}".format(self.album_id)
+
 
 class AlbumSchema(Schema):
+	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
+	display_name = fields.String(dump_to="displayName")
+	performances = fields.Nested("PerformanceSchema", many=True, only=("rawPieceId", "display_name"))
+
 	class Meta:
-		fields = ("albumId", "taskId", "speakerId")
+		additional = ("albumId", "speakerId")
 
 # PerformanceMetaCategory
 class PerformanceMetaCategory(Base, ModelMixin, MetaCategoryMixin):
@@ -2796,6 +2807,10 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 	def meta_entity_id(self):
 		return self.raw_piece_id
 
+	@property
+	def display_name(self):
+		return self.name or "Performance {0}".format(self.raw_piece_id)
+
 	def load_data(self, data):
 		"""
 		Adds data for the performance from
@@ -2818,9 +2833,8 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 
 		if recording_platform.task != task:
 			raise RuntimeError
-
-		# create performance
-		performance = cls(
+			
+		kwargs = dict(
 			task=task,
 			load_id=load.load_id,
 			assembly_context="{0}_{1}".format(data["name"], int(time.time())),	# TODO shouldnt be required
@@ -2830,6 +2844,14 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 			loaded_at=utcnow(),
 			words=1,
 		)
+
+		# check if album needs to be located TODO handle missing album gracefully
+		if recording_platform.loader.get("useAlbums"):
+			album = Album.query.filter_by(task=task, name=data.get("albumName")).one()
+			kwargs.update(dict(album=album))
+
+		# create performance
+		performance = cls(**kwargs)
 
 		# add metadata
 		meta_values = process_received_metadata(data["metadata"], recording_platform.performance_meta_categories)
@@ -2878,6 +2900,8 @@ class PerformanceSchema(Schema):
 	sub_task = fields.Nested("SubTaskSchema", dump_to="subTask", only=("subTaskId", "name"))
 	task = fields.Nested("TaskSchema", only=("taskId", "name", "displayName"))
 	task_id = fields.Integer(dump_to="taskId")
+	display_name = fields.String(dump_to="displayName")
+	album = fields.Nested("AlbumSchema", only=("albumId", "display_name"))
 
 	def get_batch(self, obj):
 		return {

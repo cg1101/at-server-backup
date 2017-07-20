@@ -1253,6 +1253,7 @@ t_performances = Table("performances", metadata,
 	Column("album_id", INTEGER, key="albumId", doc=""),
 	Column("recording_platform_id", INTEGER, nullable=False, key="recordingPlatformId", doc=""),
 	Column("script_id", TEXT, key="scriptId", doc=""),
+	Column("speaker_id", INTEGER, key="speakerId", doc=""),
 	Column("name", TEXT, key="name", doc=""),
 	Column("data", JSONB, key="data", doc=""),
 	Column("key", VARCHAR(8), key="key", doc=""),
@@ -1260,6 +1261,7 @@ t_performances = Table("performances", metadata,
 	ForeignKeyConstraint(["rawPieceId"], ["rawpieces.rawPieceId"]),
 	ForeignKeyConstraint(["albumId"], ["albums.albumId"]),
 	ForeignKeyConstraint(["recordingPlatformId"], ["recording_platforms.recordingPlatformId"]),
+	ForeignKeyConstraint(["speakerId"], ["speakers.speakerId"]),
 )
 Index("performances_by_album_id", t_performances.c.albumId, unique=False)
 Index("performances_by_recording_platform_id", t_performances.c.recordingPlatformId, unique=False)
@@ -1267,10 +1269,12 @@ Index("performances_by_recording_platform_id", t_performances.c.recordingPlatfor
 
 t_albums = Table("albums", metadata,
 	Column("album_id", INTEGER, primary_key=True, key="albumId", doc=""),
+	Column("name", TEXT, key="name", doc=""),
 	Column("task_id", INTEGER, nullable=False, key="taskId", doc=""),
-	Column("speaker_id", INTEGER, nullable=False, key="speakerId", doc=""),
+	Column("speaker_id", INTEGER, key="speakerId", doc=""),
 	ForeignKeyConstraint(["taskId"], ["tasks.taskId"]),
 	ForeignKeyConstraint(["speakerId"], ["speakers.speakerId"]),
+	UniqueConstraint("taskId", "name"),
 )
 Index("albums_by_task_id", t_albums.c.taskId, unique=False)
 Index("albums_by_speaker_id", t_albums.c.speakerId, unique=False)

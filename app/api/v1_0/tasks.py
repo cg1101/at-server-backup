@@ -3,6 +3,7 @@ import glob
 import datetime
 import re
 import json
+import jsonschema
 import subprocess
 
 from flask import request, session, jsonify, make_response, url_for, current_app
@@ -20,6 +21,7 @@ import db.model as m
 from db.db import SS
 from db import database as db
 from db.model import (
+	Album,
 	Load,
 	PerformanceFlag,
 	RecordingFlag,
@@ -2122,5 +2124,48 @@ def get_task_loader(task):
 @get_model(Task)
 def update_task_loader(task):
 	task.set_loader(request.json)
+	db.session.commit()
+	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/albums", methods=["GET"])
+@api
+@get_model(Task)
+def get_task_albums(task):
+	return jsonify(albums=Album.dump(task.albums))
+
+
+@bp.route("tasks/<int:task_id>/albums/upload", methods=["POST"])
+@api
+@get_model(Task)
+def upload_task_album_list(task):
+
+	schema = {
+		"type": "array",
+		"minItems": 1,
+		"items": {
+			"type": "string",
+		}
+	}
+
+	try:
+		jsonschema.validate(request.json, schema)
+	except jsonschema.ValidationError:
+		raise InvalidUsage("invalid album name list uploaded")
+
+	for album_name in request.json:
+		
+		# album already exists
+		if Album.query.filter_by(task=task, name=album_name).count():
+			current_app.logger.debug("album already exists: {0}".format(album_name))
+			continue
+		
+		album = Album(
+			task=task,
+			name=album_name
+		)
+		db.session.add(album)
+
+	db.session.flush()
 	db.session.commit()
 	return jsonify(success=True)
