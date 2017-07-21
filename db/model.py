@@ -2490,7 +2490,7 @@ class AudioFile(Base, LoadMixin):
 class AudioFileSchema(Schema):
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
 	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recordingPlatformId", "display_name"))
-	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "name"))
+	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "display_name"))
 	recording = fields.Nested("RecordingSchema", only=("recordingId", "display_name"))
 	display_name = fields.String(dump_to="displayName")
 	track = fields.Nested("TrackSchema")
@@ -3107,7 +3107,7 @@ class RecordingSchema(Schema):
 	current_feedback = fields.Nested("RecordingFeedbackEntrySchema", dump_to="currentFeedback")
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
 	recording_platform = fields.Nested("RecordingPlatformSchema", dump_to="recordingPlatform", only=("recordingPlatformId", "display_name"))
-	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "name"))
+	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "display_name"))
 	display_name = fields.String(dump_to="displayName")
 
 	class Meta:
