@@ -2309,6 +2309,7 @@ class RecordingPlatform(Base, ModelMixin):
 	# relationships
 	task = relationship("Task", backref="recording_platforms")
 	recording_platform_type = relationship("RecordingPlatformType")
+	selected_audio_stats_types = relationship("AudioStatsType", secondary=t_recording_platform_audio_stats_types)
 
 	# synonyms
 	recording_platform_id = synonym("recordingPlatformId")
@@ -2316,6 +2317,11 @@ class RecordingPlatform(Base, ModelMixin):
 	task_id = synonym("taskId")
 	recording_platform_id = synonym("recordingPlatformId")
 	audio_quality = synonym("audioQuality")
+
+	@property
+	def audio_stats_types(self):
+		default_types = AudioStatsType.query.filter_by(is_default=True).all()
+		return default_types + self.selected_audio_stats_types
 
 	@property
 	def loadable_performance_meta_categories(self):
@@ -3595,6 +3601,18 @@ class ApiAccessPairSchema(Schema):
 
 	class Meta:
 		additional = ("apiAccessPairId", "key", "secret", "description", "enabled", "createdAt")
+
+
+# AudioStatsType
+class AudioStatsType(Base, ModelMixin):
+	__table__ = t_audio_stats_types
+
+class AudioStatsTypeSchema(Schema):
+	audio_stats_type_id = fields.Integer(dump_to="audioStatsTypeId")
+	key = fields.String()
+	name = fields.String()
+	description = fields.String()
+	is_default = fields.Boolean(dump_to="isDefault")
 
 #
 # Define model class and its schema (if needed) above

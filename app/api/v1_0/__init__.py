@@ -16,6 +16,7 @@ import api_access_pairs
 import audio_checking_groups
 import audio_checking_sections
 import audio_files
+import audio_stats_types
 import batches
 import batching_modes
 import constants

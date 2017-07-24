@@ -12,6 +12,7 @@ from db.model import (
 	AudioCheckingChangeMethod,
 	AudioCheckingGroup,
 	AudioCheckingSection,
+	AudioStatsType,
 	CorpusCode,
 	Load,
 	Performance,
@@ -494,3 +495,11 @@ def upload_performance_list(recording_platform):
 		"moved": len(moved),
 		"performances": Performance.dump(performances, use="full"),
 	})
+
+
+@bp.route("recording-platforms/<int:recording_platform_id>/audio-stats-types", methods=["GET"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def get_recording_platform_audio_stats_types(recording_platform):
+	return jsonify({"audioStatsTypes": AudioStatsType.dump(recording_platform.audio_stats_types)})

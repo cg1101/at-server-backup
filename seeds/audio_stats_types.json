@@ -1,0 +1,12 @@
+{
+	"table": "audio_stats_types",
+	"records": [
+		{
+			"audio_stats_type_id": 1,
+			"key": "waveform",
+			"name": "Waveform",
+			"description": "Data points to create waveform image",
+			"is_default": true
+		}
+	]
+}

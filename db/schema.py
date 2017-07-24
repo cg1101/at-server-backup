@@ -1587,6 +1587,22 @@ t_api_access_pairs = Table("api_access_pairs", metadata,
 	ForeignKeyConstraint(["userId"], ["users.userId"]),
 )
 
+t_audio_stats_types = Table("audio_stats_types", metadata,
+	Column("audio_stats_type_id", Integer, primary_key=True, autoincrement=False),
+	Column("key", String, nullable=False, unique=True),
+	Column("name", String, nullable=False, unique=True),
+	Column("description", Text, nullable=False),
+	Column("is_default", BOOLEAN, nullable=False)
+)
+
+t_recording_platform_audio_stats_types = Table("recording_platform_audio_stats_types", metadata,
+	Column("recording_platform_id", Integer, nullable=False),
+	Column("audio_stats_type_id", Integer, nullable=False),
+	ForeignKeyConstraint(["recording_platform_id"], ["recording_platforms.recordingPlatformId"]),
+	ForeignKeyConstraint(["audio_stats_type_id"], ["audio_stats_types.audio_stats_type_id"]),
+	PrimaryKeyConstraint("recording_platform_id", "audio_stats_type_id"),
+)
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')
