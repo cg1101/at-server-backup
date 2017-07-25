@@ -2682,7 +2682,6 @@ class PerformanceFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
 	__table__ = t_performance_feedback
 
 	# relationships
-	performance = relationship("Performance", backref="feedback_entries")
 	user = relationship("User")
 	change_method = relationship("AudioCheckingChangeMethod")
 
@@ -2766,6 +2765,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 	album = relationship("Album", backref="performances")
 	recording_platform = relationship("RecordingPlatform", backref="performances")
 	raw_piece = relationship("RawPiece")
+	feedback_entries = relationship("PerformanceFeedbackEntry", backref="performance", order_by="PerformanceFeedbackEntry.savedAt")
 
 	# synonyms
 	raw_piece_id = synonym("rawPieceId")
@@ -3024,7 +3024,6 @@ class RecordingFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
 	__table__ = t_recording_feedback
 
 	# relationships
-	recording = relationship("Recording", backref="feedback_entries")
 	user = relationship("User")
 	change_method = relationship("AudioCheckingChangeMethod")
 
@@ -3055,6 +3054,7 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 	recording_platform = relationship("RecordingPlatform", backref="recordings")
 	performance = relationship("Performance", backref="recordings")
 	corpus_code = relationship("CorpusCode", backref="recordings")
+	feedback_entries = relationship("RecordingFeedbackEntry", backref="recording", order_by="RecordingFeedbackEntry.savedAt")
 
 	# synonyms
 	recording_id = synonym("recordingId")
