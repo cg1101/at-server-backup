@@ -269,7 +269,8 @@ def webservices_available_qualifications():
 
 	user = _get_user(userId)
 	if not user or not user.isActive:
-		raise RuntimeError('user {} not found or inactive'.format(userId))
+		current_app.logger.error('user {} not found or inactive'.format(userId))
+		return dict(entries=[])
 
 	candidates = m.Test.query.filter_by(isEnabled=True
 		).order_by(m.Test.testId).all()
