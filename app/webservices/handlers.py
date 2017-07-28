@@ -9,7 +9,7 @@ from lxml import etree
 import db.model as m
 from db.db import SS
 from app.i18n import get_text as _
-from app.api import MyForm, Field, validators
+from app.api import MyForm, Field, InvalidUsage, validators
 from app.util import TestManager, Filterable, edm
 
 from .helpers import UserSearchAction, UserSearchFilter, calculate_task_payment_record
@@ -269,8 +269,7 @@ def webservices_available_qualifications():
 
 	user = _get_user(userId)
 	if not user or not user.isActive:
-		current_app.logger.error('user {} not found or inactive'.format(userId))
-		return dict(entries=[])
+		raise InvalidUsage('user {} not found or inactive'.format(userId))
 
 	candidates = m.Test.query.filter_by(isEnabled=True
 		).order_by(m.Test.testId).all()
@@ -289,7 +288,7 @@ def webservices_available_work():
 
 	user = _get_user(userId)
 	if not user or not user.isActive:
-		raise RuntimeError('user {} not found or inactive'.format(userId))
+		raise InvalidUsage('user {} not found or inactive'.format(userId))
 
 	# is_active = lambda subTask: subTask.task.status == m.Task.STATUS_ACTIVE
 	# has_supervisor = lambda subTask: len([x for x in subTask.task.supervisors
@@ -369,7 +368,7 @@ def webservices_recent_work():
 
 	user = _get_user(userId)
 	if not user or not user.isActive:
-		raise RuntimeError('user {} not found or inactive'.format(userId))
+		raise InvalidUsage('user {} not found or inactive'.format(userId))
 
 	eventsBySubTaskId = {}
 	for ev in m.PayableEvent.query.filter_by(userId=userId
@@ -502,14 +501,14 @@ def webservices_update_payments():
 		d = confirmedByReceiptId[i]
 		user = _get_user(d['userId'])
 		if not user:
-			raise RuntimeError(_('user {0} not found').format(d['userId']))
+			raise InvalidUsage(_('user {0} not found').format(d['userId']))
 		if d['taskId'] not in taskIds:
 			# TODO: raise Error instead of ignoring it
 			# raise RuntimeError(_('task {0} not found').format(d['taskId']))
 			continue
 		paymentTypeId = paymentTypeByName.get(d['paymentType'])
 		if paymentTypeId is None:
-			raise RuntimeError(_('payment type \'{0}\' not found'
+			raise InvalidUsage(_('payment type \'{0}\' not found'
 				).format(d['paymentType']))
 		ncp = m.OtherPayment(payrollId=payrollId,
 			identifier=d['identifier'], paymentTypeId=paymentTypeId,
