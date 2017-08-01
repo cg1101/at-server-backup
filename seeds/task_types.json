@@ -3,37 +3,37 @@
 	"records": [
 		{
 			"taskTypeId": 1,
-			"name": "translation",
+			"name": "Translation",
 			"description": "free editing: yes, use of tag/label: optional, payment counted by: words"
 		},
 		{
 			"taskTypeId": 2,
-			"name": "text collection",
+			"name": "Text Collection",
 			"description": "free editing: yes, use of tag/label: optional, payment counted by: item"
 		},
 		{
 			"taskTypeId": 3,
-			"name": "markup",
+			"name": "Markup",
 			"description": "free editing: no, use of tag/label: yes, payment counted by: item"
 		},
 		{
 			"taskTypeId": 4,
-			"name": "3-way translation",
+			"name": "3-way Translation",
 			"description": "free editing: yes, use of tag/label: optional, payment counted by: words"
 		},
 		{
 			"taskTypeId": 5,
-			"name": "DEFT like",
+			"name": "DEFT Like",
 			"description": "free editing: no, use of tag/label: yes, payment counted by: item"
 		},
 		{
 			"taskTypeId": 6,
-			"name": "audio checking",
+			"name": "Audio Checking",
 			"description": null
 		},
 		{
 			"taskTypeId": 7,
-			"name": "transcription",
+			"name": "Transcription",
 			"description": null
 		}
 	]
