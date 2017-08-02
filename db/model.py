@@ -2041,11 +2041,11 @@ class TaskSupervisorSchema(Schema):
 
 # TaskType
 class TaskType(Base, ModelMixin):
-	TRANSLATION = 'translation'
-	TEXT_COLLECTION = 'text collection'
-	MARKUP = 'markup'
-	AUDIO_CHECKING = "audio checking"
-	TRANSCRIPTION = "transcription"
+	TRANSLATION = 'Translation'
+	TEXT_COLLECTION = 'Text Collection'
+	MARKUP = 'Markup'
+	AUDIO_CHECKING = "Audio Checking"
+	TRANSCRIPTION = "Transcription"
 
 	__table__ = t_tasktypes
 
