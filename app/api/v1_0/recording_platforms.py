@@ -134,6 +134,7 @@ def create_corpus_code(recording_platform):
 	return jsonify({"corpusCode": CorpusCode.dump(corpus_code)})
 
 
+# TODO determine if still required
 @bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/scripted", methods=["GET"])
 @api
 @caps()
@@ -143,6 +144,7 @@ def get_scripted_recording_platform_corpus_codes(recording_platform):
 	return jsonify({"corpusCodes": CorpusCode.dump(corpus_codes)})
 
 
+# TODO determine if still required
 @bp.route("recording-platforms/<int:recording_platform_id>/corpuscodes/spontaneous", methods=["GET"])
 @api
 @caps()

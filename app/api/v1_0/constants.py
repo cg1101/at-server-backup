@@ -2,7 +2,7 @@ from flask import jsonify
 
 from . import api_1_0 as bp
 from app.api import api, caps
-from db.model import AudioCheckingChangeMethod, BatchingMode, RecordingPlatformType, TaskType, WorkType
+from db.model import AudioCheckingChangeMethod, BatchingMode, CorpusCode, RecordingPlatformType, TaskType, WorkType
 from lib.loaders import AudioCheckingLoaders, TranscriptionLoaders
 
 
@@ -14,6 +14,7 @@ def get_constants():
 		"audioCheckingChangeMethods": AudioCheckingChangeMethod.get_constants(),
 		"audioCheckingLoaders": AudioCheckingLoaders.get_constants(),
 		"batchingModes": BatchingMode.get_constants(),
+		"corpusCodes": CorpusCode.get_constants(),
 		"recordingPlatformTypes": RecordingPlatformType.get_constants(),
 		"taskTypes": TaskType.get_constants(),
 		"transcriptionLoaders": TranscriptionLoaders.get_constants(),

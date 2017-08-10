@@ -3123,6 +3123,11 @@ class RecordingSchema(Schema):
 class CorpusCode(Base, ModelMixin):
 	__table__ = t_corpus_codes
 
+	# constants
+	NO_CODE = "No Code"
+	SCRIPTED = "Scripted"
+	SPONTANEOUS = "Spontaneous"
+
 	# relationships
 	recording_platform = relationship("RecordingPlatform", backref="corpus_codes")
 	audio_checking_group = relationship("AudioCheckingGroup", backref="corpus_codes")
@@ -3135,7 +3140,7 @@ class CorpusCode(Base, ModelMixin):
 
 	@property
 	def name(self):
-		return self.code or "No Code"
+		return self.code or self.NO_CODE
 
 	@classmethod
 	def check_new_code_unique(cls, recording_platform):
@@ -3159,7 +3164,7 @@ class CorpusCode(Base, ModelMixin):
 class CorpusCodeSchema(Schema):
 	included = fields.Boolean()
 	regex = fields.String()
-	type = fields.Function(lambda obj: "Scripted" if obj.is_scripted else "Spontaneous")
+	type = fields.Function(lambda obj: CorpusCode.SCRIPTED if obj.is_scripted else CorpusCode.SPONTANEOUS)
 	class Meta:
 		additional = ("corpusCodeId", "name", "code", "isScripted", "audioCheckingGroupId")
 
