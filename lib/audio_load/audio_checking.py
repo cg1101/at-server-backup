@@ -113,6 +113,13 @@ class LoadRecordingPlatformSchema(Schema):
 	tracks = fields.Nested(LoadTrackSchema, many=True)
 	corpus_codes = fields.Nested(LoadCorpusCodeSchema, many=True, dump_to="corpusCodes")
 	loadable_performance_meta_categories = fields.Nested(LoadPerformanceMetaCategorySchema, many=True, dump_to="performanceMetaCategories")
+	audio_stats_types = fields.Method("get_audio_stats_types", dump_to="audioStatsTypes")
+
+	def get_audio_stats_types(self, obj):
+		"""
+		Returns a list of audio stats type keys.
+		"""
+		return [type.key for type in obj.audio_stats_types]
 
 	def get_completed_performances(self, obj):
 		"""
