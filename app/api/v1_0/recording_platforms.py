@@ -505,3 +505,25 @@ def upload_performance_list(recording_platform):
 @get_model(RecordingPlatform)
 def get_recording_platform_audio_stats_types(recording_platform):
 	return jsonify({"audioStatsTypes": AudioStatsType.dump(recording_platform.audio_stats_types)})
+
+
+@bp.route("recording-platforms/<int:recording_platform_id>/audio-stats-types", methods=["PUT"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def update_recording_platform_audio_stats_types(recording_platform):
+	data = MyForm(
+		Field("audioStatsTypeIds", is_mandatory=True, validators=[
+			validators.is_list,
+			AudioStatsType.check_all_exists
+		]),
+	).get_data()
+
+	recording_platform.selected_audio_stats_types = []
+	
+	for audio_stats_type_id in data["audioStatsTypeIds"]:
+		audio_stats_type = AudioStatsType.query.get(audio_stats_type_id)
+		recording_platform.selected_audio_stats_types.append(audio_stats_type)
+
+	db.session.commit()
+	return jsonify({"audioStatsTypes": AudioStatsType.dump(recording_platform.audio_stats_types)})

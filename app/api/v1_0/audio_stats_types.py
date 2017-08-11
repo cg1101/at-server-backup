@@ -10,7 +10,7 @@ from db.model import AudioStatsType
 @caps()
 def get_audio_stats_types():
 	audio_stats_types = AudioStatsType.query.all()
-	return jsonify({"audioStatsType": AudioStatsType.dump(audio_stats_types)})
+	return jsonify({"audioStatsTypes": AudioStatsType.dump(audio_stats_types)})
 
 
 @bp.route("audio-stats-types/<int:audio_stats_type_id>", methods=["GET"])
