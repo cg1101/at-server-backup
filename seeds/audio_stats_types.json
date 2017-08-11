@@ -7,6 +7,13 @@
 			"name": "Waveform",
 			"description": "Data points to create waveform image",
 			"is_default": true
+		},
+		{
+			"audio_stats_type_id": 2,
+			"key": "clipping",
+			"name": "Clipping",
+			"description": "Peak levels and clipping information",
+			"is_default": false
 		}
 	]
 }
