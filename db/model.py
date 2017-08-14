@@ -3060,6 +3060,7 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 	recording_id = synonym("recordingId")
 	raw_piece_id = synonym("rawPieceId")
 	corpus_code_id = synonym("corpusCodeId")
+	recording_platform_id = synonym("recordingPlatformId")
 
 	# mixin config
 	FeedbackEntryModel = RecordingFeedbackEntry
@@ -3108,7 +3109,12 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 
 
 class RecordingSchema(Schema):
+	recording_id = fields.Integer(dump_to="recordingId")
+	raw_piece_id = fields.Integer(dump_to="rawPieceId")
+	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
 	corpus_code = fields.Nested("CorpusCodeSchema", dump_to="corpusCode")
+	prompt = fields.String()
+	hypothesis = fields.String()
 	duration = DurationField()
 	current_feedback = fields.Nested("RecordingFeedbackEntrySchema", dump_to="currentFeedback")
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
@@ -3116,8 +3122,6 @@ class RecordingSchema(Schema):
 	performance = fields.Nested("PerformanceSchema", only=("rawPieceId", "display_name"))
 	display_name = fields.String(dump_to="displayName")
 
-	class Meta:
-		additional = ("recordingId", "rawPieceId", "prompt", "hypothesis", "recordingPlatformId")
 
 # CorpusCode
 class CorpusCode(Base, ModelMixin):
@@ -3162,11 +3166,14 @@ class CorpusCode(Base, ModelMixin):
 
 
 class CorpusCodeSchema(Schema):
+	corpus_code_id = fields.Integer(dump_to="corpusCodeId")
+	is_scripted = fields.Boolean(dump_to="isScripted")
+	audio_checking_group_id = fields.Integer(dump_to="audioCheckingGroupId")
+	name = fields.String()
+	code = fields.String()
 	included = fields.Boolean()
 	regex = fields.String()
 	type = fields.Function(lambda obj: CorpusCode.SCRIPTED if obj.is_scripted else CorpusCode.SPONTANEOUS)
-	class Meta:
-		additional = ("corpusCodeId", "name", "code", "isScripted", "audioCheckingGroupId")
 
 
 # Track
