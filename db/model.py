@@ -3038,12 +3038,13 @@ class RecordingFeedbackEntry(Base, ModelMixin, FeedbackEntryMixin):
 
 
 class RecordingFeedbackEntrySchema(Schema):
+	recording_feedback_entry_id = fields.Integer(dump_to="recordingFeedbackEntryId")
+	recording_id = fields.Integer(dump_to="recordingId")
+	comment = fields.String()
 	user = fields.Nested("UserSchema")
 	flags = fields.Nested("RecordingFlagSchema", many=True)
 	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
-
-	class Meta:
-		additional = ("recordingFeedbackEntryId", "recordingId", "comment", "savedAt")
+	saved_at = fields.DateTime(dump_to="savedAt")
 
 
 # Recording
