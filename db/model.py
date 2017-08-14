@@ -3223,10 +3223,10 @@ class Track(Base, ModelMixin):
 
 
 class TrackSchema(Schema):
+	track_id = fields.Integer(dump_to="trackId")
+	track_index = fields.Integer(dump_to="trackIndex")
+	name = fields.String()
 	display_name = fields.String(dump_to="displayName")
-
-	class Meta:
-		additional = ("trackId", "name", "trackIndex")
 
 
 class AudioCheckingGroup(Base):
@@ -3281,9 +3281,11 @@ class AudioCheckingGroup(Base):
 
 
 class AudioCheckingGroupSchema(Schema):
+	audio_checking_group_id = fields.Integer(dump_to="audioCheckingGroupId")
+	recording_platform_id = fields.Integer(dump_to="recordingPlatformId")
+	name = fields.String()
+	selection_size = fields.Integer(dump_to="selectionSize")
 	corpus_codes = fields.Nested("CorpusCodeSchema", many=True, dump_to="corpusCodes")
-	class Meta:
-		additional = ("audioCheckingGroupId", "recordingPlatformId", "name", "selectionSize")
 
 
 # AudioCheckingSection
@@ -3302,8 +3304,10 @@ class AudioCheckingSection(Base):
 
 
 class AudioCheckingSectionSchema(Schema):
-	class Meta:
-		fields = ("audioCheckingSectionId", "startPosition", "endPosition", "checkPercentage")
+	audio_checking_section_id = fields.Integer(dump_to="audioCheckingSectionId")
+	start_position = fields.Float(dump_to="startPosition")
+	end_position = fields.Float(dump_to="endPosition")
+	check_percentage = fields.Float(dump_to="checkPercentage")
 
 
 # Transition
@@ -3351,11 +3355,10 @@ class Transition(Base, ModelMixin):
 
 
 class TransitionSchema(Schema):
+	transition_id = fields.Integer(dump_to="transitionId")
+	task_id = fields.Integer(dump_to="taskId")
 	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
 	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
-
-	class Meta:
-		additional = ("transitionId", "taskId")
 
 
 # AudioCheckingChangeMethod
@@ -3480,13 +3483,13 @@ class PerformanceTransitionLogEntry(Base, ModelMixin):
 	moved_at = synonym("movedAt")
 
 class PerformanceTransitionLogEntrySchema(Schema):
+	log_entry_id = fields.Integer(dump_to="logEntryId")
+	raw_piece_id = fields.Integer(dump_to="rawPieceId")
 	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
 	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
 	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
 	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
-
-	class Meta:
-		additional = ("logEntryId", "rawPieceId", "movedAt")
+	moved_at = fields.DateTime(dump_to="movedAt")
 
 
 # MetadataChangeLogEntry
@@ -3535,8 +3538,10 @@ class MetadataChangeLogEntry(Base, ModelMixin):
 		return cls.TYPES[type]
 
 class MetadataChangeLogEntrySchema(Schema):
+	log_entry_id = fields.Integer(dump_to="logEntryId")
 	change_method = fields.Nested("AudioCheckingChangeMethodSchema", dump_to="changeMethod")
 	changer = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+	changed_at = fields.DateTime(dump_to="changedAt")
 	old_value = fields.Method("get_old_value", dump_to="oldValue")
 	new_value = fields.Method("get_new_value", dump_to="newValue")
 	meta_category = fields.Method("get_meta_category", dump_to="metaCategory")
@@ -3553,9 +3558,6 @@ class MetadataChangeLogEntrySchema(Schema):
 		meta_category = meta_entity_cls.MetaCategoryModel.query.get(obj.info["categoryId"])
 		return meta_category.serialize()
 
-	class Meta:
-		additional = ("logEntryId", "changedAt")
-
 
 # ApiAccessPair
 class ApiAccessPair(Base, ModelMixin):
@@ -3565,7 +3567,7 @@ class ApiAccessPair(Base, ModelMixin):
 	user = relationship("User")
 
 	# synonyms
-	api_access_pair_id = synonym("apiAccessPaidId")
+	api_access_pair_id = synonym("apiAccessPairId")
 	user_id = synonym("userId")
 	created_at = synonym("createdAt")
 
@@ -3602,10 +3604,13 @@ class ApiAccessPair(Base, ModelMixin):
 		)
 
 class ApiAccessPairSchema(Schema):
+	api_access_pair_id = fields.Integer(dump_to="apiAccessPairId")
+	key = fields.String()
+	secret = fields.String()
+	description = fields.String()
 	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
-
-	class Meta:
-		additional = ("apiAccessPairId", "key", "secret", "description", "enabled", "createdAt")
+	enabled = fields.Boolean()
+	enabled_at = fields.DateTime()
 
 
 # AudioStatsType
