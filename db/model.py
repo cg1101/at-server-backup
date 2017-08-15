@@ -2940,8 +2940,10 @@ class RecordingMetaCategory(Base):
 
 
 class RecordingMetaCategorySchema(Schema):
-	class Meta:
-		fields = ("recordingMetaCategoryId", "name", "key", "validatorSpec")
+	recording_meta_category_id = fields.Integer(dump_to="recordingMetaCategoryId")
+	validator_spec = fields.Dict(dump_to="validatorSpec")
+	name = fields.String()
+	key = fields.String()
 
 # RecordingMetaValue
 class RecordingMetaValue(Base):
@@ -2954,8 +2956,10 @@ class RecordingMetaValue(Base):
 
 
 class RecordingMetaValueSchema(Schema):
-	class Meta:
-		fields = ("recordingMetaValueId", "recordingMetaCategoryId", "recordingId", "value")
+	recording_meta_value_id = fields.Integer(dump_to="recordingMetaValueId")
+	recording_meta_category_id = fields.Integer(dump_to="recordingMetaCategoryId")
+	recording_id = fields.Integer(dump_to="recordingId")
+	value = fields.Dict()
 
 
 # RecordingFlag
@@ -3005,10 +3009,11 @@ class RecordingFlag(Base, ModelMixin, FeedbackFlagMixin):
 
 
 class RecordingFlagSchema(Schema):
+	recording_flag_id = fields.Integer(dump_to="recordingFlagId")
 	flag_id = fields.Integer(dump_to="flagId")
-
-	class Meta:
-		additional = ("recordingFlagId", "name", "severity", "enabled")
+	name = fields.String()
+	severity = fields.String()
+	enabled = fields.Boolean()
 
 
 class RecordingFeedbackEntryFlag(Base, ModelMixin):
