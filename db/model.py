@@ -420,6 +420,7 @@ class WorkType(Base, ModelMixin):
 	REWORK = 'Rework'
 	SECOND_PASS_WORK = '2ndPass_work'
 	SECOND_PASS_REWORK = '2ndPass_rework'
+	TRANSCRIPTION_SOURCE = "Transcription Source"
 
 	# synonyms
 	modifies_transcription = synonym("modifiesTranscription")
@@ -1848,6 +1849,7 @@ class Task(Base, ModelMixin):
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
 	audio_uploads = synonym("audioUploads")
+	sub_tasks = synonym("subTasks")
 
 	@property
 	def displayName(self):

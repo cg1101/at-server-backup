@@ -30,7 +30,8 @@ from db.model import (
 	SubTask,
 	Transition,
 	Task,
-	TaskType
+	TaskType,
+	WorkType
 )
 from app import audio_server, pdb
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
@@ -2169,3 +2170,38 @@ def upload_task_album_list(task):
 	db.session.flush()
 	db.session.commit()
 	return jsonify(success=True)
+
+
+@bp.route("tasks/<int:task_id>/allowable-work-types", methods=["GET"])
+@api
+@get_model(Task)
+def get_allowable_work_types(task):
+
+	names = []
+
+	if task.is_type(TaskType.AUDIO_CHECKING):
+
+		if task.sub_tasks:
+			names = [
+				WorkType.REWORK,
+				WorkType.TRANSCRIPTION_SOURCE,
+			]
+
+		else:
+			names = [
+				WorkType.WORK,
+			]
+
+	else:
+		names = [
+			WorkType.WORK,
+			WorkType.QA,
+			WorkType.REWORK,
+		]
+
+	work_types = []
+
+	for name in names:
+		work_types.append(WorkType.from_name(name))
+
+	return jsonify({"workTypes": WorkType.dump(work_types)})

@@ -30,6 +30,12 @@
 			"name": "2ndPass_rework",
 			"description": null,
 			"modifiesTranscription": true
+		},
+		{
+			"workTypeId": 7,
+			"name": "Transcription Source",
+			"description": null,
+			"modifiesTranscription": false
 		}
 	]
 }
