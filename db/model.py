@@ -24,6 +24,7 @@ from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
 from .db import database as db
+from .errors import *
 from lib import GetConstantsMixin, utcnow, validator
 from lib.audio_load import validate_load_performance_data, validate_load_utterance_data
 from lib.loaders import get_loader_metadata_sources
@@ -2399,6 +2400,7 @@ class RecordingPlatform(Base, ModelMixin):
 		 1. list of performances successfully moved
 		 2. list of performances already at the destination sub task
 		 3. list of performances that can't be moved due to a missing transition
+		 4. list of performances that are locked at the source
 		"""
 
 		if self.task_id != destination.task_id:
@@ -2406,6 +2408,7 @@ class RecordingPlatform(Base, ModelMixin):
 
 		at_destination = []		# already at the destination
 		no_transition = []		# no transition exists
+		locked = []				# performance is locked at source
 		moved = []				# successfully moved
 
 		for performance in performances:
@@ -2413,21 +2416,22 @@ class RecordingPlatform(Base, ModelMixin):
 			if performance.recording_platform != self:
 				raise RuntimeError
 
-			# check if performance is already at destination
-			if performance.sub_task.sub_task_id == destination.sub_task_id:
+			try:
+				performance.move_to(destination.sub_task_id, change_method, user_id)
+
+			except SelfTransition:
 				at_destination.append(performance)
-				continue
 
-			# check if valid transition exists
-			if not Transition.is_valid_transition(performance.sub_task.sub_task_id, destination.sub_task_id):
+			except InvalidTransition:
 				no_transition.append(performance)
-				continue
 
-			# move performance
-			performance.move_to(destination.sub_task_id, change_method, user_id)
-			moved.append(performance)
+			except LockedPerformance:
+				locked.append(performance)
 
-		return moved, at_destination, no_transition
+			else:
+				moved.append(performance)
+
+		return moved, at_destination, no_transition, locked
 
 	def set_loader(self, loader):
 		self.loader = loader
@@ -2777,6 +2781,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 	recording_platform_id = synonym("recordingPlatformId")
 	script_id = synonym("scriptId")
 	loaded_at = synonym("loadedAt")
+	in_transcription = synonym("inTranscription")
 
 	# associations
 	task_id = association_proxy("raw_piece", "taskId")
@@ -2882,6 +2887,15 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		the given sub task.
 		"""
 
+		if self.sub_task.sub_task_id == sub_task_id:
+			raise SelfTransition
+
+		if not Transition.is_valid_transition(self.sub_task.sub_task_id, sub_task_id):
+			raise InvalidTransition
+
+		if self.locked:
+			raise LockedPerformance
+
 		sub_task = SubTask.query.get(sub_task_id)
 
 		# add log entry
@@ -2907,6 +2921,21 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		assert len(batches) == 1
 		db.session.add(batches[0])
 
+	def lock(self):
+		"""
+		Locks the performance.
+		"""
+		self.locked = True
+
+	def unlock(self):
+		"""
+		Unlocks the performance.
+		"""
+		if self.in_transcription:
+			raise ValueError("unable to unlock performance loaded for transcription")
+		
+		self.locked = False
+
 
 class PerformanceSchema(Schema):
 	batch = fields.Nested("BatchSchema", only=("batchId", "user"))
@@ -2917,6 +2946,8 @@ class PerformanceSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	display_name = fields.String(dump_to="displayName")
 	album = fields.Nested("AlbumSchema", only=("albumId", "display_name", "num_performances"))
+	in_transcription = fields.Boolean(dump_to="inTranscription")
+	locked = fields.Boolean()
 
 	class Meta:
 		additional = ("rawPieceId", "albumId", "name", "recordingPlatformId", "scriptId", "key", "loadedAt")
@@ -3341,24 +3372,6 @@ class Transition(Base, ModelMixin):
 	task_id = synonym("taskId")
 	source_id = synonym("sourceId")
 	destination_id = synonym("destinationId")
-
-	@classmethod
-	def is_valid_destination(cls, source_id):
-		"""
-		Returns a MyForm validator to check that
-		a transition from the source to the
-		destination is valid.
-		"""
-		def validator(data, key, value):
-			count = cls.query.filter_by(
-				source_id=source_id,
-				destination_id=value,
-			).count()
-
-			if not count:
-				raise ValueError("transition between sub task {0} and sub task {1} is not valid".format(source_id, value))
-
-		return validator
 
 	@classmethod
 	def is_valid_transition(cls, source_id, destination_id):

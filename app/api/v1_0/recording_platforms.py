@@ -439,7 +439,7 @@ def move_performances(recording_platform):
 		performance = Performance.query.get(raw_piece_id)
 		performances.append(performance)
 
-	moved, at_destination, no_transition = recording_platform.move_performances(
+	moved, at_destination, no_transition, locked = recording_platform.move_performances(
 		performances,
 		destination,
 		session["current_user"].user_id,
@@ -451,6 +451,7 @@ def move_performances(recording_platform):
 		"atDestination": len(at_destination),
 		"noTransition": len(no_transition),
 		"moved": len(moved),
+		"locked": len(locked),
 		"performances": Performance.dump(performances, use="full"),
 	})
 
@@ -483,7 +484,7 @@ def upload_performance_list(recording_platform):
 		).one()
 		performances.append(performance)
 
-	moved, at_destination, no_transition = recording_platform.move_performances(
+	moved, at_destination, no_transition, locked = recording_platform.move_performances(
 		performances,
 		destination,
 		session["current_user"].user_id,
@@ -495,6 +496,7 @@ def upload_performance_list(recording_platform):
 		"atDestination": len(at_destination),
 		"noTransition": len(no_transition),
 		"moved": len(moved),
+		"locked": len(locked),
 		"performances": Performance.dump(performances, use="full"),
 	})
 

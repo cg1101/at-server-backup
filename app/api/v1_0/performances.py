@@ -3,6 +3,7 @@ from flask import jsonify, request, session
 from . import api_1_0 as bp
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, simple_validators, validators
 from db import database as db
+from db.errors import InvalidTransition, LockedPerformance, SelfTransition
 from db.model import (
 	AudioCheckingChangeMethod,
 	MetadataChangeLogEntry,
@@ -83,15 +84,24 @@ def move_performance(performance):
 			validators=[
 				SubTask.check_exists,
 				SubTask.for_task(performance.sub_task.task.task_id),
-				Transition.is_valid_destination(performance.sub_task.sub_task_id),
 		]),
 	).get_data()
 
-	performance.move_to(
-		data["subTaskId"],
-		AudioCheckingChangeMethod.ADMIN,
-		session["current_user"].user_id
-	)
+	try:
+		performance.move_to(
+			data["subTaskId"],
+			AudioCheckingChangeMethod.ADMIN,
+			session["current_user"].user_id
+		)
+	except SelfTransition:
+		raise InvalidUsage("self transition")
+	
+	except LockedPerformance:
+		raise InvalidUsage("performance is locked")
+
+	except InvalidTransition:
+		raise InvalidUsage("invalid transition")
+
 	db.session.flush()
 	return jsonify(performance=Performance.dump(performance))
 
@@ -150,3 +160,28 @@ def get_performance_transition_log_entries(performance):
 @get_model(Performance)
 def get_performance_metadata_change_log_entries(performance):
 	return jsonify(entries=MetadataChangeLogEntry.dump(performance.metadata_change_log_entries))
+
+
+@bp.route("performances/<int:raw_piece_id>/lock", methods=["POST"])
+@api
+@caps()
+@get_model(Performance)
+def lock_performance(performance):
+	performance.lock()
+	db.session.commit()
+	return jsonify(success=True)
+
+
+@bp.route("performances/<int:raw_piece_id>/unlock", methods=["POST"])
+@api
+@caps()
+@get_model(Performance)
+def unlock_performance(performance):
+
+	try:
+		performance.unlock()
+	except ValueError:
+		raise InvalidUsage("unable to unlock performance")
+
+	db.session.commit()
+	return jsonify(success=True)
