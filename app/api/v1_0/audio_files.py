@@ -58,3 +58,26 @@ def get_audio_file_url(audio_file):
 		**kwargs
 	)
 	return jsonify(url=url)
+
+
+@bp.route("audiofiles/<int:audio_file_id>/cutup", methods=["POST"])
+@api
+@caps()
+@get_model(AudioFile)
+def cutup_audio_file(audio_file):
+	segmenter = audio_server.api.Segmenter(**request.json)
+	
+	if audio_file.is_wav:
+		segments = audio_server.api.cutup_wav_file(
+			audio_file.file_path,
+			segmenter
+		)
+
+	else:
+		segments = audio_server.api.cutup_raw_file(
+			audio_file.file_path,
+			audio_file.audio_spec,
+			segmenter
+		)
+
+	return jsonify(segments=segments)

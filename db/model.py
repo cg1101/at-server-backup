@@ -2492,6 +2492,10 @@ class AudioFile(Base, LoadMixin):
 	def task(self):
 		return self.performance.task
 
+	@property
+	def is_wav(self):
+		return self.file_path.lower().endswith("wav")
+
 
 class AudioFileSchema(Schema):
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
