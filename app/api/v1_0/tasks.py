@@ -59,6 +59,9 @@ def get_tasks():
 	else:
 		q = m.Task.query
 		if request.args:
+			task_type = request.args.get("taskType")
+			status = request.args.get("status")
+
 			if 'projectId' in request.args:
 				try:
 					projectId = int(request.args['projectId'])
@@ -66,6 +69,20 @@ def get_tasks():
 					pass
 				else:
 					q = q.filter_by(projectId=projectId)
+
+			if task_type:
+				if not TaskType.is_valid(task_type):
+					raise InvalidUsage("invalid task type: {0}".format(task_type))
+
+				q = q.filter_by(taskType=task_type)
+
+			if status:
+				if not Task.is_valid_status(status):
+					raise InvalidUsage("invalid task status: {0}".format(task_type))
+
+				q = q.filter_by(status=status)
+
+		q = q.order_by(m.Task.task_id)
 		tasks = q.all()
 		rs = m.Task.dump(tasks)
 	return jsonify({

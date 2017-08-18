@@ -14,6 +14,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship, backref, synonym, deferred, column_property, object_session
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import case, text, func
 from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
@@ -1845,15 +1846,29 @@ class Task(Base, ModelMixin):
 
 	# synonyms
 	task_id = synonym("taskId")
-	task_type = synonym("taskType")
+	task_type = synonym("taskType")	# FIXME causes recursion error
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
 	audio_uploads = synonym("audioUploads")
 	sub_tasks = synonym("subTasks")
 
+	@classmethod
+	def get_statuses(cls):
+		return [
+			cls.STATUS_ACTIVE,
+			cls.STATUS_DISABLED,
+			cls.STATUS_FINISHED,
+			cls.STATUS_CLOSED,
+			cls.STATUS_ARCHIVED
+		]
+
+	@classmethod
+	def is_valid_status(cls, status):
+		return status in cls.get_statuses()
+	
 	@property
 	def displayName(self):
-		return '{0} - {1}'.format(self.taskId, self.name)
+		return self.display_name
 
 	@property
 	def workers(self):
@@ -2044,13 +2059,28 @@ class TaskSupervisorSchema(Schema):
 
 # TaskType
 class TaskType(Base, ModelMixin):
-	TRANSLATION = 'Translation'
-	TEXT_COLLECTION = 'Text Collection'
-	MARKUP = 'Markup'
-	AUDIO_CHECKING = "Audio Checking"
-	TRANSCRIPTION = "Transcription"
-
 	__table__ = t_tasktypes
+	
+	# constants
+	AUDIO_CHECKING = "Audio Checking"
+	MARKUP = 'Markup'
+	TEXT_COLLECTION = 'Text Collection'
+	TRANSCRIPTION = "Transcription"
+	TRANSLATION = 'Translation'
+
+	@classmethod
+	def is_valid(cls, name):
+		try:
+			cls.from_name(name)
+		except NoResultFound:
+			return False
+
+		return True
+	
+	@classmethod
+	def from_name(cls, name):
+		return cls.query.filter_by(name=name).one()
+
 
 class TaskTypeSchema(Schema):
 	class Meta:
