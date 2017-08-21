@@ -1203,6 +1203,14 @@ class ReworkTypePageMemberSchema(PageMemberSchema):
 		ordered = True
 		# skip_missing = True
 
+class TranscriptionSourceTypePageMember(ReworkTypePageMember):
+	__mapper_args__ = {
+		'polymorphic_identity': WorkType.TRANSCRIPTION_SOURCE,
+	}
+
+class TranscriptionSourceTypePageMemberSchema(ReworkTypePageMemberSchema):
+	pass
+
 # # PaymentClass
 
 # PaymentType

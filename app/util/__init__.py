@@ -133,7 +133,7 @@ class Batcher(object):
 			return _batcher._create_work_batches(subTask, things, priority)
 		elif subTask.workType == m.WorkType.QA:
 			return _batcher._create_qa_batches(subTask, things, priority)
-		elif subTask.workType == m.WorkType.REWORK:
+		elif subTask.workType in (m.WorkType.REWORK, m.WorkType.TRANSCRIPTION_SOURCE):
 			return _batcher._create_rework_batches(subTask, things, priority)
 		else:
 			raise RuntimeError(_('work type not supported {0}'
