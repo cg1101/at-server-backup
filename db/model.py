@@ -20,7 +20,7 @@ from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
 import pytz
 
-from LRUtilities.Misc import random_key_string
+from LRUtilities.Misc import random_key_string, since_epoch
 from LRUtilities.Serialization import DurationField
 from . import database, mode
 from .db import SS
@@ -1952,9 +1952,7 @@ class Task(Base, ModelMixin):
 		# update performances
 		for update_data in data["performanceUpdates"]:
 			performance = Performance.query.get(update_data["rawPieceId"])
-			sub_task = SubTask.query.get(update_data["subTaskId"])
-			assert sub_task.task == performance.recording_platform.task
-			performance.batch.sub_task_id = sub_task.sub_task_id
+			performance.update_transcription_info(self.task_id, update_data)
 
 		return utts
 
@@ -2985,6 +2983,19 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		
 		self.locked = False
 
+	def update_transcription_info(self, transcription_task_id, data):
+
+		in_transcription = self.in_transcription or {}
+		in_transcription.setdefault("tasks", []).append({
+			"taskId": transcription_task_id,
+			"audioFileCount": data["audioFileCount"],
+			"uttCount": data["uttCount"],
+			"loadedAt": since_epoch(datetime.datetime.utcnow()),
+		})
+		self.in_transcription = in_transcription
+		flag_modified(self, "inTranscription")
+		self.lock()
+
 
 class PerformanceSchema(Schema):
 	batch = fields.Nested("BatchSchema", only=("batchId", "user"))
@@ -2995,7 +3006,7 @@ class PerformanceSchema(Schema):
 	task_id = fields.Integer(dump_to="taskId")
 	display_name = fields.String(dump_to="displayName")
 	album = fields.Nested("AlbumSchema", only=("albumId", "display_name", "num_performances"))
-	in_transcription = fields.Boolean(dump_to="inTranscription")
+	in_transcription = fields.Dict(dump_to="inTranscription")
 	locked = fields.Boolean()
 
 	class Meta:

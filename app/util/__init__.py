@@ -42,7 +42,8 @@ class _batcher(object):
 
 		# performance
 		elif subTask.batchingMode == BatchingMode.PERFORMANCE:
-			raise NotImplementedError #TODO
+			key_gen = lambda index, raw_piece: raw_piece.data["performance"]["id"]
+			order_by = lambda raw_piece: (raw_piece.data["filePath"], raw_piece.data.get("startAt"))
 
 		# custom
 		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:

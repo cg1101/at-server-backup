@@ -11,12 +11,15 @@ UTTERANCES_DATA_SCHEMA = {
 			"type": "array",
 			"items": {
 				"type": "object",
-				"required": ["rawPieceId", "subTaskId"],
+				"required": ["rawPieceId", "audioFileCount", "uttCount"],
 				"properties": {
 					"rawPieceId": {
 						"type": "integer",
 					},
-					"subTaskId": {
+					"audioFileCount": {
+						"type": "integer",
+					},
+					"uttCount": {
 						"type": "integer",
 					}
 				}
