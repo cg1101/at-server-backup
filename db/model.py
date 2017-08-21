@@ -346,6 +346,26 @@ class FeedbackFlagMixin(object):
 		return getattr(self, self.FlagIdAttr)
 
 
+class NamedTypeMixin(object):
+	"""
+	Adds extra functionality for named type
+	models.
+	"""
+
+	@classmethod
+	def is_valid(cls, name):
+		try:
+			cls.from_name(name)
+		except NoResultFound:
+			return False
+
+		return True
+	
+	@classmethod
+	def from_name(cls, name):
+		return cls.query.filter_by(name=name).one()
+
+
 def set_schema(cls, schema_class, schema_key=None):
 	if not issubclass(schema_class, Schema):
 		raise TypeError('schema must be subclass of Schema')
@@ -413,7 +433,7 @@ class PdbTaskSchema(Schema):
 
 
 # WorkType
-class WorkType(Base, ModelMixin):
+class WorkType(Base, ModelMixin, NamedTypeMixin):
 	__table__ = t_worktypes
 
 	WORK = 'Work'
@@ -426,19 +446,6 @@ class WorkType(Base, ModelMixin):
 	# synonyms
 	modifies_transcription = synonym("modifiesTranscription")
 	work_type_id = synonym("workTypeId")
-
-	@classmethod
-	def from_name(cls, name):
-		return cls.query.filter_by(name=name).one()
-
-	@classmethod
-	def is_valid(cls, name):
-		try:
-			cls.from_name(name)
-		except NoResultFound:
-			return False
-
-		return True
 
 class WorkTypeSchema(Schema):
 	class Meta:
@@ -2073,7 +2080,7 @@ class TaskSupervisorSchema(Schema):
 		ordered = True
 
 # TaskType
-class TaskType(Base, ModelMixin):
+class TaskType(Base, ModelMixin, NamedTypeMixin):
 	__table__ = t_tasktypes
 	
 	# constants
@@ -2082,20 +2089,6 @@ class TaskType(Base, ModelMixin):
 	TEXT_COLLECTION = 'Text Collection'
 	TRANSCRIPTION = "Transcription"
 	TRANSLATION = 'Translation'
-
-	@classmethod
-	def is_valid(cls, name):
-		try:
-			cls.from_name(name)
-		except NoResultFound:
-			return False
-
-		return True
-	
-	@classmethod
-	def from_name(cls, name):
-		return cls.query.filter_by(name=name).one()
-
 
 class TaskTypeSchema(Schema):
 	class Meta:
