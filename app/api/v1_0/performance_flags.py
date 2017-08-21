@@ -13,22 +13,25 @@ from db.model import PerformanceFlag
 def update_performance_flag(performance_flag):
 
 	data = MyForm(
-		Field('name', is_mandatory=True,
-			validators=[
-				performance_flag.check_updated_name_unique,
+		Field('name', validators=[
+			performance_flag.check_updated_name_unique,
 		]),
-		Field('severity', is_mandatory=True,
-			validators=[
-				PerformanceFlag.check_valid_severity
+		Field('severity', validators=[
+			PerformanceFlag.check_valid_severity
 		]),
-		Field('enabled', is_mandatory=True, validators=[
+		Field('enabled', validators=[
 			validators.is_bool,
 		]),
 	).get_data()
 
-	performance_flag.name = data["name"]
-	performance_flag.severity = data["severity"]
-	performance_flag.enabled = data["enabled"]
-	db.session.flush()
+	if "name" in data:
+		performance_flag.name = data["name"]
 
+	if "severity" in data:
+		performance_flag.severity = data["severity"]
+
+	if "enabled" in data:
+		performance_flag.enabled = data["enabled"]
+
+	db.session.flush()
 	return jsonify({"performanceFlag": PerformanceFlag.dump(performance_flag)})

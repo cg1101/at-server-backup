@@ -13,22 +13,25 @@ from db.model import RecordingFlag
 def update_recording_flag(recording_flag):
 
 	data = MyForm(
-		Field('name', is_mandatory=True,
-			validators=[
-				recording_flag.check_updated_name_unique,
+		Field('name', validators=[
+			recording_flag.check_updated_name_unique,
 		]),
-		Field('severity', is_mandatory=True,
-			validators=[
-				RecordingFlag.check_valid_severity
+		Field('severity', validators=[
+			RecordingFlag.check_valid_severity
 		]),
-		Field('enabled', is_mandatory=True, validators=[
+		Field('enabled', validators=[
 			validators.is_bool,
 		]),
 	).get_data()
 
-	recording_flag.name = data["name"]
-	recording_flag.severity = data["severity"]
-	recording_flag.enabled = data["enabled"]
-	db.session.flush()
+	if "name" in data:
+		recording_flag.name = data["name"]
 
+	if "severity" in data:
+		recording_flag.severity = data["severity"]
+
+	if "enabled" in data:
+		recording_flag.enabled = data["enabled"]
+
+	db.session.flush()
 	return jsonify({"recordingFlag": RecordingFlag.dump(recording_flag)})
