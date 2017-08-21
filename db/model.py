@@ -431,6 +431,15 @@ class WorkType(Base, ModelMixin):
 	def from_name(cls, name):
 		return cls.query.filter_by(name=name).one()
 
+	@classmethod
+	def is_valid(cls, name):
+		try:
+			cls.from_name(name)
+		except NoResultFound:
+			return False
+
+		return True
+
 class WorkTypeSchema(Schema):
 	class Meta:
 		fields = ('workTypeId', 'name', 'description', 'modifiesTranscription')

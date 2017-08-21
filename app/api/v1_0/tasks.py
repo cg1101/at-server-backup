@@ -1267,13 +1267,24 @@ def get_task_summary(taskId):
 @bp.route(_name + '/<int:taskId>/subtasks/', methods=['GET'])
 @api
 @caps()
-def get_task_sub_tasks(taskId):
-	# task = m.Task.query.get(taskId)
-	# if not task:
-	# 	raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	subTasks = m.SubTask.query.filter_by(taskId=taskId).all()
+@get_model(Task)
+def get_task_sub_tasks(task):
+
+	query = SubTask.query.filter_by(task_id=task.task_id)
+	
+	if request.args:
+		work_type = request.args.get("workType")
+
+		if work_type:
+			if not WorkType.is_valid(work_type):
+				raise InvalidUsage("invalid work type: {0}".format(work_type))
+
+			query = query.filter_by(workType=work_type)
+
+	sub_tasks = query.all()
+	
 	return jsonify({
-		'subTasks': m.SubTask.dump(subTasks),
+		"subTasks": SubTask.dump(sub_tasks),
 	})
 
 
