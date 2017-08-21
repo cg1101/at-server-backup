@@ -3195,7 +3195,7 @@ class Recording(Base, ModelMixin, LoadMixin, AddFeedbackMixin):
 
 	@property
 	def display_name(self):
-		return "Recording {0}".format(self.recording_id)
+		return self.corpus_code.code or "Recording {0}".format(self.recording_id)
 
 	@property
 	def task(self):
