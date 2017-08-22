@@ -3440,8 +3440,8 @@ class Transition(Base, ModelMixin):
 class TransitionSchema(Schema):
 	transition_id = fields.Integer(dump_to="transitionId")
 	task_id = fields.Integer(dump_to="taskId")
-	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
-	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name"))
+	source = fields.Nested("SubTaskSchema", only=("subTaskId", "name", "workType"))
+	destination = fields.Nested("SubTaskSchema", only=("subTaskId", "name", "workType"))
 
 
 # AudioCheckingChangeMethod
