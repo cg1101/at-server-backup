@@ -2644,13 +2644,13 @@ class Album(Base):
 
 
 class AlbumSchema(Schema):
+	album_id = fields.Integer(dump_to="albumId")
+	speaker_id = fields.Integer(dump_to="speakerId")
 	task = fields.Nested("TaskSchema", only=("taskId", "displayName"))
 	display_name = fields.String(dump_to="displayName")
 	performances = fields.Nested("PerformanceSchema", many=True, only=("rawPieceId", "display_name"))
 	num_performances = fields.Integer(dump_to="numPerformances")
 
-	class Meta:
-		additional = ("albumId", "speakerId")
 
 # PerformanceMetaCategory
 class PerformanceMetaCategory(Base, ModelMixin, MetaCategoryMixin):
