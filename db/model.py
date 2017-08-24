@@ -2799,10 +2799,11 @@ class PerformanceFlag(Base, ModelMixin, FeedbackFlagMixin):
 
 
 class PerformanceFlagSchema(Schema):
+	performance_flag_id = fields.Integer(dump_to="performanceFlagId")
 	flag_id = fields.Integer(dump_to="flagId")
-
-	class Meta:
-		additional = ("performanceFlagId", "name", "severity", "enabled")
+	name = fields.String()
+	severity = fields.String()
+	enabled = fields.Boolean()
 
 
 # Performance
