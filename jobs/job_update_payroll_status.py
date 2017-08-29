@@ -7,7 +7,7 @@ from db.db import SS
 import db.model as m
 from app.util.agent import ao
 from app.util.ratio_lookup import CountryRatioLookupTable
-
+from .job_progress_work_intervals import progress_work_intervals
 
 log = logging.getLogger(__name__)
 
@@ -160,6 +160,7 @@ def update_payroll_status(task, payrollId):
 
 def main(taskId=None):
 	logging.basicConfig(level=logging.DEBUG)
+	progress_work_intervals()
 	if taskId is None:
 		tasks = m.Task.query.filter(m.Task.status.notin_([
 				m.Task.STATUS_ARCHIVED, m.Task.STATUS_CLOSED,
