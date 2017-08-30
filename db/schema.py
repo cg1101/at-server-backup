@@ -166,6 +166,7 @@ t_worktypes =  Table('worktypes', metadata,
 			key=u'name', doc=''),
 	Column(u'description', TEXT, key=u'description', doc=''),
 	Column(u'modifiestranscription', BOOLEAN, nullable=False, key=u'modifiesTranscription', doc=''),
+	Column('workable', BOOLEAN, nullable=False, key='workable', doc=''),
 )
 Index('ix_worktypes_name', t_worktypes.c.name, unique=True)
 

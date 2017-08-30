@@ -1271,15 +1271,19 @@ def get_task_summary(taskId):
 def get_task_sub_tasks(task):
 
 	query = SubTask.query.filter_by(task_id=task.task_id)
-	
+
 	if request.args:
 		work_type = request.args.get("workType")
+		workable_only = request.args.get("workableOnly")
 
 		if work_type:
 			if not WorkType.is_valid(work_type):
 				raise InvalidUsage("invalid work type: {0}".format(work_type))
 
 			query = query.filter_by(workType=work_type)
+
+		if workable_only:
+			query = query.join(WorkType).filter(WorkType.workable.is_(True))
 
 	sub_tasks = query.all()
 	
@@ -1664,7 +1668,7 @@ def get_task_warnings(taskId):
 	if m.TaskErrorType.query.filter_by(taskId=taskId).count() == 0:
 		warnings.non_critical(_('This task has no QA error types enabled.'))
 
-	subTaskNames = [subTask.name for subTask in task.subTasks if not
+	subTaskNames = [subTask.name for subTask in task.subTasks if subTask._workType.workable and not
 			m.SubTaskRate.query.filter_by(subTaskId=subTask.subTaskId).first()]
 	if subTaskNames:
 		warnings.critical(_('The following sub tasks cannnot be worked on as they do not have payment rates set: {0}'
@@ -1693,6 +1697,7 @@ def get_task_work_queues(taskId):
 			SS.query(m.TaskWorker.subTaskId
 				).filter_by(taskId=taskId
 				).filter_by(userId=me.userId
+				).filter(m.WorkType.workable==True
 				).filter(m.TaskWorker.removed==False))).all()
 		for subTask in candidates:
 			if not subTask.currentRate:

@@ -449,7 +449,7 @@ class WorkType(Base, ModelMixin, NamedTypeMixin):
 
 class WorkTypeSchema(Schema):
 	class Meta:
-		fields = ('workTypeId', 'name', 'description', 'modifiesTranscription')
+		fields = ('workTypeId', 'name', 'description', 'modifiesTranscription', "workable")
 
 
 # Batch

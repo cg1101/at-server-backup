@@ -53,6 +53,9 @@ def get_batch_from_sub_task(subTaskId):
 	if not subTask:
 		raise InvalidUsage(_('sub task {0} not found').format(subTaskId))
 
+	if not subTask._workType.workable:
+		raise InvalidUsage("unable to work on batches in this sub task")
+
 	task = subTask.task
 	taskId = subTask.taskId
 	subTaskId = subTask.subTaskId
