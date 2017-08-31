@@ -1,19 +1,19 @@
+import pytz
 
 from datetime import datetime
-
 from flask import request, session, jsonify
-import pytz
 
 import db.model as m
-from db.db import SS
-from app.api import api, caps
-from app.i18n import get_text as _
 from . import api_1_0 as bp
 from .. import InvalidUsage
-
+from app.api import api, caps, get_model
+from app.i18n import get_text as _
 from app.policies import BatchAssignmentPolicy as policy
-from datetime import datetime
-import pytz
+from db import database as db
+from db.model import Batch
+from db.db import SS
+from db.errors import AudioCheckingBatch
+
 
 _name = __file__.split('/')[-1].split('.')[0]
 
@@ -28,6 +28,20 @@ def get_batch(batchId):
 	return jsonify({
 		'batch': m.Batch.dump(batch),
 	})
+
+
+@bp.route("batches/<int:batch_id>", methods=["DELETE"])
+@api
+@caps()
+@get_model(Batch)
+def delete_batch(batch):
+	try:
+		batch.delete()
+	except AudioCheckingBatch:
+		raise InvalidUsage("unable to delete batch in audio checking task", 400)
+
+	db.session.commit()
+	return jsonify(success=True)
 
 
 @bp.route(_name + '/<int:batchId>/stat', methods=['GET'])
@@ -100,4 +114,3 @@ def unassign_batch(batchId):
 		'message': message,
 		'batch': m.Batch.dump(batch),
 	})
-

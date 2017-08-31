@@ -597,10 +597,21 @@ class Batch(Base):
 			SS.flush()
 
 	def delete(self):
-		for p in self.pages:
-			for memberEntry in p.memberEntries:
-				db.session.delete(memberEntry)
-			db.session.delete(p)
+		
+		if self.task.is_type(TaskType.AUDIO_CHECKING):
+			raise AudioCheckingBatch
+
+		# TODO deleting the batch (with the cascades)
+		# does not work - think its due to the PageMember
+		# relationship, which is based on a view, not
+		# a table. Ideally try to use the cascades
+		for page in self.pages:
+
+			for page_member in page.memberEntries:
+				db.session.delete(page_member)
+			
+			db.session.delete(page)
+		
 		db.session.delete(self)
 
 	def set_progress(self, progress):
@@ -944,7 +955,7 @@ class Page(Base):
 	__table__ = t_pages
 	members = relationship('PageMember',
 		primaryjoin='Page.pageId == PageMember.pageId', order_by='PageMember.memberIndex',
-		cascade='all, delete-orphan'
+		cascade='all, delete-orphan',
 		)
 	memberEntries = relationship('PageMemberEntry', cascade='all, delete-orphan')
 
@@ -2722,7 +2733,7 @@ class PerformanceFeedbackEntryFlag(Base, ModelMixin):
 
 	# relationships
 	flag = relationship("PerformanceFlag")
-	entry = relationship("PerformanceFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
+	entry = relationship("PerformanceFeedbackEntry", backref=backref("entry_flags", cascade="all, delete-orphan"))
 
 
 # PerformanceFeedbackEntry
@@ -3110,7 +3121,7 @@ class RecordingFeedbackEntryFlag(Base, ModelMixin):
 
 	# relationships
 	flag = relationship("RecordingFlag")
-	entry = relationship("RecordingFeedbackEntry", backref=backref("entry_flags", cascade="save-update, merge, delete, delete-orphan"))
+	entry = relationship("RecordingFeedbackEntry", backref=backref("entry_flags", cascade="all, delete-orphan"))
 
 
 # RecordingFeedbackEntry
