@@ -852,6 +852,33 @@ Index('pages_batchid_key', t_pages.c.batchId, t_pages.c.pageIndex, unique=True)
 Index('pagesbybatchid', t_pages.c.batchId, unique=False)
 
 
+event.listen(t_pages, "after_create", DDL("""
+	create or replace function remove_empty_batch()
+	returns trigger as 
+	$BODY$
+	declare
+		remaining integer;
+	begin
+		select count(1) into remaining from pages where batchid = OLD.batchid;
+		
+		if(remaining = 0) then
+			delete from batches where batchid = OLD.batchid;
+		end if;
+
+		return new;
+	end
+	$BODY$
+	language 'plpgsql';
+
+	drop trigger if exists remove_empty_batch_trigger on pages;
+
+	create trigger remove_empty_batch_trigger
+	after delete on pages
+	for each row
+	execute procedure remove_empty_batch();
+""").execute_if(dialect="postgresql"))
+
+
 t_rawpieces =  Table('rawpieces', metadata,
 	Column(u'rawpieceid', INTEGER, primary_key=True, nullable=False, key=u'rawPieceId', doc=''),
 	Column(u'taskid', INTEGER, nullable=False, key=u'taskId', doc=''),
@@ -960,6 +987,33 @@ t_pagemembers =  Table('pagemembers', metadata,
 	CheckConstraint('rawpieceid IS NOT NULL AND workentryid IS NULL OR rawpieceid IS NULL AND workentryid IS NOT NULL'),
 )
 Index('pagememberbyrawpiecid', t_pagemembers.c.rawPieceId, unique=False)
+
+
+event.listen(t_pagemembers, "after_create", DDL("""
+	create or replace function remove_empty_page()
+	returns trigger as 
+	$BODY$
+	declare
+		remaining integer;
+	begin
+		select count(1) into remaining from pagemembers where pageid = OLD.pageid;
+		
+		if(remaining = 0) then
+			delete from pages where pageid = OLD.pageid;
+		end if;
+
+		return new;
+	end
+	$BODY$
+	language 'plpgsql';
+
+	drop trigger if exists remove_empty_page_trigger on pagemembers;
+	
+	create trigger remove_empty_page_trigger
+	after delete on pagemembers
+	for each row
+	execute procedure remove_empty_page();
+""").execute_if(dialect="postgresql"))
 
 
 t_payableevents =  Table('payableevents', metadata,
