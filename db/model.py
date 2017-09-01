@@ -596,9 +596,9 @@ class Batch(Base):
 				rawPiece.isNew = False
 			SS.flush()
 
-	def delete(self):
+	def delete(self, force=False):
 		
-		if self.task.is_type(TaskType.AUDIO_CHECKING):
+		if not force and self.task.is_type(TaskType.AUDIO_CHECKING):
 			raise AudioCheckingBatch
 
 		# TODO deleting the batch (with the cascades)
@@ -2965,7 +2965,7 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		db.session.add(entry)
 
 		# remove current batch
-		self.batch.delete()
+		self.batch.delete(True)
 
 		# add new batch
 		from app.util import Batcher
