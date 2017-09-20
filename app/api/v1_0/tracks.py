@@ -13,20 +13,30 @@ from db.model import Track
 def update_track(track):
 	
 	data = MyForm(
-		Field("trackIndex", is_mandatory=True, validators=[
+		Field("trackIndex", validators=[
 			simple_validators.is_number(min_value=0),
 			track.check_updated_index_unique,
 		]),
-		Field("name", is_mandatory=True, validators=[
+		Field("name", validators=[
 			validators.non_blank,
 			track.check_updated_name_unique,
 		]),
+		Field("mode", validators=[
+			validators.is_string,
+			Track.is_valid_mode(validator=True)
+		]),
 	).get_data()
 	
-	track.track_index = data["trackIndex"]
-	track.name = data["name"]
+	if "trackIndex" in data:
+		track.track_index = data["trackIndex"]
+
+	if "name" in data:
+		track.name = data["name"]
+
+	if "mode" in data:
+		track.update_mode(data["mode"])
+
 	db.session.commit()
-	
 	return jsonify(track=Track.dump(track))
 
 

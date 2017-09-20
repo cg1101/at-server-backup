@@ -3283,8 +3283,13 @@ class CorpusCodeSchema(Schema):
 
 
 # Track
-class Track(Base, ModelMixin):
+class Track(Base, ModelMixin, GetConstantsMixin):
 	__table__ = t_tracks
+
+	# constants
+	ACTIVE = "Active"
+	MUTED = "Muted"
+	DISABLED = "Disabled"
 
 	# relationships
 	recording_platform = relationship("RecordingPlatform", backref="tracks")
@@ -3330,9 +3335,63 @@ class Track(Base, ModelMixin):
 		"""
 		return self.check_updated_field_unique("name", recording_platform=self.recording_platform)
 
+	@classmethod
+	def get_modes(cls):
+		return [
+			cls.ACTIVE,
+			cls.MUTED,
+			cls.DISABLED,
+		]
+
+	@classmethod
+	def is_valid_mode(cls, mode=None, validator=False):
+		
+		if validator:
+			
+			def validator_fn(data, key, value):
+				if not cls.is_valid_mode(value):
+					raise ValueError("not a valid track mode: {0}".format(value))
+
+			return validator_fn
+
+		if mode:
+			return mode in cls.get_modes()
+
+		raise RuntimeError
+
 	@property
 	def display_name(self):
 		return "{0}. {1}".format(self.track_index, self.name)
+
+	@property
+	def mode(self):
+		if self.muted and self.disabled:
+			return self.DISABLED
+
+		if self.muted and not self.disabled:
+			return self.MUTED
+
+		if not self.muted and not self.disabled:
+			return self.ACTIVE
+
+		return "Unknown"
+
+	def update_mode(self, mode):
+	
+		if mode == self.ACTIVE:
+			self.muted = False
+			self.disabled = False
+
+		elif mode == self.MUTED:
+			self.muted = True
+			self.disabled = False
+
+		elif mode == self.DISABLED:
+			self.muted = True
+			self.disabled = True
+
+		else:
+			raise RuntimeError("unhandled mode: {0}".format(mode))
 
 
 class TrackSchema(Schema):
@@ -3340,6 +3399,9 @@ class TrackSchema(Schema):
 	track_index = fields.Integer(dump_to="trackIndex")
 	name = fields.String()
 	display_name = fields.String(dump_to="displayName")
+	muted = fields.Boolean()
+	disabled = fields.Boolean()
+	mode = fields.String()
 
 
 class AudioCheckingGroup(Base):
