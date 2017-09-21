@@ -1,7 +1,7 @@
 from flask import jsonify, request
 
 from . import api_1_0 as bp
-from app.api import InvalidUsage, api, caps
+from app.api import Field, InvalidUsage, MyForm, api, caps, validators
 from db.model import RecordingPlatformType, TaskType
 from lib.loaders import get_available_loaders
 
@@ -11,23 +11,23 @@ from lib.loaders import get_available_loaders
 @caps()
 def get_loaders():
 	
-	task_type_id = request.args.get("taskTypeId", None)
-	recording_platform_type_id = request.args.get("recordingPlatformTypeId", None)
+	data = MyForm(
+		Field("taskTypeId", validators=[
+			validators.is_number,
+			TaskType.check_exists
+		]),
+		Field("recordingPlatformTypeId", validators=[
+			validators.is_number,
+			RecordingPlatformType.check_exists
+		]),
+	).get_data(is_json=False, use_args=True)
 
-	if task_type_id:
-		task_type = TaskType.query.get(task_type_id)
-
-		if not task_type:
-			raise InvalidUsage("unknown task type: {0}".format(task_type_id))
-
+	if "taskTypeId" in data:
+		task_type = TaskType.query.get(data["taskTypeId"])
 		loaders = get_available_loaders(task_type=task_type.name)
 
-	elif recording_platform_type_id:
-		recording_platform_type = RecordingPlatformType.query.get(recording_platform_type_id)
-
-		if not recording_platform_type:
-			raise InvalidUsage("unknown recording platform type: {0}".format(recording_platform_type_id))
-			
+	elif "recordingPlatformTypeId" in data:
+		recording_platform_type = RecordingPlatformType.query.get(data["recordingPlatformTypeId"])
 		loaders = get_available_loaders(recording_platform_type=recording_platform_type.name)
 
 	else:

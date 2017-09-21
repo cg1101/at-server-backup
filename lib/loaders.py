@@ -17,6 +17,7 @@ class TranscriptionLoaders(GetConstantsMixin):
 	LINKED = "Linked"
 
 
+# TODO move to models
 def get_available_loaders(task_type=None, recording_platform_type=None):
 	"""
 	Returns the available loaders.
