@@ -567,6 +567,12 @@ class Batch(Base):
 		self.reset_ownership()
 		self.increase_priority()
 
+	def unassign(self):
+		self.userId = None
+		self.leaseGranted = None
+		self.leaseExpires = None
+		self.set_progress(None)
+
 	def submit(self, user, data=None):
 		self.log_event('submitted')
 
@@ -1597,8 +1603,10 @@ class SubTask(Base, ModelMixin):
 
 
 class SubTaskSchema(Schema):
+	enforce_checking_criteria = fields.Boolean(dump_to="enforceCheckingCriteria")
+
 	class Meta:
-		fields = ('subTaskId', 'name',
+		additional = ('subTaskId', 'name',
 			'workTypeId', 'workType',
 			'taskId', 'taskTypeId', 'taskType',
 			'maxPageSize', 'dstDir', 'modeId',

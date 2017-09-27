@@ -103,9 +103,7 @@ def unassign_batch(batchId):
 	# TODO: check policy
 	# TODO: update history?
 	if batch.userId != None:
-		batch.userId = None
-		batch.leaseGranted = None
-		batch.leaseExpires = None
+		batch.unassign()
 		message = _('batch {0} has been un-assigned').format(batchId)
 	else:
 		message = _('batch {0} is not assigned to anyone').format(batchId)

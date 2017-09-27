@@ -138,19 +138,28 @@ def update_sub_task(subTaskId):
 		Field('useWorkRate', validators=[
 			validators.is_bool,
 		]),
+		Field("enforceCheckingCriteria", validators=[
+			validators.is_bool,
+		]),
 	).get_data()
+
+	updated_fields = []
 
 	for key in data.keys():
 		value = data[key]
-		if getattr(subTask, key) != value:
+		if hasattr(subTask, key) and getattr(subTask, key) != value:
 			setattr(subTask, key, value)
-		else:
-			del data[key]
+			updated_fields.append(key)
+
+	if "enforceCheckingCriteria" in data:
+		subTask.enforce_checking_criteria = data["enforceCheckingCriteria"]
+		updated_fields.append("enforceCheckingCriteria")
+
 	SS.flush()
 	return jsonify({
 		'message': _('updated sub task {0} successfully').format(subTaskId),
 		'subTask': m.SubTask.dump(subTask, context={}),
-		'updatedFields': data.keys(),
+		'updatedFields': updated_fields,
 	})
 
 
