@@ -33,7 +33,7 @@ from db.model import (
 	TaskType,
 	WorkType
 )
-from app import audio_server, pdb
+from app import pdb
 from app.api import Field, InvalidUsage, MyForm, api, caps, get_model, normalizers, simple_validators, validators
 from app.i18n import get_text as _
 from . import api_1_0 as bp, InvalidUsage
@@ -2068,52 +2068,6 @@ def get_utt_duration_report(task):
 		return jsonify(report=task.stats.get("uttDurationReport"))
 
 	raise InvalidUsage("report not available", 400)
-
-
-@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["POST"])
-@api
-@get_model(Task)
-def start_audio_upload(task):
-
-	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
-
-	pid = audio_server.api.start_load(task.task_id, current_app.config["ENV"])
-	return jsonify(pid=pid)
-
-
-@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["GET"])
-@api
-@get_model(Task)
-def get_current_audio_upload(task):
-
-	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
-
-	try:
-		load_manager = audio_server.api.get_load(task.task_id, current_app.config["ENV"])
-
-	except requests.exceptions.HTTPError, e:
-
-		# this means that no load has been made for the task yet
-		if e.response.status_code != 404:
-			raise
-
-		load_manager = None
-
-	return jsonify({"loadManager": load_manager})
-
-
-@bp.route("tasks/<int:task_id>/audio-uploads/current", methods=["DELETE"])
-@api
-@get_model(Task)
-def stop_audio_upload(task):
-
-	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription and audio checking tasks", 400)
-
-	load_manager = audio_server.api.stop_load(task.task_id, current_app.config["ENV"])
-	return jsonify({"loadManager": load_manager})
 
 
 @bp.route("tasks/<int:task_id>/audio-uploads", methods=["GET"])
