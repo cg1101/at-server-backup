@@ -66,7 +66,7 @@ def get_audio_file_url(audio_file):
 @get_model(AudioFile)
 def cutup_audio_file(audio_file):
 	segmenter = audio_server.api.Segmenter(**request.json)
-	
+
 	if audio_file.is_wav:
 		segments = audio_server.api.cutup_wav_file(
 			audio_file.file_path,

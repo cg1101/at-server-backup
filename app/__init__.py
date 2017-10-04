@@ -21,14 +21,14 @@ import auth
 from .i18n import get_text as _
 import app.util as util
 
-from LRUtilities.FlaskExtensions import GnxAudioServer, GnxPdb
+from LRUtilities.FlaskExtensions import AmpersandAudioServer, AmpersandPdb
 from LRUtilities.Misc import since_epoch
 
 
 class AuthError(Exception): pass
 
-audio_server = GnxAudioServer()
-pdb = GnxPdb()
+audio_server = AmpersandAudioServer()
+pdb = AmpersandPdb()
 
 
 def create_app(config_name):

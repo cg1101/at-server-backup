@@ -1663,6 +1663,26 @@ t_recording_platform_audio_stats_types = Table("recording_platform_audio_stats_t
 	PrimaryKeyConstraint("recording_platform_id", "audio_stats_type_id"),
 )
 
+t_audio_sandboxes = Table("audio_sandboxes", metadata,
+	Column("audio_sandbox_id", Integer, primary_key=True),
+	Column("name", String, nullable=False, unique=True),
+	Column("user_id", INTEGER, nullable=False),
+	Column("created_at", DateTime, nullable=False, default=utcnow()),
+	ForeignKeyConstraint(["user_id"], ["users.userId"]),
+)
+
+t_audio_sandbox_files = Table("audio_sandbox_files", metadata,
+	Column("audio_sandbox_file_id", INTEGER, primary_key=True),
+	Column("audio_sandbox_id", INTEGER, nullable=False),
+	Column("file_path", TEXT, nullable=False),
+	Column("audio_spec", JSONB, nullable=False),
+	Column("audio_data_pointer", JSONB, nullable=False),
+	Column("data", JSONB),
+	Column("is_wav", BOOLEAN, nullable=False),
+	ForeignKeyConstraint(["audio_sandbox_id"], ["audio_sandboxes.audio_sandbox_id"]),
+)
+Index("audio_sandbox_files_by_audio_sandbox_id", t_audio_sandbox_files.c.audio_sandbox_id, unique=False)
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

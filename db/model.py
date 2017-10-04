@@ -20,6 +20,7 @@ from sqlalchemy.types import Integer, String
 from marshmallow import Schema, fields
 import pytz
 
+from LRUtilities.Audio import AudioDataPointer, AudioSpec
 from LRUtilities.Misc import random_key_string, since_epoch
 from LRUtilities.Serialization import DurationField
 from . import database, mode
@@ -3789,6 +3790,70 @@ class AudioStatsTypeSchema(Schema):
 	description = fields.String()
 	is_default = fields.Boolean(dump_to="isDefault")
 
+
+# AudioSandbox
+class AudioSandbox(Base, ModelMixin):
+	__table__ = t_audio_sandboxes
+
+	# relationships
+	user = relationship("User")
+
+	@classmethod
+	def check_new_name_unique(cls):
+		"""
+		Returns a MyForm validator for checking
+		that a new sandbox name is unique.
+		"""
+		return cls.check_new_field_unique("name")
+
+	@property
+	def display_name(self):
+		return self.name
+
+
+class AudioSandboxSchema(Schema):
+	audio_sandbox_id = fields.Integer(dump_to="audioSandboxId")
+	name = fields.String()
+	display_name = fields.String(dump_to="displayName")
+	user = fields.Nested("UserSchema", only=("userId", "userName", "emailAddress"))
+	created_at = fields.DateTime(dump_to="createdAt")
+
+
+# AudioSandboxFile
+class AudioSandboxFile(Base, ModelMixin):
+	__table__ = t_audio_sandbox_files
+
+	# relationships
+	audio_sandbox = db.relationship("AudioSandbox", backref="files")
+
+	@property
+	def display_name(self):
+		return "File {0}".format(self.audio_sandbox_file_id)
+
+	@property
+	def duration(self):
+		return self.audio_spec_obj.get_duration(self.audio_data_pointer_obj.size)
+
+	@property
+	def audio_spec_obj(self):
+		return AudioSpec(**self.audio_spec)
+
+	@property
+	def audio_data_pointer_obj(self):
+		return AudioDataPointer(**self.audio_data_pointer)
+
+
+class AudioSandboxFileSchema(Schema):
+	audio_sandbox_file_id = fields.Integer(dump_to="audioSandboxFileId")
+	display_name = fields.String(dump_to="displayName")
+	file_path = fields.String(dump_to="filePath")
+	audio_spec = fields.Dict(dump_to="audioSpec")
+	audio_data_pointer = fields.Dict(dump_to="audioDataPointer")
+	audio_sandbox = fields.Nested("AudioSandboxSchema", dump_to="audioSandbox", only=("audio_sandbox_id", "display_name"))
+	data = fields.Dict()
+	is_wav = fields.Boolean(dump_to="isWav")
+	duration = DurationField()
+	
 #
 # Define model class and its schema (if needed) above
 #
