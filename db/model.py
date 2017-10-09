@@ -1781,7 +1781,7 @@ class SpanBTagSchema(TagSchema):
 class SubstitutionTag(Tag):
 	__mapper_args__ = {
 		'polymorphic_identity': Tag.SUBSTITUTION,
-}
+	}
 
 class SubstitutionTagSchema(TagSchema):
 	pass
@@ -1789,7 +1789,7 @@ class SubstitutionTagSchema(TagSchema):
 class EntityTag(Tag):
 	__mapper_args__ = {
 		'polymorphic_identity': Tag.ENTITY,
-}
+	}
 
 class EntityTagSchema(TagSchema):
 	pass
@@ -1797,10 +1797,14 @@ class EntityTagSchema(TagSchema):
 class FootnoteTag(Tag):
 	__mapper_args__ = {
 		'polymorphic_identity': Tag.FOOTNOTE,
-}
+	}
+	@property
+	def style(self):
+		return '{}:{}'.format('color' if self.isForeground else 'background-color', self.color)
 
 class FootnoteTagSchema(TagSchema):
-	pass
+	class Meta:
+		additional = ('color', 'isForeground', 'style')
 
 class TimestampedTag(Tag):
 	__mapper_args__ = {
