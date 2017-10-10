@@ -1,4 +1,4 @@
-{% for rawPiece, entry in items %}
+{% for rawPiece, entry, qaErrors in items %}
 {% if showColumn('rawPieceId') %}
 RAW_PIECE_ID: {{rawPiece.rawPieceId}}
 {% endif %}
@@ -23,7 +23,7 @@ EMAIL: {{entry | formatUser('emailAddress') }}
 USER: {{entry | formatUser('userName') }}
 {% endif %}
 {% if showColumn('qaErrors') %}
-QAERRORS: {{entry | formatQaErrors }}
+QAERRORS: {{qaErrors | formatQaErrors }}
 {% endif %}
 
 {%+ endfor %}

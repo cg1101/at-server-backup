@@ -9,7 +9,7 @@ FILE{{'\t'}}TRANSCRIPTION
 {% if showColumn('userName') %}{{'\t'}}USERNAME{% endif %}
 {% if showColumn('qaErrors') %}{{'\t'}}QAERRORS{% endif %}
 
-{% for rawPiece, entry in items -%}
+{% for rawPiece, entry, qaErrors in items -%}
 {% if showColumn('rawPieceId') %}{{ rawPiece.rawPieceId }}{{'\t'}}{% endif %}
 {{rawPiece.assemblyContext}}{{'\t'}}{{entry | formatResult}}
 {%- if showColumn('rawText') %}{{'\t'}}{{rawPiece.rawText | formatSource}}{% endif %}
@@ -19,6 +19,6 @@ FILE{{'\t'}}TRANSCRIPTION
 {% if showColumn('labels') %}{{'\t'}}{{entry | formatLabels }}{% endif %}
 {% if showColumn('email') %}{{'\t'}}{{entry | formatUser('emailAddress') }}{% endif %}
 {% if showColumn('userName') %}{{'\t'}}{{entry | formatUser('userName') }}{% endif %}
-{% if showColumn('qaErrors') %}{{'\t'}}{{entry | formatQaErrors }}{% endif %}
+{% if showColumn('qaErrors') %}{{'\t'}}{{qaErrors | formatQaErrors }}{% endif %}
 
 {% endfor %}
