@@ -68,7 +68,7 @@ def load_qa_failed(task):
 			log.debug('qa score passed')
 			continue
 		reworkSubTask = cfg['dest']
-		if entry.rawPieceId in currently_batched[reworkSubTask.subTaskId]:
+		if entry.rawPieceId in currently_batched.setdefault(reworkSubTask.subTaskId, set()):
 			log.debug('already batched in sub task {}'.format(reworkSubTask.subTaskId))
 			continue
 		group_plan.setdefault(cfg['dest'], {}).setdefault(entry.userId, []).append(entry)
