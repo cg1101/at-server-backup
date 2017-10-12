@@ -1091,25 +1091,23 @@ class QaTypePageMember(PageMember):
 		return None
 	def _get_look_ahead(self):
 		s = self.batch.subTask
-		if self.batch.task.taskType == TaskType.TRANSLATION and s.lookAhead > 0:
+		rs = []
+		if s.lookAhead > 0:
 			rs = RawPiece.query.filter(
 				(RawPiece.taskId==s.taskId) &
 				(RawPiece.allocationContext==self.rawPiece.allocationContext) &
 				(RawPiece.rawPieceId > self.rawPiece.rawPieceId)
 			).order_by(RawPiece.rawPieceId).all()[:s.lookAhead]
-		else:
-			rs = []
 		return rs
 	def _get_look_behind(self):
 		s = self.batch.subTask
-		if self.batch.task.taskType == TaskType.TRANSLATION and s.lookBehind > 0:
+		rs = []
+		if s.lookBehind > 0:
 			rs = RawPiece.query.filter(
 				(RawPiece.taskId==s.taskId) &
 				(RawPiece.allocationContext==self.rawPiece.allocationContext) &
 				(RawPiece.rawPieceId < self.rawPiece.rawPieceId)
 			).order_by(RawPiece.rawPieceId.desc()).all()[:s.lookBehind]
-		else:
-			rs = []
 		return reversed(rs)
 	saved = property(_get_saved)
 	lookAhead = property(_get_look_ahead)
