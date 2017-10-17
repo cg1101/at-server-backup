@@ -79,6 +79,8 @@ class TigerAgent(AppAgent):
 	CLIENT = 'client'
 	FINANCE = 'finance'
 	PROJECT_MANAGER = 'project_manager'
+	PROJECT_MANAGER1 = 'project_manager1'
+	PROJECT_MANAGER3 = 'project_manager3'
 	TENANT_ADMIN = 'tenant_admin'
 	SYS_ADMIN = 'sys_admin'
 	ROLE_CAPS_MAP = {
@@ -90,6 +92,8 @@ class TigerAgent(AppAgent):
 		CLIENT: [],
 		FINANCE: [],
 		PROJECT_MANAGER: ['admin'],
+		PROJECT_MANAGER1: ['admin'],
+		PROJECT_MANAGER3: ['admin'],
 		TENANT_ADMIN: ['admin'],
 		SYS_ADMIN: ['admin'],
 	}
