@@ -281,7 +281,7 @@ def webservices_available_qualifications():
 		result.append(record)
 	return dict(entries=result)
 
-@bp.route('/available_work', methods=['GET', 'POST'])
+@bp.route('/XXX_available_work', methods=['GET', 'POST'])
 @ws('available_work.xml')
 def webservices_available_work():
 	userId = int(request.values['userID'])
