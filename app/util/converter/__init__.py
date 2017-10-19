@@ -25,6 +25,9 @@ class Converter(object):
 
 	NO_BREAK_SPACE = unicodedata.lookup("NO-BREAK SPACE") # &nbsp;
 
+	tags = {}
+
+
 	@classmethod
 	def htmlText2HtmlDoc(cls, htmlText, nullable=True):
 		if htmlText is None:
@@ -73,7 +76,6 @@ class Converter(object):
 
 	@classmethod
 	def xmlDoc2ExtractText(cls, xmlDoc):
-		tags = {}
 		def _getText(element):
 			if element == None:
 				return ''
@@ -84,12 +86,12 @@ class Converter(object):
 			if element.tag.lower() == 'timestamp':
 				try:
 					tagId = int(element.attrib['tagid'])
-					tag = tags.setdefault(tagId, m.Tag.query.get(tagId))
-					extractStart = re.sub(r'\s+', (tag.extractStart or ''), '_')
-					extractEnd = re.sub(r'\s+', (tag.extractEnd or ''), '_')
+					tag = cls.tags.setdefault(tagId, m.Tag.query.get(tagId))
+					extractStart = re.sub(r'\s+', '_', (tag.extractStart or ''))
+					extractEnd = re.sub(r'\s+', '_', (tag.extractEnd or ''))
 				except Exception, e:
 					raise
-				return ('%s%.3f%s' % (extractStart, float(element.attrib['value']), extractEnd)) + (element.tail or '')
+				return (' %s%.3f%s ' % (extractStart, float(element.attrib['value']), extractEnd)) + (element.tail or '')
 
 			extractStart = ''
 			extractEnd = ''
@@ -98,11 +100,16 @@ class Converter(object):
 			if element.attrib.has_key('tagid'):
 				try:
 					tagId = int(element.attrib['tagid'])
-					tag = tags.setdefault(tagId, m.Tag.query.get(tagId))
+					tag = cls.tags.setdefault(tagId, m.Tag.query.get(tagId))
 					extractStart = tag.extractStart or ''
 					extractEnd = tag.extractEnd or ''
 				except Exception, e:
 					pass
+
+			if element.attrib.has_key('tagtype') and\
+					element.attrib['tagtype'] == 'Event':
+				extractStart = ' ' + extractStart
+				extractEnd = extractEnd + ' '
 
 			buf = [element.text or '']
 			for ch in element:
@@ -115,7 +122,10 @@ class Converter(object):
 				buf.append(_getText(ch))
 			return extractStart + ''.join(buf) + extractEnd + (element.tail or '')
 
-		return _getText(xmlDoc.getroot())
+		txt = _getText(xmlDoc.getroot())
+		txt = txt.replace(u'\xa0', ' ')
+		txt = ' '.join(txt.split())
+		return txt
 
 	@classmethod
 	def extractText2XmlDoc(cls, extractText):
