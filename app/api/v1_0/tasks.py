@@ -200,6 +200,88 @@ def get_task_tag_set(taskId):
 	tagSet = None if task.tagSetId is None else m.TagSet.query.get(task.tagSetId)
 	return jsonify(tagSet=m.TagSet.dump(tagSet) if tagSet else None)
 
+@bp.route(_name + '/<int:taskId>/check-headwords', methods=['POST'])
+@api
+@caps()
+def task_check_headwords(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	if task.taskType != 'Spelling':
+		raise InvalidUsage(_('task {0} has unexpected task type').format(taskId))
+	data = MyForm(
+		Field('headwords', is_mandatory=True,)
+	).get_data()
+	loaded = {}
+	for r in SS.query(m.RawPiece.rawPieceId, m.RawPiece.rawText, m.RawPiece.meta
+			).distinct(m.RawPiece.rawText
+			).order_by(m.RawPiece.rawText, m.RawPiece.rawPieceId.desc()
+			).filter(m.RawPiece.taskId==taskId).all():
+		loaded[r.rawText] = r
+	headwords = {}
+	for hw in data['headwords']:
+		headwords[hw] = loaded.get(hw, None)
+	# print 'input headwords', headwords
+	return jsonify(headwords=headwords)
+
+
+@bp.route(_name + '/<int:taskId>/save-headwords', methods=['POST'])
+@api
+@caps()
+def task_save_headwords(taskId):
+	task = m.Task.query.get(taskId)
+	if not task:
+		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
+	if task.taskType != 'Spelling':
+		raise InvalidUsage(_('task {0} has unexpected task type').format(taskId))
+	data = MyForm(
+		Field('headwords', is_mandatory=True,),
+		Field('overwrite', is_mandatory=True, default=False, validators=[
+			validators.is_bool,
+		]),
+	).get_data()
+	loaded = {}
+	for r in m.RawPiece.query.filter(m.RawPiece.taskId==taskId).all():
+		loaded[r.rawText] = r
+	me = session['current_user']
+	load = m.Load(taskId=taskId, createdBy=me.userId)
+	SS.add(load)
+	SS.flush()
+	rawPieces = []
+	for i, r in enumerate(data['headwords']):
+		assemblyContext = 'L_%05d_%05d' % (load.loadId, i)
+		allocationContext = 'L_%05d' % load.loadId
+		meta = json.dumps(r.get('meta', None))
+		try:
+			del r['meta']
+		except KeyError:
+			pass
+		print r, meta
+		rawPiece = loaded.get(r['rawText'], None)
+		if rawPiece:
+			rawPiece.loadId = load.loadId
+			rawPiece.assemblyContext = assemblyContext
+			rawPiece.allocationContext = allocationContext
+			rawPiece.hypothesis = r.get('hypothesis', '') or r.rawText
+			rawPiece.meta = meta
+			rawPiece.isNew = True
+		else:
+			rawPiece = m.RawPiece(taskId=taskId, loadId=load.loadId,
+				assemblyContext=assemblyContext,
+				allocationContext=allocationContext,
+				words=1, meta=meta,
+				**r)
+			rawPieces.append(rawPiece)
+			SS.add(rawPiece)
+	SS.flush()
+	count = len(data['headwords'])
+	return jsonify({
+		'message': _('loaded {0} raw pieces into task {0} successfully'
+			).format(count, taskId),
+		'load': m.Load.dump(load),
+		'stats': dict(itemCount=count, unitCount=count)
+	})
+
 
 @bp.route(_name + '/<int:taskId>/run/create-qa', methods=['POST'])
 @api
