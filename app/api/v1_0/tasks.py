@@ -207,7 +207,7 @@ def task_check_headwords(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	if task.taskType != 'Spelling':
+	if task.taskType not in ('Spelling', 'Markup'):
 		raise InvalidUsage(_('task {0} has unexpected task type').format(taskId))
 	data = MyForm(
 		Field('headwords', is_mandatory=True,)
@@ -232,7 +232,7 @@ def task_save_headwords(taskId):
 	task = m.Task.query.get(taskId)
 	if not task:
 		raise InvalidUsage(_('task {0} not found').format(taskId), 404)
-	if task.taskType != 'Spelling':
+	if task.taskType not in ('Spelling', 'Markup'):
 		raise InvalidUsage(_('task {0} has unexpected task type').format(taskId))
 	data = MyForm(
 		Field('headwords', is_mandatory=True,),
@@ -256,7 +256,7 @@ def task_save_headwords(taskId):
 			del r['meta']
 		except KeyError:
 			pass
-		print r, meta
+		# print r, meta
 		rawPiece = loaded.get(r['rawText'], None)
 		if rawPiece:
 			rawPiece.loadId = load.loadId
