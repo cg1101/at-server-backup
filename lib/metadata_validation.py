@@ -78,6 +78,10 @@ class MetaValidator(object):
 		elif demographic_category.TYPE == "string":
 			return StringValidator()
 		
+		# alphanum
+		elif demographic_category.TYPE == "alphanum":
+			return StringValidator()
+		
 		else:
 			raise ValueError("Unhandled demographic category type: {0}".format(demographic_category.TYPE))
 		
