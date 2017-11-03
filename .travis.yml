@@ -18,6 +18,7 @@ install:
 - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install |
   bash
 before_script:
+- export BOTO_CONFIG=/dev/null
 - "./travis-ci/createdb.sh"
 - source ./travis-ci/setenv.sh
 - python manage.py db upgrade
