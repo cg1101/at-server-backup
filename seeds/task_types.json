@@ -35,6 +35,21 @@
 			"taskTypeId": 7,
 			"name": "Transcription",
 			"description": null
+		},
+		{
+			"taskTypeId": 8,
+			"name": "Lexicon",
+			"description": null
+		},
+		{
+			"taskTypeId": 9,
+			"name": "Spelling",
+			"description": null
+		},
+		{
+			"taskTypeId": 10,
+			"name": "Markup",
+			"description": null
 		}
 	]
 }
