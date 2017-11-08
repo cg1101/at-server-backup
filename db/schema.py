@@ -1235,6 +1235,67 @@ t_task_key_expansions =  Table('taskkeyexpansions', metadata,
 	ForeignKeyConstraint([u'taskId'], [u'tasks.taskId']),
 )
 
+# ISO 15924
+t_writing_scripts =  Table('writingscripts', metadata,
+	Column('script_id', INTEGER, primary_key=True, autoincrement=True, key=u'scriptId', doc=''),
+	Column('name', TEXT, nullable=True, key=u'name', doc=''),
+	Column('code', VARCHAR(4), nullable=False, key=u'code', doc=''),
+	Column('n_code', VARCHAR(3), nullable=False, key=u'numericCode', doc=''),
+	UniqueConstraint(u'name'),
+	UniqueConstraint(u'code'),
+	UniqueConstraint(u'numericCode'),
+)
+
+t_dialects =  Table('dialects', metadata,
+	Column('dialect_id', INTEGER, primary_key=True, autoincrement=True, key=u'dialectId', doc=''),
+	Column('name', TEXT, nullable=False, key=u'name', doc=''),
+	Column('language_code', CHAR(3), nullable=False, key=u'iso639_3', doc=''),
+	Column('country_code', CHAR(3), nullable=False, key=u'iso3166_3', doc=''),
+	Column('script_id', INTEGER, ForeignKey('writingscripts.scriptId'), nullable=False, key=u'scriptId', doc=''),
+	Column('ltr', BOOLEAN, nullable=False, key=u'ltr', doc=''),
+	Column('romanization_scheme', TEXT, key=u'romanizationScheme', doc=''),
+)
+
+t_alphabets =  Table('alphabets', metadata,
+	Column('alphabet_id', INTEGER, primary_key=True, autoincrement=True, key=u'alphabetId', doc=''),
+	Column('name', TEXT, nullable=False, key=u'name', doc=''),
+	Column('dialect_id', INTEGER, ForeignKey('dialects.dialectId'), nullable=False, key=u'dialectId', doc=''),
+	Column('active', BOOLEAN, nullable=False, server_default=text('TRUE'), key=u'isActive', doc=''),
+	Column('manual_url', TEXT, key=u'url', doc=''),
+	UniqueConstraint(u'name'),
+)
+
+t_rules =  Table('rules', metadata,
+	Column('rule_id', INTEGER, primary_key=True, autoincrement=True, key=u'ruleId', doc=''),
+	Column('name', TEXT, nullable=False, key=u'name', doc=''),
+	Column('type', TEXT, nullable=False, key=u'type', doc=''),
+	Column('description', TEXT, key=u'description', doc=''),
+	Column('alphabet_id', INTEGER, ForeignKey('alphabets.alphabetId'), nullable=False, key=u'alphabetId', doc=''),
+	UniqueConstraint(u'name', u'alphabetId'),
+	CheckConstraint("type=ANY(ARRAY['phonology','stress','syllabification','vowelisation'])"),
+)
+
+t_rule_patterns =  Table('rule_patterns', metadata,
+	Column('regex_id', INTEGER, primary_key=True, autoincrement=True, key=u'regexId', doc=''),
+	Column('rule_id', INTEGER, ForeignKey('rules.ruleId'), nullable=False, key=u'ruleId', doc=''),
+	Column('search', TEXT, nullable=False, key=u'search', doc=''),
+	Column('replace', TEXT, key=u'replace', doc=''),
+)
+
+t_graphemes =  Table('graphemes', metadata,
+	Column('grapheme_id', INTEGER, primary_key=True, autoincrement=True, key=u'graphemeId', doc=''),
+	Column('key', TEXT, nullable=False, key=u'key', doc=''),
+	Column('alphabet_id', INTEGER, ForeignKey('alphabets.alphabetId'), nullable=False, key=u'alphabetId', doc=''),
+	Column('token', TEXT, nullable=False, key=u'token', doc=''),
+	Column('orthography', TEXT, key=u'orthography', doc=''),
+	Column('romanization', TEXT, key=u'romanization', doc=''),
+	Column('sample_word', TEXT, key=u'sampleWord', doc=''),
+	Column('sample_transcription', TEXT, key=u'sampleTranscription', doc=''),
+	Column('sample_romanization', TEXT, key=u'sampleRomanization', doc=''),
+	UniqueConstraint(u'alphabetId', u'key'),
+	UniqueConstraint(u'alphabetId', u'token'),
+)
+
 ##########################################################################
 
 
