@@ -2198,6 +2198,15 @@ def update_task_loader(task):
 	return jsonify(success=True)
 
 
+@bp.route("tasks/<int:task_id>/loader", methods=["DELETE"])
+@api
+@get_model(Task)
+def delete_task_loader(task):
+	task.set_loader(None)
+	db.session.commit()
+	return jsonify(success=True)
+
+
 @bp.route("tasks/<int:task_id>/albums", methods=["GET"])
 @api
 @get_model(Task)

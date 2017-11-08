@@ -88,6 +88,15 @@ def update_recording_platform_loader(recording_platform):
 	return jsonify(success=True)
 
 
+@bp.route("recording-platforms/<int:recording_platform_id>/loader", methods=["DELETE"])
+@api
+@caps()
+@get_model(RecordingPlatform)
+def delete_recording_platform_loader(recording_platform):
+	recording_platform.set_loader(None)
+	return jsonify(success=True)
+
+
 @bp.route("recording-platforms/<int:recording_platform_id>/audiocutup", methods=["PUT"])
 @api
 @caps()
