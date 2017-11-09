@@ -69,7 +69,7 @@ def create_alphabet():
 
 
 def check_alphabet_name_uniqueness(data, key, name, alphabetId):
-	if m.Alphabet.query.filter(m.Alphabet.name=name
+	if m.Alphabet.query.filter(m.Alphabet.name==name
 			).filter(m.Alphabet.alphabetId!=alphabetId
 			).count() > 0:
 		raise ValueError, _('name \'{0}\' is already in use').format(name)
