@@ -1999,7 +1999,6 @@ def create_recording_flag(task):
 	return jsonify({"recordingFlag": RecordingFlag.dump(recording_flag)})
 
 
-
 @bp.route("tasks/<int:task_id>/load-config")
 @api
 @get_model(Task)
@@ -2212,6 +2211,28 @@ def delete_task_loader(task):
 @get_model(Task)
 def get_task_albums(task):
 	return jsonify(albums=Album.dump(task.albums))
+
+
+@bp.route("tasks/<int:task_id>/albums", methods=["POST"])
+@api
+@get_model(Task)
+def create_task_album(task):
+	data = MyForm(
+		Field("name", is_mandatory=True,
+			validators=[
+				validators.is_string,
+				# TODO check unique album name
+		]),
+	).get_data()
+
+	album = Album(
+		task=task,
+		name=data["name"],
+	)
+
+	db.session.add(album)
+	db.session.commit()
+	return jsonify(album=Album.dump(album))
 
 
 @bp.route("tasks/<int:task_id>/albums/upload", methods=["POST"])
