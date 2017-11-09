@@ -2340,6 +2340,72 @@ class CountrySchema(Schema):
 class Language(Base):
 	__table__ = t_languages
 
+
+# WritingScript
+class WritingScript(Base):
+	__table__ = t_writing_scripts
+
+class WritingScriptSchema(Schema):
+	class Meta:
+		fields = ('scriptId', 'name', 'code', 'numericCode')
+
+# Dialect
+class Dialect(Base):
+	__table__ = t_dialects
+	script = relationship('WritingScript')
+	langCode = synonym('iso639_3')
+	countryCode = synonym('iso3166_3')
+	@property
+	def dir(self):
+		return 'ltr' if self.ltr else 'rtl'
+
+class DialectSchema(Schema):
+	script = fields.Nested('WritingScriptSchema')
+	class Meta:
+		fields = ('dialectId', 'name', 'langCode', 'countryCode', 'dir',
+			'romanizationScheme', 'scriptId', 'script')
+
+class Rule(Base):
+	__table__ = t_rules
+	patterns = relationship('RulePattern', order_by='RulePattern.regexId')
+
+class RuleSchema(Schema):
+	patterns = fields.Nested('RulePatternSchema', many=True, exclude=('ruleId',))
+	class Meta:
+		fields = ('ruleId', 'name', 'type', 'description', 'alphabetId', 'patterns')
+
+class RulePattern(Base):
+	__table__ = t_rule_patterns
+
+class RulePatternSchema(Schema):
+	class Meta:
+		fields = ('regexId', 'ruleId', 'search', 'replace')
+
+class Alphabet(Base):
+	__table__ = t_alphabets
+	rules = relationship('Rule')
+	graphemes = relationship('Grapheme')
+	current = synonym('isActive')
+	manPageUrl = synonym('url')
+
+class AlphabetSchema(Schema):
+	rules = fields.Nested('RuleSchema', many=True, exclude=['alphabetId'])
+	graphemes = fields.Nested('GraphemeSchema', many=True, exclude=['alphabetId'])
+	class Meta(Schema):
+		fields = ('alphabetId', 'name', 'dialectId', 'isActive', 'url')
+
+class Alphabet_FullSchema(AlphabetSchema):
+	class Meta:
+		fields = ('alphabetId', 'name', 'manPageUrl', 'current', 'dialectId',
+			'graphemes', 'rules')
+
+class Grapheme(Base):
+	__table__ = t_graphemes
+
+class GraphemeSchema(Schema):
+	class Meta:
+		fields = ('alphabetId', 'key', 'token')
+
 ##########################################################################
 
 # RecordingPlatformType
