@@ -20,15 +20,15 @@ def get_alphabets():
 	})
 
 
-@bp.route(_name + '/<int:taskId>')
+@bp.route(_name + '/<int:alphabetId>')
 @api
 @caps()
 def get_alphabet(alphabetId):
-	alphabet = m.Alphabet.query.get(m.Alphabet.alphabetId)
+	alphabet = m.Alphabet.query.get(alphabetId)
 	if not alphabet:
 		raise InvalidUsage(_('alphabet {0} not found').format(taskId), 404)
 	return jsonify({
-		'alphabet': m.Alphabet.dump(alphabets, use='full'),
+		'alphabet': m.Alphabet.dump(alphabet, use='full'),
 	})
 
 

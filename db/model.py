@@ -2385,14 +2385,16 @@ class Alphabet(Base):
 	__table__ = t_alphabets
 	rules = relationship('Rule')
 	graphemes = relationship('Grapheme')
+	dialect = relationship('Dialect')
 	current = synonym('isActive')
 	manPageUrl = synonym('url')
 
 class AlphabetSchema(Schema):
 	rules = fields.Nested('RuleSchema', many=True, exclude=['alphabetId'])
 	graphemes = fields.Nested('GraphemeSchema', many=True, exclude=['alphabetId'])
+	dialect = fields.Nested('DialectSchema')
 	class Meta(Schema):
-		fields = ('alphabetId', 'name', 'dialectId', 'isActive', 'url')
+		fields = ('alphabetId', 'name', 'dialect', 'isActive', 'url')
 
 class Alphabet_FullSchema(AlphabetSchema):
 	class Meta:
