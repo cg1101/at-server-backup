@@ -1733,11 +1733,6 @@ def get_task_warnings(taskId):
 		warnings.critical(_('This task has no supervisors assigned to receive feedback.',
 			'Please assign a supervisor to receive feedback on the Task Configuration page.'))
 
-	root = '/audio2/AppenText'
-	path = os.path.join(root, 'instructions', str(taskId))
-	if not os.path.exists(path):
-		warnings.non_critical(_('The default instructions directory for this task doesn\'t exist.'))
-
 	subTaskNames = [subTask.name for subTask in
 			filter(lambda x: x.workType == m.WorkType.WORK, task.subTasks)
 			if not m.QaConfig.query.get(subTask.subTaskId)]
