@@ -869,7 +869,11 @@ def get_sub_task_transitions(sub_task):
 @api
 @get_model(SubTask)
 def get_sub_task_performances(sub_task):
+	kwargs = {}
 	performances = []
+	
+	if request.args.get("full"):
+		kwargs.update(dict(use="full"))
 
 	for batch in sub_task.batches:
 		for page in batch.pages:
@@ -877,7 +881,7 @@ def get_sub_task_performances(sub_task):
 				performance = Performance.query.get(page_member.raw_piece_id)
 				performances.append(performance)
 
-	return jsonify(performances=Performance.dump(performances))
+	return jsonify(performances=Performance.dump(performances, **kwargs))
 
 
 # TODO check audio checking task
