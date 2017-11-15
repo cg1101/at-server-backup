@@ -38,7 +38,7 @@ def check_name_uniqueness(data, key, name):
 
 
 def check_dialect_existence(data, key, dialectId):
-	if not m.dialectId.query.get(directId):
+	if not m.Dialect.query.get(dialectId):
 		raise ValueError, _('dialect {0} not found').format(dialectId)
 
 
@@ -51,11 +51,12 @@ def create_alphabet():
 			validators.non_blank,
 			check_name_uniqueness,
 		]),
+		Field('description'),
 		Field('dialectId', is_mandatory=True, validators=[
 			validators.is_number,
 			check_dialect_existence,
 		]),
-		Field('manualUrl', default=lambda: None,
+		Field('url', default=lambda: None,
 		),
 	).get_data()
 
