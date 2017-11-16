@@ -76,10 +76,10 @@ class TxLoader(object):
 			for labelId in labelIds:
 				label = m.AppliedLabel(entryId=entry.entryId, labelId=labelId)
 				SS.add(label)
-		rawPieceIds = list(rawPieceIds)
+		rawPieceIds = list(rawPieceIds.keys())
 
 		# populate destination rework sub task
-		batches = Batcher.batch(dstSubTask, rawPieceIds.keys())
+		batches = Batcher.batch(dstSubTask, rawPieceIds)
 		for batch in batches:
 			SS.add(batch)
 
