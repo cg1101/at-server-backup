@@ -80,6 +80,8 @@ def check_alphabet_name_uniqueness(data, key, name, alphabetId):
 @caps()
 def update_alphabet(alphabetId):
 	alphabet = m.Alphabet.query.get(alphabetId)
+	if not alphabet:
+		raise InvalidUsage(_('alphabet {0} not found').format(alphabetId), 404)
 	data = MyForm(
 		Field('name', is_mandatory=True, validators=[
 			validators.non_blank,
@@ -89,9 +91,26 @@ def update_alphabet(alphabetId):
 			validators.is_number,
 			check_dialect_existence,
 		]),
-		Field('manualUrl', default=lambda: None,
+		Field('url', default=lambda: None,
 		),
 	).get_data()
 	return jsonify(alphabet=m.Alphabet.dump(alphabet))
 
 
+@bp.route(_name + '/<int:alphabetId>/rules/', methods=['POST'])
+@api
+@caps()
+def create_new_alphabet_rule(alphabetId):
+	alphabet = m.Alphabet.query.get(alphabetId)
+	if not alphabet:
+		raise InvalidUsage(_('alphabet {0} not found').format(alphabetId), 404)
+	data = MyForm(
+		Field('name'),
+		Field('type'),
+		Field('description'),
+	).get_data()
+	rule = m.Rule(**data)
+	rule.alphabetId = alphabetId
+	SS.add(rule)
+	SS.flush()
+	return jsonify(rule=m.Rule.dump(rule))

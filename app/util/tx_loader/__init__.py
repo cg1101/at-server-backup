@@ -77,7 +77,7 @@ class TxLoader(object):
 		rawPieceIds = list(rawPieceIds)
 
 		# populate destination rework sub task
-		batches = Batcher.batch(dstSubTask, rawPieceIds)
+		batches = Batcher.batch(dstSubTask, sorted(rawPieceIds))
 		for batch in batches:
 			SS.add(batch)
 
