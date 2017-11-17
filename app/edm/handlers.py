@@ -284,8 +284,6 @@ def create_person(self):
 		SS.commit()
 		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
 
-	return
-
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
 def update_person(self):
@@ -323,6 +321,8 @@ def update_person(self):
 		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
 		user = util.edm.make_new_user(globalId)
 		SS.add(user)
+		SS.flush()
+		SS.commit()
 		current_app.logger.info('user {} is added locally'.format(globalId))
 
 	# user found via appen ID - apply changes
@@ -336,11 +336,10 @@ def update_person(self):
 					changes[k] = v
 			except AttributeError:
 				continue
+		
+		SS.flush()
+		SS.commit()
 		current_app.logger.debug('actual changes {}'.format(changes))
-
-	SS.flush()
-	SS.commit()
-	return
 
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Create')
