@@ -4,6 +4,7 @@ import urllib
 import base64
 import cStringIO
 import traceback
+import psycopg2
 from collections import OrderedDict
 
 import sqlalchemy.orm.exc
@@ -212,10 +213,19 @@ class SnsMessage(object):
 def edm_callback():
 	current_app.logger.debug('received incoming message {}'.format(request.data))
 	try:
-		return SnsMessage.processMessage(request,
-			topics=current_app.config['EDM_TOPICS'])
+		return SnsMessage.processMessage(
+			request,
+			topics=current_app.config['EDM_TOPICS']
+		)
+
 	except MessageError, e:
 		return make_response('%s' % e, 400)
+
+	except psycopg2.IntegrityError, e:
+		current_app.logger.error("database integrity error: {0}".format(e))
+		SS.rollback()
+		raise
+
 	except Exception, e:
 		out = cStringIO.StringIO()
 		traceback.print_exc(file=out)
