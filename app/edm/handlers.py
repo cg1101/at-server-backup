@@ -239,9 +239,12 @@ def create_person(self):
 	globalId = desc['global_id']
 	data = util.edm.decode_changes('Person', desc['changes'])
 	iso3 = data.pop('_countryIso3', None)
+
 	if iso3:
 		try:
 			country = m.Country.query.filter(m.Country.iso3==iso3).one()
+
+		# country not found - create country from edm
 		except sqlalchemy.orm.exc.NoResultFound:
 			result = util.edm.get_country(iso3)
 			country_data = dict(
@@ -255,24 +258,32 @@ def create_person(self):
 			country = m.Country(**country_data)
 			SS.add(country)
 			SS.flush()
+
 		data['countryId'] = country.countryId
+
 	try:
 		user = m.User.query.filter_by(emailAddress=data['emailAddress']).one()
-		for k, v in data.items():
-			if k == 'emailAddress':
-				continue
-			setattr(user, k, v)
-		user.globalId = globalId
-		SS.flush()
-		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
+
+	# user not found via email address - create user
 	except sqlalchemy.orm.exc.NoResultFound:
-		SS.rollback()
 		user = m.User(**data)
 		user.globalId = globalId
 		SS.add(user)
 		SS.flush()
 		SS.commit()
 		current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
+
+	# user found via email address - apply updates
+	else:
+		for k, v in data.items():
+			if k == 'emailAddress':
+				continue
+			setattr(user, k, v)
+		user.globalId = globalId
+		SS.flush()
+		SS.commit()
+		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
+
 	return
 
 
@@ -282,9 +293,12 @@ def update_person(self):
 	globalId = desc['global_id']
 	data = util.edm.decode_changes('Person', desc['changes'])
 	iso3 = data.pop('_countryIso3', None)
+
 	if iso3:
 		try:
 			country = m.Country.query.filter(m.Country.iso3==iso3).one()
+
+		# country not found - create country from edm
 		except sqlalchemy.orm.exc.NoResultFound:
 			result = util.edm.get_country(iso3)
 			country_data = dict(
@@ -298,9 +312,21 @@ def update_person(self):
 			country = m.Country(**country_data)
 			SS.add(country)
 			SS.flush()
+
 		data['countryId'] = country.countryId
+	
 	try:
 		user = m.User.query.filter(m.User.globalId==globalId).one()
+
+	# user not found via appen ID - create user from edm
+	except sqlalchemy.orm.exc.NoResultFound:
+		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
+		user = util.edm.make_new_user(globalId)
+		SS.add(user)
+		current_app.logger.info('user {} is added locally'.format(globalId))
+
+	# user found via appen ID - apply changes
+	else:
 		current_app.logger.info('found user {}, applying changes {}'.format(globalId, data))
 		changes = {}
 		for k, v in data.items():
@@ -311,16 +337,9 @@ def update_person(self):
 			except AttributeError:
 				continue
 		current_app.logger.debug('actual changes {}'.format(changes))
-		SS.flush()
-		SS.commit()
-	except sqlalchemy.orm.exc.NoResultFound:
-		SS.rollback()
-		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
-		user = util.edm.make_new_user(globalId)
-		SS.add(user)
-		SS.flush()
-		SS.commit()
-		current_app.logger.info('user {} is added locally'.format(globalId))
+
+	SS.flush()
+	SS.commit()
 	return
 
 
