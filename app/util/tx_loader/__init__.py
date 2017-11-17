@@ -1,4 +1,6 @@
 
+from collections import OrderedDict
+
 import db.model as m
 from db.db import SS
 
@@ -51,14 +53,14 @@ class TxLoader(object):
 	def load_tx_file(self, filespec, srcSubTask, fakeUser, dstSubTask):
 		self.load_raw_piece_ids()
 		utts = iter_utts(filespec)
-		rawPieceIds = set()
+		rawPieceIds = OrderedDict()
 
 		# create fake work entries
 		for utt in utts:
 			rawPieceId, assemblyContext = self.get_utt_info(utt)
 			labelIds = self.get_applied_labels(utt)
 			result = self.tx_parser.parse(utt['TRANSCRIPTION'])
-			rawPieceIds.add(rawPieceId)
+			rawPieceIds[rawPieceId] = rawPieceId
 			entry = m.WorkEntry(
 					rawPieceId=rawPieceId,
 					taskId=self.taskId,
@@ -74,7 +76,7 @@ class TxLoader(object):
 			for labelId in labelIds:
 				label = m.AppliedLabel(entryId=entry.entryId, labelId=labelId)
 				SS.add(label)
-		rawPieceIds = list(rawPieceIds)
+		rawPieceIds = list(rawPieceIds.keys())
 
 		# populate destination rework sub task
 		batches = Batcher.batch(dstSubTask, rawPieceIds)

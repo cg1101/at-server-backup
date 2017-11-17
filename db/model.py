@@ -2399,7 +2399,7 @@ class AlphabetSchema(Schema):
 class Alphabet_FullSchema(AlphabetSchema):
 	class Meta:
 		fields = ('alphabetId', 'name', 'manPageUrl', 'current', 'dialectId',
-			'graphemes', 'rules')
+			'dialect', 'graphemes', 'rules')
 
 class Grapheme(Base):
 	__table__ = t_graphemes

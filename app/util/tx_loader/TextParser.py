@@ -299,7 +299,7 @@ class Parser(object):
 					raise RuntimeError, 'expecting Token/ParsedObject only'
 				t = STATES[currentState].get(key, None)
 				if t == None:
-					raise RuntimeError, 'paring error detected'
+					raise RuntimeError, 'parsing error detected'
 				action = t[0]
 				# print 'lookAheadToken: ==>%s<==' % lookAheadToken
 				# print 'key: ==>%s<==' % key

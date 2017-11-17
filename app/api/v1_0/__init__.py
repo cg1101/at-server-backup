@@ -25,6 +25,7 @@ import batching_modes
 import constants
 import corpus_codes
 import countries
+import dialects
 import errorclasses
 import errortypes
 import filehandlers
