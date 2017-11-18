@@ -14,6 +14,8 @@ def get_status():
 def test_endpoint():
 	from db.model import User
 	from db import database as db
+	import psycopg2
+	import sqlalchemy
 	user = User(
 		userId=101,
 		emailAddress="admin@socialinstinct.com",
@@ -23,8 +25,20 @@ def test_endpoint():
 	print("one")
 	db.session.add(user)
 	print("two")
-	db.session.flush()
+	#db.session.flush()
 	print("three")
-	db.session.commit()
+	try:
+		db.session.commit()
+	except sqlalchemy.exc.IntegrityError, e:
+		print("caught error")
+		db.session.rollback()
+		return jsonify(error=True), 500
+
+	except Exception, e:
+		print("HERE", e)
+		print(isinstance(e, psycopg2.Error))
+		print(e.__class__)
+		raise
+		
 	print("four")
 	return jsonify(ok=True)

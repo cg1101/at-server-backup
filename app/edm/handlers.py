@@ -5,10 +5,11 @@ import base64
 import cStringIO
 import traceback
 import psycopg2
+import sqlalchemy
 from collections import OrderedDict
 
 import sqlalchemy.orm.exc
-from flask import request, current_app, make_response
+from flask import request, current_app, make_response, abort
 from M2Crypto import X509
 
 import db.model as m
@@ -298,9 +299,10 @@ def create_person(self):
 	
 	try:
 		SS.commit()
-	except psycopg2.Error, e:
+	except (psycopg2.Error, sqlalchemy.exc.IntegrityError), e:
 		current_app.logger.error("error while committing create_person changes, rolling back: {0}".format(e))
 		SS.rollback()
+		raise
 
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
@@ -363,9 +365,10 @@ def update_person(self):
 
 	try:
 		SS.commit()
-	except psycopg2.Error, e:
+	except (psycopg2.Error, sqlalchemy.exc.IntegrityError), e:
 		current_app.logger.error("error while committing update_person changes, rolling back: {0}".format(e))
 		SS.rollback()
+		raise
 
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Create')
