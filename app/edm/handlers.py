@@ -267,7 +267,7 @@ def create_person(self):
 			)
 			country = m.Country(**country_data)
 			SS.add(country)
-			SS.flush()
+			#SS.flush()
 
 		data['countryId'] = country.countryId
 
@@ -279,8 +279,8 @@ def create_person(self):
 		user = m.User(**data)
 		user.globalId = globalId
 		SS.add(user)
-		SS.flush()
-		SS.commit()
+		#SS.flush()
+		#SS.commit()
 		current_app.logger.info('user {0} was created using {1}'.format(user.userId, data))
 
 	# user found via email address - apply updates
@@ -290,9 +290,17 @@ def create_person(self):
 				continue
 			setattr(user, k, v)
 		user.globalId = globalId
-		SS.flush()
-		SS.commit()
+		#SS.flush()
+		#SS.commit()
 		current_app.logger.info('user {0} was updated using {1}'.format(user.userId, data))
+
+	current_app.logger.info("committing create_person changes")
+	
+	try:
+		SS.commit()
+	except psycopg2.Error, e:
+		current_app.logger.error("error while committing create_person changes, rolling back: {0}".format(e))
+		SS.rollback()
 
 
 @SnsMessage.message_handler(Type='Notification', Subject='Person_Update')
@@ -319,7 +327,7 @@ def update_person(self):
 			)
 			country = m.Country(**country_data)
 			SS.add(country)
-			SS.flush()
+			#SS.flush()
 
 		data['countryId'] = country.countryId
 	
@@ -331,8 +339,8 @@ def update_person(self):
 		current_app.logger.info('user {} not found, get user from edm'.format(globalId))
 		user = util.edm.make_new_user(globalId)
 		SS.add(user)
-		SS.flush()
-		SS.commit()
+		#SS.flush()
+		#SS.commit()
 		current_app.logger.info('user {} is added locally'.format(globalId))
 
 	# user found via appen ID - apply changes
@@ -347,9 +355,17 @@ def update_person(self):
 			except AttributeError:
 				continue
 		
-		SS.flush()
-		SS.commit()
+		#SS.flush()
+		#SS.commit()
 		current_app.logger.debug('actual changes {}'.format(changes))
+
+	current_app.logger.info("committing update_person changes")
+
+	try:
+		SS.commit()
+	except psycopg2.Error, e:
+		current_app.logger.error("error while committing update_person changes, rolling back: {0}".format(e))
+		SS.rollback()
 
 
 @SnsMessage.message_handler(Type='Notification', Subject='Country_Create')

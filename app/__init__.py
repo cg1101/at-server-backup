@@ -52,6 +52,7 @@ def create_app(config_name):
 		'/health-check',
 		"/api/1.0/status",
 		"/api/1.0/get-token",
+		"/api/1.0/test",	# FIXME remove
 	])
 	json_url_patterns = map(re.compile, [
 		'/whoami',
