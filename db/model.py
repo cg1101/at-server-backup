@@ -2,6 +2,7 @@
 
 import logging
 import datetime
+import json
 import time
 import re
 import os
@@ -2801,6 +2802,30 @@ class PerformanceMetaValue(Base, MetaValueMixin):
 	performance_meta_category_id = synonym("performanceMetaCategoryId")
 	raw_piece_id = synonym("rawPieceId")
 
+	def satisfies(self, criteria_values):
+
+		# enum
+		if self.meta_category.validator_spec["type"] == "enum":
+			return self.value["value"] in criteria_values
+
+		# int with ranges
+		if self.meta_category.validator_spec["type"] == "int" and "ranges" in self.meta_category.validator_spec:
+			criteria_values = [json.loads(value) for value in criteria_values]
+
+			for value in criteria_values:
+				if "from" in value and self.value["value"] < value["from"]:
+					continue
+
+				if "to" in value and self.value["value"] > value["to"]:
+					continue
+
+				return True
+
+			return False
+
+		# other
+		return self.value["value"] in criteria_values
+
 
 class PerformanceMetaValueSchema(Schema):
 	class Meta:
@@ -3079,6 +3104,14 @@ class Performance(RawPiece, LoadMixin, MetaEntityMixin, AddFeedbackMixin):
 		self.in_transcription = in_transcription
 		flag_modified(self, "inTranscription")
 		self.lock()
+	
+	def get_meta_value(self, meta_category_id):
+
+		for meta_value in self.meta_values:
+			if meta_value.meta_category.performance_meta_category_id == meta_category_id:
+				return meta_value
+
+		return None
 
 
 class PerformanceSchema(Schema):
@@ -3923,7 +3956,109 @@ class AudioSandboxFileSchema(Schema):
 	data = fields.Dict()
 	is_wav = fields.Boolean(dump_to="isWav")
 	duration = DurationField()
+
+
+class BatchRouter(Base, ModelMixin):
+	__table__ = t_batch_router
+
+	# relationships
+	task = relationship("Task", backref="batch_routers")
+
+	def add_sub_task_criteria(self, sub_task_id, criteria):
+		sub_task = BatchRouterSubTask(
+			sub_task_id=sub_task_id,
+			criteria=criteria
+		)
+		self.sub_tasks.append(sub_task)
+
+	def get_routed_sub_task(self, key):
+		"""
+		Given the batch key, return the destination
+		sub task given the routing criteria
+		"""
+		
+		# only works for linked loaders for now
+		assert self.task.loader and self.task.loader["name"] == "Linked"
+
+		# get session model
+		session = Performance.query.get(key)
+
+		for sub_task in self.sub_tasks:
+			if self.is_match(session, sub_task.criteria):
+				return sub_task.sub_task
+
+		raise ValueError("session could not be routed to any sub task: {0}".format(session.raw_piece_id))
+
+	def update_sub_task_criteria(self, data):
 	
+		def get_sub_task_id(key):
+			match = re.match("^s(?P<subTaskId>\d+)$", key)
+			sub_task_id = match.groupdict()["subTaskId"]
+			return int(sub_task_id)
+	
+		for key, criteria in data.items():
+			sub_task_id = get_sub_task_id(key)
+			self.add_sub_task_criteria(sub_task_id, criteria)
+
+	@classmethod
+	def is_match(cls, session, criteria):
+		
+		if not criteria:
+			return False
+
+		for type, sub_criteria in criteria.items():
+			
+			if type == "metadataRestrictions":
+				if cls.validate_metadata_restrictions(session, sub_criteria):
+					return True
+
+		return False
+
+	@staticmethod
+	def validate_metadata_restrictions(session, criteria):
+		
+		for category_key, criteria_values in criteria.items():
+
+			if not criteria_values:
+				continue
+
+			criteria_values = criteria_values.values()
+			category_id = int(category_key.lstrip("c"))
+			meta_category = PerformanceMetaCategory.query.get(category_id)
+			meta_value = session.get_meta_value(meta_category.performance_meta_category_id)
+
+			if not meta_value:
+				return False
+
+			if not meta_value.satisfies(criteria_values):
+				return False
+
+		return True
+
+
+class BatchRouterSchema(Schema):
+	batch_router_id = fields.Integer(dump_to="batchRouterId")
+	name = fields.String()
+	task_id = fields.Integer(dump_to="taskId")
+	enabled = fields.Boolean()
+	sub_tasks = fields.Nested("BatchRouterSubTaskSchema", dump_to="subTasks", many=True)
+
+
+class BatchRouterSubTask(Base, ModelMixin):
+	__table__ = t_batch_router_sub_task
+
+	# relationships
+	router = relationship("BatchRouter", backref=backref("sub_tasks", cascade="all, delete-orphan"))
+	sub_task = relationship("SubTask")
+
+
+class BatchRouterSubTaskSchema(Schema):
+	batch_router_sub_task_id = fields.Integer(dump_to="batchRouterSubTaskId")
+	batch_router_id = fields.Integer(dump_to="batchRouterId")
+	sub_task = fields.Nested("SubTaskSchema", only=("subTaskId", "workType", "name"), dump_to="subTask")
+	criteria = fields.Dict()
+
+
 #
 # Define model class and its schema (if needed) above
 #

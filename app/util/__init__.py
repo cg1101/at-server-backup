@@ -22,43 +22,50 @@ def split_by_size(seq, size):
 
 
 class _batcher(object):
-	@staticmethod
-	def _create_work_batches(subTask, rawPieces, priority):
 
+	@classmethod
+	def _get_key_gen(cls, batching_mode, page_size):
+
+		key_gen = None
 		order_by = None
 
 		# no context
-		if subTask.batchingMode == m.BatchingMode.NONE:
-			key_gen = lambda i, x: (None, i / subTask.maxPageSize)
+		if batching_mode == m.BatchingMode.NONE:
+			key_gen = lambda i, x: (None, i / page_size)
 
 		# allocation context
-		elif subTask.batchingMode == m.BatchingMode.ALLOCATION_CONTEXT:
+		elif batching_mode == m.BatchingMode.ALLOCATION_CONTEXT:
 			key_gen = lambda i, x: x.allocationContext
 
 		# file
-		elif subTask.batchingMode == BatchingMode.FILE:
+		elif batching_mode == BatchingMode.FILE:
 			key_gen = lambda index, raw_piece: raw_piece.data["filePath"]
 			order_by = lambda raw_piece: raw_piece.data.get("startAt")
 
 		# performance
-		elif subTask.batchingMode == BatchingMode.PERFORMANCE:
+		elif batching_mode == BatchingMode.PERFORMANCE:
 			key_gen = lambda index, raw_piece: raw_piece.data["performance"]["id"]
 			order_by = lambda raw_piece: (raw_piece.data["filePath"], raw_piece.data.get("startAt"))
 
 		# custom
-		elif subTask.batchingMode == BatchingMode.CUSTOM_CONTEXT:
+		elif batching_mode == BatchingMode.CUSTOM_CONTEXT:
 			raise NotImplementedError #TODO
 
 		# folder
-		elif subTask.batchingMode == BatchingMode.FOLDER:
+		elif batching_mode == BatchingMode.FOLDER:
 			key_gen = lambda index, raw_piece: os.path.dirname(raw_piece.data["filePath"])
 			order_by = lambda raw_piece: (raw_piece.data["filePath"], raw_piece.data.get("startAt"))
 
 		# unknown
 		else:
 			raise RuntimeError(_('unknown batching mode {0}'
-				).format(subTask.batchingMode))
+				).format(batching_mode))
 
+		assert key_gen
+		return key_gen, order_by
+
+	@classmethod
+	def _group_into_batches(cls, rawPieces, key_gen, order_by):
 		# group raw pieces into batches
 		loads = OrderedDict()
 		for i, rawPiece in enumerate(rawPieces):
@@ -71,7 +78,17 @@ class _batcher(object):
 				batch_raw_pieces = sorted(batch_raw_pieces, key=order_by)
 				loads[key] = batch_raw_pieces
 
+		return loads
+
+	@classmethod
+	def _create_work_batches(cls, subTask, rawPieces, priority):
+
+		key_gen, order_by = cls._get_key_gen(subTask.batchingMode, subTask.maxPageSize)
+		loads = cls._group_into_batches(rawPieces, key_gen, order_by)
+
+		# create batches
 		batches = []
+		
 		for key, batch_load in loads.iteritems():
 
 			if isinstance(key, tuple):
@@ -128,6 +145,7 @@ class _batcher(object):
 
 
 class Batcher(object):
+
 	@staticmethod
 	def batch(subTask, things, priority=5):
 		if subTask.workType == m.WorkType.WORK:
@@ -139,6 +157,60 @@ class Batcher(object):
 		else:
 			raise RuntimeError(_('work type not supported {0}'
 				).format(subTask.workType))
+
+	@staticmethod
+	def route(batch_router, raw_pieces, priority=5):
+
+		# get routed sub tasks
+		sub_tasks = [s.sub_task for s in batch_router.sub_tasks]
+		assert sub_tasks
+
+		# check consistent batching mode and get page size
+		batching_mode = sub_tasks[0].batchingMode
+		page_size = None	# this will only be used for None batching mode
+
+		for sub_task in sub_tasks:
+			if sub_task.batchingMode != batching_mode:
+				raise ValueError("inconsistent batching modes")
+
+			if page_size is None:
+				page_size = sub_task.maxPageSize
+			else:
+				page_size = min(page_size, sub_task.maxPageSize)
+
+		key_gen, order_by = _batcher._get_key_gen(batching_mode, page_size)
+		loads = _batcher._group_into_batches(raw_pieces, key_gen, order_by)
+
+		batches = []
+		
+		for key, batch_load in loads.iteritems():
+
+			if isinstance(key, tuple):
+				name = key[0]
+			else:
+				name = key
+
+			sub_task = batch_router.get_routed_sub_task(key)
+
+			b = m.Batch(
+				taskId=sub_task.taskId,
+				subTaskId=sub_task.subTaskId,
+				priority=priority,
+				name=name
+			)
+
+			for pageIndex, page_load in enumerate(split_by_size(batch_load, sub_task.maxPageSize)):
+				p = m.Page(pageIndex=pageIndex)
+				b.pages.append(p)
+
+				for memberIndex, rawPiece in enumerate(page_load):
+					memberEntry = m.PageMemberEntry(memberIndex=memberIndex)
+					memberEntry.rawPieceId = rawPiece.rawPieceId
+					p.memberEntries.append(memberEntry)
+
+			batches.append(b)
+
+		return batches
 
 
 class Loader(object):
