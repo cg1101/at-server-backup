@@ -6,6 +6,14 @@ from db import database as db
 from db.model import PerformanceMetaCategory, RecordingPlatform
 
 
+@bp.route("performancemetacategories/<int:performance_meta_category_id>", methods=["GET"])
+@api
+@caps()
+@get_model(PerformanceMetaCategory)
+def get_performance_meta_category(performance_meta_category):
+	return jsonify({"metaCategory": performance_meta_category.serialize()})
+
+
 @bp.route("performancemetacategories/<int:performance_meta_category_id>", methods=["PUT"])
 @api
 @caps()

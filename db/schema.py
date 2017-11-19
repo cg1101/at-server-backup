@@ -1744,6 +1744,28 @@ t_audio_sandbox_files = Table("audio_sandbox_files", metadata,
 )
 Index("audio_sandbox_files_by_audio_sandbox_id", t_audio_sandbox_files.c.audio_sandbox_id, unique=False)
 
+t_batch_router = Table("batch_router", metadata,
+	Column("batch_router_id", INTEGER, primary_key=True),
+	Column("name", TEXT, nullable=False),
+	Column("task_id", INTEGER, nullable=False),
+	Column("enabled", BOOLEAN, nullable=False, default=True),
+	ForeignKeyConstraint(["task_id"], ["tasks.taskId"]),
+	UniqueConstraint("name", "task_id"),
+)
+Index("batch_router_by_task_id", t_batch_router.c.task_id, unique=False)
+
+t_batch_router_sub_task = Table("batch_router_sub_task", metadata,
+	Column("batch_router_sub_task_id", INTEGER, primary_key=True),
+	Column("batch_router_id", INTEGER, nullable=False),
+	Column("sub_task_id", INTEGER, nullable=False),
+	Column("criteria", JSONB),
+	ForeignKeyConstraint(["batch_router_id"], ["batch_router.batch_router_id"]),
+	ForeignKeyConstraint(["sub_task_id"], ["subtasks.subTaskId"]),
+	UniqueConstraint("batch_router_id", "sub_task_id"),
+)
+Index("batch_router_sub_task_by_sub_task_id", t_batch_router_sub_task.c.sub_task_id, unique=False)
+Index("batch_router_sub_task_by_batch_router_id", t_batch_router_sub_task.c.batch_router_id, unique=False)
+
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(
 	join(t_batches, t_subtasks).join(t_worktypes).join(t_pages).join(t_pagemembers)).alias('j_pm')

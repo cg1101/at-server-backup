@@ -22,8 +22,12 @@ from db.db import SS
 from db import database as db
 from db.model import (
 	Album,
+	Batch,
+	BatchRouter,
 	Load,
+	PageMember,
 	PerformanceFlag,
+	RawPiece,
 	RecordingFlag,
 	RecordingPlatform,
 	RecordingPlatformType,
@@ -1902,6 +1906,7 @@ def get_recording_platforms(task):
 @caps()
 @get_model(Task)
 def create_recording_platform(task):
+
 	data = MyForm(
 		Field('recordingPlatformTypeId', is_mandatory=True,
 			validators=[
@@ -2299,3 +2304,85 @@ def get_allowable_work_types(task):
 		work_types.append(WorkType.from_name(name))
 
 	return jsonify({"workTypes": WorkType.dump(work_types)})
+
+
+@bp.route("tasks/<int:task_id>/batch-routers", methods=["GET"])
+@api
+@get_model(Task)
+def get_batch_routers(task):
+
+	data = MyForm(
+		Field("enabledOnly", normalizer=normalizers.to_json, validators=[
+			validators.is_bool,
+		]),
+	).get_data(is_json=False, use_args=True)
+
+	batch_routers = task.batch_routers
+
+	if "enabledOnly" in data and data["enabledOnly"]:
+		batch_routers = [b for b in batch_routers if b.enabled]
+
+	return jsonify({"batchRouters": BatchRouter.dump(batch_routers)})
+
+
+@bp.route("tasks/<int:task_id>/batch-routers", methods=["POST"])
+@api
+@get_model(Task)
+def create_batch_router(task):
+	data = MyForm(
+		Field("name", is_mandatory=True, validators=[
+			validators.is_string,
+			# TODO check unique
+		]),
+		Field("subTasks", is_mandatory=False, validators=[
+			simple_validators.is_dict,
+			# TODO more complex?
+		])
+	).get_data()
+
+	batch_router = BatchRouter(
+		task=task,
+		name=data["name"],
+	)
+
+	if "subTasks" in data:
+		batch_router.update_sub_task_criteria(data["subTasks"])
+
+	db.session.add(batch_router)
+	db.session.commit()
+	return jsonify({"batchRouter": batch_router.serialize()})
+
+
+@bp.route("tasks/<int:task_id>/batches", methods=["POST"])
+@api
+@get_model(Task)
+def create_routed_batches(task):
+	data = MyForm(
+		Field("batchRouterId", is_mandatory=True, validators=[
+			validators.is_number,
+			BatchRouter.check_exists,
+		]),
+	).get_data()
+
+	# get batch router
+	batch_router = BatchRouter.query.get(data["batchRouterId"])
+	assert batch_router.task == task
+
+	# get new raw pieces
+	raw_pieces = RawPiece.query\
+		.filter_by(taskId=task.taskId)\
+		.filter(RawPiece.isNew==True)\
+		.filter(RawPiece.rawPieceId.notin_(
+			db.session.query(PageMember.rawPieceId)\
+				.filter_by(taskId=task.taskId)\
+				.filter(PageMember.rawPieceId!=None)\
+				.distinct()
+			)
+		).order_by(RawPiece.rawPieceId).all()
+
+	batches = Batcher.route(batch_router, raw_pieces)
+
+	for batch in batches:
+		db.session.add(batch)
+	
+	return jsonify(message="created {0} batches".format(len(batches)))

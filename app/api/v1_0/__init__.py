@@ -20,6 +20,7 @@ import audio_files
 import audio_sandboxes
 import audio_sandbox_files
 import audio_stats_types
+import batch_routers
 import batches
 import batching_modes
 import constants
