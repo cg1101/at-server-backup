@@ -2138,7 +2138,7 @@ class TrackingEventSchema(Schema):
 		fields = ('eventId', 'eventType', 'tTriggeredAt', 'hostIp', 'details')
 
 # User
-class User(Base):
+class User(Base, ModelMixin):
 	PAYMENT_TYPE_INDEPENDENT_CONTRACTOR = 0
 	PAYMENT_TYPE_W2_WORKER = 1
 	PAYMENT_TYPE_CLIENT = 2
@@ -2152,6 +2152,8 @@ class User(Base):
 	global_id = synonym("globalId")
 	appen_id = synonym("globalId")
 	email_address = synonym("emailAddress")
+	family_name = synonym("familyName")
+	given_name = synonym("givenName")
 
 	@hybrid_property
 	def userName(self):

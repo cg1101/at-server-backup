@@ -22,9 +22,9 @@ before_script:
 - "./travis-ci/createdb.sh"
 - source ./travis-ci/setenv.sh
 - python manage.py db upgrade
-- "./travis-ci/load_data.sh"
+- python manage.py seed update
 script:
-- nosetests tests/
+- ./tests/run.sh
 after_script:
 - "./travis-ci/pre_build.sh"
 - "./bundle.sh"

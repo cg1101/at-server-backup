@@ -70,6 +70,7 @@ class TestingConfig(Config):
 	ENV = "test"
 	AUDIO_SERVER_API_CLS = AudioServerDevApi
 	PDB_API_CLS = ProjectDbDevApi
+	SQLALCHEMY_DATABASE_URI = "postgresql://localhost/atdb_test"
 
 
 class AwsConfig(Config):
