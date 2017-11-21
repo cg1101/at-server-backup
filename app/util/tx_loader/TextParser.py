@@ -296,10 +296,10 @@ class Parser(object):
 				elif isinstance(lookAheadToken, ParsedObject):
 					key = lookAheadToken.type
 				else:
-					raise RuntimeError, 'expecting Token/ParsedObject only'
+					raise RuntimeError('parsing error: expecting Token/ParsedObject only: {}'.format(text))
 				t = STATES[currentState].get(key, None)
 				if t == None:
-					raise RuntimeError, 'parsing error detected'
+					raise RuntimeError('parsing error: unexpected input {}: {}'.format(key, text))
 				action = t[0]
 				# print 'lookAheadToken: ==>%s<==' % lookAheadToken
 				# print 'key: ==>%s<==' % key
