@@ -1269,9 +1269,16 @@ class PayableEventSchema(Schema):
 			'calculatedPaymentId', 'ratio')
 
 # Project
-class Project(Base):
+class Project(Base, ModelMixin):
 	__table__ = t_projects
+
+	# relationships
 	_migratedByUser = relationship('User')
+	
+	# synonyms
+	project_id = synonym("projectId")
+	migrated_by = synonym("migratedBy")
+
 
 class ProjectSchema(Schema):
 	migratedBy = fields.Method('get_migrated_by')
@@ -1892,6 +1899,7 @@ class Task(Base, ModelMixin):
 	expansions = relationship('KeyExpansion', order_by='KeyExpansion.char')
 
 	# synonyms
+	project_id = synonym("projectId")
 	task_id = synonym("taskId")
 	task_type = synonym("taskType")	# FIXME causes recursion error
 	archive_info = synonym("archiveInfo")

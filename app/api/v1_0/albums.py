@@ -21,7 +21,7 @@ def get_album(album):
 def delete_album(album):
 	db.session.delete(album)
 	db.session.commit()
-	return jsonify(success=True)
+	return jsonify(deleted=True)
 
 
 @bp.route("albums/<int:album_id>/performances", methods=["GET"])

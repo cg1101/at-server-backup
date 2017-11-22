@@ -1,13 +1,13 @@
-from db import database as db
 from db.model import RecordingPlatformType
-from tests import util
+from tests.util import validate_get_list_endpoint
 
 
-class TestRecoringPlatformTypeList(object):
+class TestRecoringPlatformTypesList(object):
 	
-	@util.get_list_endpoint(return_key="recordingPlatformTypes")
-	def test_get(self):
-		return (
+	def test_get(self, session, test_client):
+		validate_get_list_endpoint(
+			test_client,
+			session.query(RecordingPlatformType).all(),
 			"/api/1.0/recording-platform-types",
-			db.session.query(RecordingPlatformType).all()
+			"recordingPlatformTypes",
 		)
