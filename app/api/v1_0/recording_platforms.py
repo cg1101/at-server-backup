@@ -1,3 +1,4 @@
+import csv
 import json
 import jsonschema
 
@@ -171,42 +172,54 @@ def upload_recording_platform_corpus_codes(recording_platform):
 	
 	if recording_platform.corpus_codes:
 		raise InvalidUsage("recording platform already has corpus codes")
-	
-	schema = {
-		"type": "array",
-		"minItems": 1,
-		"items": {
-			"type": "object",
-			"required": ["code", "isScripted"],
-			"properties": {
-				"code": {
-					"type": "string",
-				},
-				"isScripted": {
-					"type": "boolean"
-				},
-				"regex": {
-					"type": ["string", "null"]
-				}
-			}
-		}
-	}
 
-	try:
-		jsonschema.validate(request.json, schema)
-	except jsonschema.ValidationError:
-		raise InvalidUsage("invalid corpus code list uploaded")
+	if not "file" in request.files:
+		raise InvalidUsage("no corpus code list uploaded")
 
-	for data in request.json:
+	fp = request.files["file"]
+	reader = csv.reader(fp)
+
+	for row in reader:
+		if not row:
+			continue
+
+		code = row[0]
+
+		# if type included
+		if len(row) > 1:
+			type = row[1]
+			type = type.strip()
+
+			# type is non-empty
+			if type:
+
+				# check if scripted
+				if type.lower() == CorpusCode.SCRIPTED.lower():
+					type = CorpusCode.SCRIPTED
+
+				# check if spontaneous
+				elif type.lower() == CorpusCode.SPONTANEOUS.lower():
+					type = CorpusCode.SPONTANEOUS
+
+				# invalid type
+				else:
+					raise InvalidUsage("Line {0}: invalid type: {1}".format(reader.line_num, type))
+
+			else:
+				type = CorpusCode.SCRIPTED
+
+		# no type included
+		else:
+			type = CorpusCode.SCRIPTED
+		
 		corpus_code = CorpusCode(
 			recording_platform=recording_platform,
-			code=data["code"],
-			regex=data.get("regex"),
-			is_scripted=data["isScripted"],
+			code=code,
+			is_scripted=(type==CorpusCode.SCRIPTED),
 		)
+		
 		db.session.add(corpus_code)
 
-	db.session.flush()
 	db.session.commit()
 	return jsonify({"corpusCodes": CorpusCode.dump(recording_platform.corpus_codes)})
 

@@ -2240,20 +2240,18 @@ def create_task_album(task):
 @get_model(Task)
 def upload_task_album_list(task):
 
-	schema = {
-		"type": "array",
-		"minItems": 1,
-		"items": {
-			"type": "string",
-		}
-	}
+	if not "file" in request.files:
+		raise InvalidUsage("no album list uploaded")
 
-	try:
-		jsonschema.validate(request.json, schema)
-	except jsonschema.ValidationError:
-		raise InvalidUsage("invalid album name list uploaded")
+	fp = request.files["file"]
 
-	for album_name in request.json:
+	for album_name in fp.readlines():
+
+		album_name = album_name.strip()
+
+		# skip empty lines
+		if not album_name:
+			continue
 		
 		# album already exists
 		if Album.query.filter_by(task=task, name=album_name).count():
@@ -2266,7 +2264,6 @@ def upload_task_album_list(task):
 		)
 		db.session.add(album)
 
-	db.session.flush()
 	db.session.commit()
 	return jsonify(success=True)
 
