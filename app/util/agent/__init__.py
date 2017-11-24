@@ -160,6 +160,8 @@ class EdmAgent(AppAgent):
 			givenName=result['given_name'],
 			emailAddress=result['primary_email_email_address'],
 			globalId=result['global_id'],
+			# TODO: add workerPaymentType once it is added to EDM response
+			# workPaymentType=result[''],
 		)
 		user = m.User(**data)
 		return user
