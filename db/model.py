@@ -149,6 +149,8 @@ class MetaCategoryMixin(object):
 	Adds extra functionality for metadata categories.
 	"""
 
+	MANUAL = "Manual"
+
 	@property
 	def meta_category_id(self):
 		"""
@@ -169,6 +171,18 @@ class MetaCategoryMixin(object):
 		MyForm validator to check a meta validator.
 		"""
 		MetaValidator.get_validator(value)
+	
+	@classmethod
+	def normalize_extractor(cls, data, key, value):
+		"""
+		Temporary workaround. Eventually have loaders
+		ignore Manual sources.
+		"""
+
+		if value["source"] == cls.MANUAL:
+			value = None
+
+		return value
 
 
 class MetaEntityMixin(object):

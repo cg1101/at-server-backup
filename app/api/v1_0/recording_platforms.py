@@ -291,7 +291,8 @@ def create_performance_meta_category(recording_platform):
 			validators=[
 				(PerformanceMetaCategory.check_name_unique, (recording_platform,)),
 		]),
-		Field('extractor', 
+		Field('extractor', is_mandatory=True,
+			normalizer=PerformanceMetaCategory.normalize_extractor,
 			validators=[
 				recording_platform.check_extractor,
 			]
@@ -309,9 +310,9 @@ def create_performance_meta_category(recording_platform):
 		extractor=data.get("extractor"),
 		validator_spec=data["validatorSpec"],
 	)
+
 	db.session.add(performance_meta_category)
 	db.session.commit()
-
 	return jsonify({"metaCategory": PerformanceMetaCategory.dump(performance_meta_category)})
 
 
