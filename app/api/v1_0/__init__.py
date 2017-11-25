@@ -1,9 +1,10 @@
-
 from flask import Blueprint, jsonify
+from flask_restful import Api
 
 from .. import InvalidUsage
 
 api_1_0 = Blueprint('api_1_0', __name__)
+api_v1 = Api(api_1_0)
 
 @api_1_0.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
@@ -45,6 +46,7 @@ import recordings
 import recording_feedback
 import recording_flags
 import recording_platforms
+import recording_platform_types
 import sheets
 import status
 import subtasks

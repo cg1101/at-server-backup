@@ -19,21 +19,12 @@ from db.model import (
 	Performance,
 	PerformanceMetaCategory,
 	RecordingPlatform,
-	RecordingPlatformType,
 	SubTask,
 	Track,
 	Transition,
 )
 from lib.audio_load import decompress_load_data
 from lib.metadata_validation import MetaValidator
-
-
-@bp.route("recording-platform-types", methods=["GET"])
-@api
-@caps()
-def get_recording_platform_types():
-	recording_platform_types = RecordingPlatformType.query.all()
-	return jsonify({"recordingPlatformTypes": RecordingPlatformType.dump(recording_platform_types)})
 
 
 @bp.route("recording-platforms/<int:recording_platform_id>", methods=["GET"])
