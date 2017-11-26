@@ -790,7 +790,7 @@ def populate_rework_sub_task_from_extract(subTaskId):
 
 	srcSubTask = m.SubTask.query.get(data['srcSubTaskId'])
 	dstSubTask = subTask
-	fakeUser = m.User.query.get(os.environ['CURRENT_USER_ID'])
+	fakeUser = session['current_user']
 
 	tx_loader = TxLoader(subTask.taskId)
 	result = tx_loader.load_tx_file(data['dataFile'], srcSubTask, fakeUser, dstSubTask)
