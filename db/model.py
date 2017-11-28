@@ -2072,17 +2072,18 @@ class Task(Base, ModelMixin):
 
 
 class TaskSchema(Schema):
-	tagSet = fields.Nested('TagSetSchema')
-	labelSet = fields.Nested('LabelSetSchema')
+	#tagSet = fields.Nested('TagSetSchema')
+	#labelSet = fields.Nested('LabelSetSchema')
 	migratedBy = fields.Method('get_migrated_by')
 	display_name = fields.String(dump_to="displayName")
+	auto_loading = fields.Boolean(dump_to="autoLoading")
 
 	def get_migrated_by(self, obj):
 		s = UserSchema(only=['userId', 'userName'])
 		return s.dump(obj._migratedByUser).data
 
 	class Meta:
-		fields = ('taskId', 'name', 'projectId', 'taskTypeId',
+		additional = ('taskId', 'name', 'projectId', 'taskTypeId',
 			'taskType', 'status', 'srcDir', 'lastStatusChange',
 			'tagSetId', 'labelSetId', 'migrated', 'migratedBy',
 			'globalProjectId', 'config', "displayName")

@@ -2354,3 +2354,22 @@ def create_routed_batches(task):
 		db.session.add(batch)
 	
 	return jsonify(message="created {0} batches".format(len(batches)))
+
+
+@bp.route("tasks/<int:task_id>/settings", methods=["PUT"])
+@api
+@caps()
+@get_model(Task)
+def update_task(task):
+	
+	data = MyForm(
+		Field("autoLoading", validators=[
+			validators.is_bool,
+		])
+	).get_data()
+
+	if "autoLoading" in data:
+		task.auto_loading = data["autoLoading"]
+
+	db.session.commit()
+	return jsonify(task=task.serialize())
