@@ -1,14 +1,14 @@
 """added audio uploads table
 
 Revision ID: 130090387260
-Revises: 717e10c4d492
+Revises: a27e83f7ae2a
 Create Date: 2017-11-27 14:01:25.381435
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '130090387260'
-down_revision = '717e10c4d492'
+down_revision = 'a27e83f7ae2a'
 branch_labels = None
 depends_on = None
 
