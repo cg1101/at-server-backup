@@ -49,4 +49,8 @@ class ModelResource(Resource):
 		return {"deleted": True}
 
 
-api_v1.add_resource(ModelResource, "performancemetacategories/<int:performance_meta_category_id>")
+api_v1.add_resource(
+	ModelResource,
+	"performancemetacategories/<int:performance_meta_category_id>",
+	endpoint="performance_meta_categories"
+)

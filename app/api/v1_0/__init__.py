@@ -21,6 +21,7 @@ import audio_files
 import audio_sandboxes
 import audio_sandbox_files
 import audio_stats_types
+import audio_uploads
 import batch_routers
 import batches
 import batching_modes
@@ -52,6 +53,7 @@ import status
 import subtasks
 import tagsets
 import tasks
+import task_audio_uploads
 import tests
 import tracks
 import transitions
