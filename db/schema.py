@@ -1296,6 +1296,59 @@ t_graphemes =  Table('graphemes', metadata,
 	UniqueConstraint(u'alphabetId', u'token'),
 )
 
+t_phones =  Table('phones', metadata,
+	Column('key', TEXT, primary_key=True, key=u'key', doc=''),
+	Column('type', TEXT, nullable=False, key=u'type', doc=''),
+	Column('label', TEXT, nullable=True, key=u'label', doc=''),
+	Column('ipa_number', INTEGER, nullable=True, key=u'ipaNumber', doc=''),
+	Column('x_sampa', TEXT, nullable=True, key=u'xSampa', doc=''),
+	Column('appen_sampa', TEXT, nullable=True, key=u'appenSampa', doc=''),
+)
+
+t_ph_consonants =  Table('ph_consonants', metadata,
+	Column('key', TEXT, primary_key=True, key=u'key', doc=''),
+	Column('sub_type', TEXT, nullable=False, key=u'subType', doc=''),
+	Column('voicing', TEXT, nullable=False, key=u'voicing', doc=''),
+	Column('place', TEXT, nullable=False, key=u'place', doc=''),
+	Column('manner', TEXT, nullable=False, key=u'manner', doc=''),
+	Column('central_lateral', TEXT, nullable=False, key=u'centralLateral', doc=''),
+	Column('coarticulation', TEXT, nullable=False, key=u'coarticulation', doc=''),
+	Column('second_place', TEXT, nullable=False, key=u'secondPlace', doc=''),
+	Column('diacritic', TEXT, nullable=False, key=u'diacritic', doc=''),
+	ForeignKeyConstraint(['key'], ['phones.key']),
+	CheckConstraint("voicing=ANY(ARRAY['voiceless', 'voiced'])"),
+	CheckConstraint("place=ANY(ARRAY['bilabial','labiodental','dental','alveolar','alveolo-palatal','postalveolar','retroflex','palatal','velar','uvular','pharyngeal','epiglottal','glottal'])"),
+	CheckConstraint("manner=ANY(ARRAY['nasal','plosive','ejective','implosive','click','fricative','affricate','approximant','tap','flap','trill'])"),
+)
+
+t_ph_vowels =  Table('ph_vowels', metadata,
+	Column('key', TEXT, primary_key=True, key=u'key', doc=''),
+	Column('sub_type', TEXT, nullable=False, key=u'subType', doc=''),
+	Column('height', TEXT, nullable=True, key=u'height', doc=''),
+	Column('backness', TEXT, nullable=True, key=u'backness', doc=''),
+	Column('rounding', TEXT, nullable=True, key=u'rounding', doc=''),
+	Column('nasal', TEXT, nullable=True, key=u'nasal', doc=''),
+	Column('length', TEXT, nullable=True, key=u'length', doc=''),
+	Column('movement', TEXT, nullable=True, key=u'movement', doc=''),
+	ForeignKeyConstraint(['key'], ['phones.key']),
+	CheckConstraint("sub_type=ANY(ARRAY['monophthong', 'diphthong', 'triphthong'])"),
+	CheckConstraint("height=ANY(ARRAY['close', 'near-close', 'close-mid', 'mid', 'open-mid', 'near-open', 'open'])"),
+	CheckConstraint("backness=ANY(ARRAY['front', 'near-front', 'central', 'near-back', 'back'])"),
+	CheckConstraint("rounding=ANY(ARRAY['unrounded', 'rounded'])"),
+)
+
+t_ph_suprasegmentals =  Table('ph_suprasegmentals', metadata,
+	Column('key', TEXT, primary_key=True, key=u'key', doc=''),
+	Column('sub_type', TEXT, nullable=False, key=u'subType', doc=''),
+	ForeignKeyConstraint(['key'], ['phones.key']),
+)
+
+t_ph_diacritics =  Table('ph_diacritics', metadata,
+	Column('key', TEXT, primary_key=True, key=u'key', doc=''),
+	Column('sub_type', TEXT, nullable=False, key=u'subType', doc=''),
+	ForeignKeyConstraint(['key'], ['phones.key']),
+)
+
 ##########################################################################
 
 
