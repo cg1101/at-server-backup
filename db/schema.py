@@ -347,7 +347,6 @@ t_tasks =  Table('tasks', metadata,
 	Column("archive_info", JSONB, key="archiveInfo", doc=""),
 	Column("config", JSONB, key="config", doc=""),
 	Column("stats", JSONB, key="stats", doc=""),
-	Column("audio_uploads", JSONB, key="audioUploads", doc=""),
 	Column("loader", JSONB, key="loader", doc=""),
 	ForeignKeyConstraint([u'labelSetId'], [u'labelsets.labelSetId']),
 	ForeignKeyConstraint([u'taskTypeId'], [u'tasktypes.taskTypeId']),
@@ -1765,6 +1764,16 @@ t_batch_router_sub_task = Table("batch_router_sub_task", metadata,
 )
 Index("batch_router_sub_task_by_sub_task_id", t_batch_router_sub_task.c.sub_task_id, unique=False)
 Index("batch_router_sub_task_by_batch_router_id", t_batch_router_sub_task.c.batch_router_id, unique=False)
+
+t_audio_uploads = Table("audio_uploads", metadata,
+	Column("audio_upload_id", INTEGER, primary_key=True),
+	Column("task_id", INTEGER, nullable=False),
+	Column("created_at", TIMESTAMP(timezone=True), nullable=False, default=utcnow()),
+	Column("data", JSONB, nullable=False),
+	Column("hidden", BOOLEAN, nullable=False),
+	ForeignKeyConstraint(["task_id"], ["tasks.taskId"])
+)
+Index("audio_uploads_by_task_id", t_audio_uploads.c.task_id, unique=False)
 
 j_pagemembers = select([t_batches.c.batchId, t_batches.c.userId, t_subtasks.c.subTaskId,
 	t_worktypes.c.name.label('workType'), t_subtasks.c.taskId, t_pagemembers]).select_from(

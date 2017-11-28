@@ -17,4 +17,8 @@ class ListResource(Resource):
 		return {"recordingPlatformTypes": RecordingPlatformType.dump(recording_platform_types)}
 		
 
-api_v1.add_resource(ListResource, "recording-platform-types")
+api_v1.add_resource(
+	ListResource,
+	"recording-platform-types",
+	endpoint="recording_platform_types"
+)

@@ -1918,7 +1918,6 @@ class Task(Base, ModelMixin):
 	task_type = synonym("taskType")	# FIXME causes recursion error
 	archive_info = synonym("archiveInfo")
 	raw_pieces = synonym("rawPieces")
-	audio_uploads = synonym("audioUploads")
 	sub_tasks = synonym("subTasks")
 
 	@classmethod
@@ -4081,6 +4080,39 @@ class BatchRouterSubTaskSchema(Schema):
 	batch_router_id = fields.Integer(dump_to="batchRouterId")
 	sub_task = fields.Nested("SubTaskSchema", only=("subTaskId", "workType", "name"), dump_to="subTask")
 	criteria = fields.Dict()
+
+
+class AudioUpload(Base, ModelMixin):
+	__table__ = t_audio_uploads
+
+	# relationships
+	task = relationship("Task", backref=backref("audio_uploads", cascade="all, delete-orphan"))
+
+	@staticmethod
+	def get_hidden_flag(load_manager, is_empty):
+		"""
+		Determines the default value for the
+		hidden flag.
+		"""
+
+		if not is_empty:
+			return False
+
+		if "errors" in load_manager:
+			return False
+
+		if "fatalError" in load_manager:
+			return False
+
+		return True
+
+
+class AudioUploadSchema(Schema):
+	audio_upload_id = fields.Integer(dump_to="audioUploadId")
+	created_at = fields.DateTime(dump_to="createdAt")
+	data = fields.Dict()
+	hidden = fields.Boolean()
+
 
 
 #

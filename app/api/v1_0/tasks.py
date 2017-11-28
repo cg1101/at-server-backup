@@ -2151,36 +2151,6 @@ def get_utt_duration_report(task):
 	raise InvalidUsage("report not available", 400)
 
 
-@bp.route("tasks/<int:task_id>/audio-uploads", methods=["GET"])
-@api
-@get_model(Task)
-def get_audio_uploads(task):
-
-	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
-
-	return jsonify({"audioUploads": task.audio_uploads or []})
-
-
-@bp.route("tasks/<int:task_id>/audio-uploads", methods=["POST"])
-@api
-@get_model(Task)
-def save_audio_upload(task):
-
-	if not task.is_type(TaskType.TRANSCRIPTION, TaskType.AUDIO_CHECKING):
-		raise InvalidUsage("audio uploads are only available for transcription tasks", 400)
-
-	# TODO validate audio upload json
-
-	audio_uploads = task.audio_uploads or []
-	audio_uploads.append(request.json)
-	task.audio_uploads = audio_uploads
-
-	flag_modified(task, 'audioUploads')
-	db.session.commit()
-	return jsonify(success=True)
-
-
 @bp.route("tasks/<int:task_id>/loader", methods=["GET"])
 @api
 @get_model(Task)
@@ -2188,6 +2158,7 @@ def get_task_loader(task):
 	return jsonify(loader=task.loader)
 
 
+# TODO use update on tasks
 @bp.route("tasks/<int:task_id>/loader", methods=["PUT"])
 @api
 @get_model(Task)
