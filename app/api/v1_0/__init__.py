@@ -47,7 +47,12 @@ import recordings
 import recording_feedback
 import recording_flags
 import recording_platforms
+import recording_platform_audio_checking_groups
+import recording_platform_corpus_codes
+import recording_platform_loader
+import recording_platform_session_meta_categories
 import recording_platform_types
+import recording_platform_tracks
 import sheets
 import status
 import subtasks
