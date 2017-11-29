@@ -125,6 +125,7 @@ class EdmAgent(AppAgent):
 			# 'mobile_phone_phone_number': None,
 			# 'street_address_address1': None,
 			'street_address_country': '_countryIso3',
+			'worker_payment_type': 'workerPaymentType',
 			# 'nationality_country_id': 'countryId',
 			# 'salutation': None,
 			# 'street_address_city': None,
@@ -163,6 +164,9 @@ class EdmAgent(AppAgent):
 			# TODO: add workerPaymentType once it is added to EDM response
 			# workPaymentType=result[''],
 		)
+		for _d in result.get('jkvp', []):
+			if _d.has_key('worker_payment_type'):
+				data['workerPaymentType']=_d['worker_payment_type']
 		user = m.User(**data)
 		return user
 	def decode_changes(self, entity, changes):
