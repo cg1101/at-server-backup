@@ -39,7 +39,12 @@ def upgrade():
 		if isinstance(data, list) and data:
 			for entry in data:
 				created_at = datetime.datetime.utcfromtimestamp(entry["info"]["finishedAt"])
-				op.execute("insert into audio_uploads (task_id, created_at, data, hidden) values ({0}, '{1}', '{2}', false)".format(task_id, created_at, json.dumps(entry)))
+				conn.execute(
+					"insert into audio_uploads (task_id, created_at, data, hidden) values (%(task_id)s, %(created_at)s, %(data)s, false)",
+					task_id=task_id,
+					created_at=created_at,
+					data=json.dumps(entry),
+				)
 
 	op.drop_column(u'tasks', 'audio_uploads')
 
