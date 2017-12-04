@@ -2170,6 +2170,7 @@ class User(Base, ModelMixin):
 
 	# synonyms
 	globalId = synonym('userId')
+	workerPaymentType = synonym('paymentType')
 	user_id = synonym("userId")
 	global_id = synonym("globalId")
 	appen_id = synonym("globalId")
