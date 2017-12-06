@@ -155,13 +155,19 @@ def load_json_file(file, auto_gen_allocation_context=True,
 		assert isinstance(data_dict, dict)
 
 	def validate_assembly_context(data_dict):
-		assert (data_dict.has_key('assemblyContext') and
-			isinstance(data_dict['assemblyContext'], basestring) and
-			data_dict['assemblyContext'].strip())
+		if not data_dict.has_key('assemblyContext'):
+			raise ValueError('assemblyContext not found')
+		if not isinstance(data_dict['assemblyContext'], basestring):
+			raise ValueError('assemblyContext must be a string')
+		if not data_dict['assemblyContext'].strip():
+			raise ValueError('assemblyContext must not be blank')
 	def validate_allocation_context(data_dict):
-		assert (data_dict.has_key('allocationContext') and
-			isinstance(data_dict['allocationContext'], basestring) and
-			data_dict['allocationContext'].strip())
+		if not data_dict.has_key('allocationContext'):
+			raise ValueError('allocationContext is missing')
+		if isinstance(data_dict['allocationContext'], basestring):
+			raise ValueError('allocationContext must be a string')
+		if not data_dict['allocationContext'].strip():
+			raise ValueError('allocationContext must not blank')
 	def validate_meta(data_dict):
 		literal = data_dict.get('meta', None)
 		if literal != None:
@@ -180,8 +186,8 @@ def load_json_file(file, auto_gen_allocation_context=True,
 		for v in validators:
 			try:
 				v(dd)
-			except:
-				raise RuntimeError('validation failed: item {}, {}: {}'.format(i, v, dd))
+			except Exception, e:
+				raise RuntimeError('validation failed: item {}, {}: {}, {}'.format(i, v, e, dd))
 		if auto_gen_words:
 			dd['words'] = 1
 		itemDicts.append(dd)
