@@ -6,7 +6,7 @@ boto3==1.3.0
 botocore==1.4.83
 click==6.6
 docutils==0.12
-et-xmlfile==1.0.1
+et-xmlfile==1.1.0
 Flask==1.0
 Flask-Cors==2.1.2
 Flask-Migrate==1.8.0
