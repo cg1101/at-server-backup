@@ -26,7 +26,7 @@ lxml==4.6.3
 M2Crypto==0.26.0
 Mako==1.0.4
 MarkupSafe==0.23
-marshmallow==2.7.3
+marshmallow==2.15.1
 numpy==1.11.2
 oauthlib==2.0.0
 openpyxl==2.4.8
