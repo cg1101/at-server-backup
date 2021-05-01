@@ -30,7 +30,7 @@ marshmallow==2.7.3
 numpy==1.11.2
 oauthlib==2.0.0
 openpyxl==2.4.8
-Pillow==3.4.1
+Pillow==8.1.1
 psycopg2==2.6.1
 py==1.10.0
 pycrypto==2.6.1
