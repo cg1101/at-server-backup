@@ -1,7 +1,7 @@
 alembic==0.8.6
 aniso8601==9.0.1
 Authomatic==1.0.0
-boto==2.48.0
+boto==2.49.0
 boto3==1.17.62
 botocore==1.4.83
 click==6.6
