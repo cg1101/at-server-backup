@@ -12,7 +12,7 @@ Flask-Cors==2.1.2
 Flask-Migrate==1.8.0
 Flask-OAuthlib==0.9.3
 Flask-RESTful==0.3.6
-Flask-Script==2.0.5
+Flask-Script==2.0.6
 Flask-SQLAlchemy==2.5.1
 functools32==3.2.3.post2
 futures==3.0.5
