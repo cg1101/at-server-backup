@@ -5,7 +5,7 @@ boto==2.49.0
 boto3==1.17.62
 botocore==1.20.62
 click==6.6
-docutils==0.12
+docutils==0.17.1
 et-xmlfile==1.1.0
 Flask==1.1.2
 Flask-Cors==3.0.10
