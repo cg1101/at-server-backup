@@ -35,7 +35,7 @@ psycopg2==2.6.1
 py==1.10.0
 pycrypto==2.6.1
 PyJWT==2.1.0
-pytest==6.2.3
+pytest==6.2.4
 pytest-env==0.6.2
 python-dateutil==2.8.1
 python-editor==1.0.4
