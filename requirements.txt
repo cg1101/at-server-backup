@@ -27,7 +27,7 @@ M2Crypto==0.37.1
 Mako==1.1.4
 MarkupSafe==1.1.1
 marshmallow==3.11.1
-numpy==1.20.2
+numpy==1.20.3
 oauthlib==3.1.0
 openpyxl==3.0.7
 Pillow==8.2.0
