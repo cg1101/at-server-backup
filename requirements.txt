@@ -19,7 +19,7 @@ futures==3.1.1
 iso8601==0.1.14
 itsdangerous==1.1.0
 jdcal==1.4.1
-Jinja2==2.11.3
+Jinja2==3.0.1
 jmespath==0.10.0
 jsonschema==3.2.0
 lxml==4.6.3
